@@ -27,7 +27,7 @@ public class Slider extends JComponent {
             public void mousePressed(MouseEvent e)  { if (!isEnabled()) return; dragging = true; setValueFrom(e.getX()); }
             public void mouseDragged(MouseEvent e)  { if (!isEnabled()) return; setValueFrom(e.getX()); }
             public void mouseReleased(MouseEvent e) { dragging = false; }
-            public void mouseEntered(MouseEvent e)  { hoverAnim.go(hover, 1f); }
+            public void mouseEntered(MouseEvent e)  { if (isEnabled()) hoverAnim.go(hover, 1f); }
             public void mouseExited(MouseEvent e)   { hoverAnim.go(hover, 0f); }
         };
         addMouseListener(m);

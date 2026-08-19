@@ -23,5 +23,5 @@ public interface Easing {
         System.out.println("Easing self-check OK");
     }
 
-    static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) { selfCheck(); }
 }

@@ -36,7 +36,7 @@ public final class Animator {
         listener.update(from + (to - from) * easing.apply(p));
     }
 
-    static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         final float[] last = {-1f};
         Animator a = new Animator(40, Easing::linear, v -> last[0] = v);
         a.go(0f, 1f);

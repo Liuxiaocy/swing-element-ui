@@ -59,7 +59,7 @@ public class Input extends JPanel {
             public void mouseEntered(MouseEvent e) { hoverAnim.go(hover, 1f); updateClear(); }
             public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); updateClear(); }
             public void mouseClicked(MouseEvent e) {
-                if (e.getX() > getWidth() - 30) { setText(""); field.requestFocus(); }
+                if (isEnabled() && e.getX() > getWidth() - 30) { setText(""); field.requestFocus(); }
             }
         };
         field.addMouseListener(m);   // field 铺满面板，鼠标事件落在 field 上

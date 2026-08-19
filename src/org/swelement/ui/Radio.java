@@ -23,7 +23,7 @@ public class Radio extends JRadioButton {
         setForeground(ElementTheme.TEXT_REGULAR);
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { hoverAnim.go(hover, 1f); }
+            public void mouseEntered(MouseEvent e) { if (isEnabled()) hoverAnim.go(hover, 1f); }
             public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); }
         });
         addItemListener(e -> {
@@ -49,7 +49,7 @@ public class Radio extends JRadioButton {
         g2.drawOval(cx - 8, cy - 8, 16, 16);
 
         float r = 4f * (float) Math.sqrt(dot);
-        g2.setColor(ElementTheme.PRIMARY);
+        g2.setColor(isEnabled() ? ElementTheme.PRIMARY : new Color(0xC0C4CC));
         g2.fillOval((int) (cx - r), (int) (cy - r), (int) (2 * r), (int) (2 * r));
 
         g2.setColor(isEnabled() ? ElementTheme.TEXT_REGULAR : new Color(0xC0C4CC));

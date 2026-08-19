@@ -26,7 +26,7 @@ public class Checkbox extends JCheckBox {
         setForeground(ElementTheme.TEXT_REGULAR);
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { hoverAnim.go(hover, 1f); }
+            public void mouseEntered(MouseEvent e) { if (isEnabled()) hoverAnim.go(hover, 1f); }
             public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); }
         });
         addItemListener(e -> {
