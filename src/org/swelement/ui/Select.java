@@ -175,7 +175,7 @@ public class Select extends JPanel {
                 chip.setBorder(new EmptyBorder(2, 8, 2, 8));
                 chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 chip.addMouseListener(new MouseAdapter() {
-                    public void mouseClicked(MouseEvent e) { selected.remove(o); updateDisplay(); rebuildList(null); }
+                    public void mouseClicked(MouseEvent e) { if (!isEnabled()) return; selected.remove(o); updateDisplay(); rebuildList(null); }
                 });
                 tagsPanel.add(chip);
             }
