@@ -17,6 +17,14 @@ java -cp out org.swelement.demo.CheckboxDemo
 java -cp out org.swelement.demo.RadioDemo
 java -cp out org.swelement.demo.SwitchDemo
 java -cp out org.swelement.demo.SliderDemo
+java -cp out org.swelement.demo.SelectDemo
+java -cp out org.swelement.demo.TabsDemo
+java -cp out org.swelement.demo.PaginationDemo
+java -cp out org.swelement.demo.MenuDemo
+java -cp out org.swelement.demo.TagDemo
+java -cp out org.swelement.demo.ProgressDemo
+java -cp out org.swelement.demo.BadgeDemo
+java -cp out org.swelement.demo.AlertDemo
 ```
 
 ## 核心自检
@@ -25,6 +33,8 @@ java -cp out org.swelement.demo.SliderDemo
 java -ea -cp out org.swelement.core.Easing
 java -ea -cp out org.swelement.core.ElementTheme
 java -ea -cp out org.swelement.core.Animator
+java -ea -cp out org.swelement.ui.Select
+java -ea -cp out org.swelement.ui.Pagination
 ```
 
 ## 设计
