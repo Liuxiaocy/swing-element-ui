@@ -34,6 +34,7 @@ public class Tabs extends JComponent {
         setOpaque(false);
         setLayout(new BorderLayout());
         cardPanel.setBackground(Color.WHITE);
+        cardPanel.setOpaque(false);
         cardPanel.setBorder(new EmptyBorder(HEADER_H, 0, 0, 0));
         add(cardPanel, BorderLayout.CENTER);
         addMouseListener(new MouseAdapter() {
@@ -97,6 +98,8 @@ public class Tabs extends JComponent {
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setColor(Color.WHITE);
+        g2.fillRect(0, 0, getWidth(), getHeight());
         FontMetrics fm = g2.getFontMetrics(ElementTheme.FONT);
         int[] xs = tabPositions();
         for (int i = 0; i < titles.size(); i++) {
