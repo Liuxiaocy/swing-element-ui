@@ -519,15 +519,15 @@ public class Input extends JPanel {
             public void focusGained(FocusEvent e) { focusAnim.go(focus, 1f); updateClear(); }
             public void focusLost(FocusEvent e)   { focusAnim.go(focus, 0f); updateClear(); }
         });
-        MouseAdapter hover = new MouseAdapter() {
+        MouseAdapter m = new MouseAdapter() {
             public void mouseEntered(MouseEvent e) { hoverAnim.go(hover, 1f); updateClear(); }
             public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); updateClear(); }
             public void mouseClicked(MouseEvent e) {
                 if (e.getX() > getWidth() - 30) { setText(""); field.requestFocus(); }
             }
         };
-        field.addMouseListener(hover);   // field 铺满面板，鼠标事件落在 field 上
-        addMouseListener(hover);
+        field.addMouseListener(m);   // field 铺满面板，鼠标事件落在 field 上
+        addMouseListener(m);
     }
 
     private void updateClear() {
