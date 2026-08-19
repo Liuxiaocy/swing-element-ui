@@ -316,19 +316,19 @@ public class Button extends JButton {
 
     private static final Color WHITE = Color.WHITE;
     private static final Color FILL_BLANK = ElementTheme.FILL_BLANK;
-    private static final Color PRIMARY = ElementTheme.PRIMARY;
-    private static final Color SUCCESS = ElementTheme.SUCCESS;
-    private static final Color WARNING = ElementTheme.WARNING;
-    private static final Color DANGER  = ElementTheme.DANGER;
-    private static final Color INFO    = ElementTheme.INFO;
-    private static final Color BORDER_BASE = ElementTheme.BORDER_BASE;
+    private static final Color PRIMARY_COLOR = ElementTheme.PRIMARY;
+    private static final Color SUCCESS_COLOR = ElementTheme.SUCCESS;
+    private static final Color WARNING_COLOR = ElementTheme.WARNING;
+    private static final Color DANGER_COLOR = ElementTheme.DANGER;
+    private static final Color INFO_COLOR = ElementTheme.INFO;
+    private static final Color BORDER_BASE_COLOR = ElementTheme.BORDER_BASE;
 
-    private static final Color[] BASE_BG  = {FILL_BLANK, PRIMARY, SUCCESS, WARNING, DANGER, INFO};
+    private static final Color[] BASE_BG  = {FILL_BLANK, PRIMARY_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR, INFO_COLOR};
     private static final Color[] HOVER_BG = {new Color(0xECF5FF), new Color(0x66B1FF), new Color(0x85CE61), new Color(0xEBB563), new Color(0xF78989), new Color(0xA6A9AD)};
     private static final Color[] ACTIVE_BG= {new Color(0xD2E4FF), new Color(0x3A8EE6), new Color(0x5DAF32), new Color(0xCF9236), new Color(0xDD6161), new Color(0x82848A)};
     private static final Color[] BASE_FG  = {new Color(0x606266), WHITE, WHITE, WHITE, WHITE, WHITE};
-    private static final Color[] HOVER_FG = {PRIMARY, WHITE, WHITE, WHITE, WHITE, WHITE};
-    private static final Color[] BORDER   = {BORDER_BASE, PRIMARY, SUCCESS, WARNING, DANGER, INFO};
+    private static final Color[] HOVER_FG = {PRIMARY_COLOR, WHITE, WHITE, WHITE, WHITE, WHITE};
+    private static final Color[] BORDER   = {BORDER_BASE_COLOR, PRIMARY_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR, INFO_COLOR};
 
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
     private final Animator activeAnim = new Animator(120, Easing::easeInOut, v -> { active = v; repaint(); });
