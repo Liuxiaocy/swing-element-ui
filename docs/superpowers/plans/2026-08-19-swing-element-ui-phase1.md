@@ -162,7 +162,7 @@ public final class ElementTheme {
         assert lerp(Color.WHITE, Color.BLACK, 1f).equals(Color.BLACK);
         assert lerp(10, 20, 0.5f) == 15;
         assert lerp(0.5f, 1f, 0.5f) == 0.75f;
-        assert lerp(Color.WHITE, Color.BLACK, 0.5f).getRed() == 127;
+        assert lerp(Color.WHITE, Color.BLACK, 0.5f).getRed() == 128;  // Math.round(127.5f)==128
         System.out.println("ElementTheme self-check OK");
     }
 
