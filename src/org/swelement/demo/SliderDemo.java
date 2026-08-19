@@ -3,7 +3,6 @@ package org.swelement.demo;
 import org.swelement.ui.Slider;
 
 import javax.swing.*;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 
 public class SliderDemo {

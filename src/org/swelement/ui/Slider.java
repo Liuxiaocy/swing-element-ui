@@ -5,6 +5,7 @@ import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -15,16 +16,16 @@ public class Slider extends JComponent {
     private final Animator thumbAnim = new Animator(200, Easing::easeOut, v -> { thumbX = v; repaint(); });
     private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
     private float thumbX = -1f, hover;   // thumbX 为像素位置，-1 表示未初始化
+    private float lastTarget = Float.NaN;
     private int min, max, value;
     private boolean dragging;
 
     public Slider(int min, int max, int value) {
         this.min = min; this.max = max; this.value = value;
         setOpaque(false);
-        setPreferredSize(new Dimension(240, 32));
         MouseAdapter m = new MouseAdapter() {
-            public void mousePressed(MouseEvent e)  { dragging = true; setValueFrom(e.getX()); }
-            public void mouseDragged(MouseEvent e)  { setValueFrom(e.getX()); }
+            public void mousePressed(MouseEvent e)  { if (!isEnabled()) return; dragging = true; setValueFrom(e.getX()); }
+            public void mouseDragged(MouseEvent e)  { if (!isEnabled()) return; setValueFrom(e.getX()); }
             public void mouseReleased(MouseEvent e) { dragging = false; }
             public void mouseEntered(MouseEvent e)  { hoverAnim.go(hover, 1f); }
             public void mouseExited(MouseEvent e)   { hoverAnim.go(hover, 0f); }
@@ -54,7 +55,8 @@ public class Slider extends JComponent {
     public void removeChangeListener(ChangeListener l) { listenerList.remove(ChangeListener.class, l); }
 
     private void fire() {
-        for (ChangeListener l : listenerList.getListeners(ChangeListener.class)) l.stateChanged(null);
+        ChangeEvent e = new ChangeEvent(this);
+        for (ChangeListener l : listenerList.getListeners(ChangeListener.class)) l.stateChanged(e);
     }
 
     @Override
@@ -67,7 +69,8 @@ public class Slider extends JComponent {
         float t = (max == min) ? 0f : (value - min) / (float) (max - min);
         int thumbTarget = left + Math.round(t * (right - left));
         if (thumbX < 0) thumbX = thumbTarget;
-        if (dragging) thumbX = thumbTarget; else thumbAnim.go(thumbX, thumbTarget);
+        if (dragging) thumbX = thumbTarget;
+        else if (thumbTarget != lastTarget) { thumbAnim.go(thumbX, thumbTarget); lastTarget = thumbTarget; }
         int cx = Math.round(thumbX);
 
         Color trackColor = isEnabled() ? ElementTheme.PRIMARY : new Color(0xC0C4CC);
