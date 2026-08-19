@@ -108,6 +108,13 @@ public class Menu extends JComponent {
                 private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
                 private float hover;
 
+                {
+                    addMouseListener(new MouseAdapter() {
+                        public void mouseEntered(MouseEvent e) { hoverAnim.go(hover, 1f); }
+                        public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
+                    });
+                }
+
                 @Override
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
@@ -127,8 +134,6 @@ public class Menu extends JComponent {
             item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             final int fi = s;
             item.addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) { item.repaint(); }
-                public void mouseExited(MouseEvent e) { item.repaint(); }
                 public void mouseClicked(MouseEvent e) {
                     subPopup.setVisible(false);
                     if (a != null) a.run();
@@ -171,7 +176,6 @@ public class Menu extends JComponent {
             g2.drawString(en.label, x + 12, (HEADER_H - fm.getHeight()) / 2f + fm.getAscent());
             x += w;
         }
-        if (indX == 0f && indW == 0f && active >= 0) slideIndicator();
         if (active >= 0) {
             g2.setColor(ElementTheme.PRIMARY);
             g2.fillRect(Math.round(indX), HEADER_H - 2, Math.round(indW), 2);
