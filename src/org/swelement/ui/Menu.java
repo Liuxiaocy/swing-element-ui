@@ -6,7 +6,6 @@ import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -52,6 +51,7 @@ public class Menu extends JComponent {
         subPopup.getContent().add(subList, BorderLayout.CENTER);
         addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
+                if (!isEnabled()) return;
                 if (e.getY() > HEADER_H) return;
                 int x = 0;
                 for (int i = 0; i < entries.size(); i++) {
@@ -70,6 +70,7 @@ public class Menu extends JComponent {
         });
         addMouseMotionListener(new MouseAdapter() {
             public void mouseMoved(MouseEvent e) {
+                if (!isEnabled()) return;
                 if (e.getY() > HEADER_H) return;
                 int x = 0;
                 for (Entry en : entries) {
@@ -98,6 +99,7 @@ public class Menu extends JComponent {
     private void onEntryClick(int i, Entry en) {
         setActive(i);
         if (!en.isSub()) {
+            subPopup.setVisible(false);
             if (en.action != null) en.action.run();
             return;
         }
@@ -110,7 +112,7 @@ public class Menu extends JComponent {
 
                 {
                     addMouseListener(new MouseAdapter() {
-                        public void mouseEntered(MouseEvent e) { hoverAnim.go(hover, 1f); }
+                        public void mouseEntered(MouseEvent e) { if (!isEnabled()) return; hoverAnim.go(hover, 1f); }
                         public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
                     });
                 }
@@ -132,9 +134,9 @@ public class Menu extends JComponent {
             item.setOpaque(false);
             item.setPreferredSize(new Dimension(140, 32));
             item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            final int fi = s;
             item.addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent e) {
+                    if (!isEnabled()) return;
                     subPopup.setVisible(false);
                     if (a != null) a.run();
                 }

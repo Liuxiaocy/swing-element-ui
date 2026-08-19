@@ -16,7 +16,7 @@ public class Alert extends JComponent {
     private static final Color[] BG = {new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xF4F4F5), new Color(0xFEF0F0)};
     private static final String[] ICONS = {"\u221a", "!", "i", "\u00d7"};
 
-    private float inP = 1f, outP;
+    private float inP = 0f, outP;
     private Runnable onClosed;
     private int origW, origH;
 
@@ -48,6 +48,7 @@ public class Alert extends JComponent {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent e) {
+                    if (!isEnabled()) return;
                     if (e.getX() > getWidth() - 28) close(() -> {});
                 }
             });
@@ -64,10 +65,10 @@ public class Alert extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         int a = Math.round(255 * inP * (1 - outP));
         if (a <= 0) return;
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setColor(new Color(BG[type].getRed(), BG[type].getGreen(), BG[type].getBlue(), a));
         g2.fillRect(0, 0, getWidth(), getHeight());
         g2.setColor(new Color(COLORS[type].getRed(), COLORS[type].getGreen(), COLORS[type].getBlue(), a));

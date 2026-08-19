@@ -76,6 +76,13 @@ public class Select extends JPanel {
         optionList.setOpaque(false);
         optionList.setLayout(new BoxLayout(optionList, BoxLayout.Y_AXIS));
         popup.getContent().add(optionList, BorderLayout.CENTER);
+        popup.setDismissListener(() -> {
+            if (popupShown) {
+                popupShown = false;
+                arrowAnim.go(arrowAngle, 0f);
+                repaint();
+            }
+        });
 
         MouseAdapter click = new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {

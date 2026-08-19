@@ -79,6 +79,7 @@ public class Tag extends JComponent {
         if (closable) {
             addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent e) {
+                    if (!isEnabled()) return;
                     FontMetrics fm = getFontMetrics(ElementTheme.FONT.deriveFont(12f));
                     int xw = 16 + fm.stringWidth(text);
                     if (e.getX() > xw) close(() -> {});

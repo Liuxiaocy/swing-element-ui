@@ -95,9 +95,9 @@ public class Pagination extends JComponent {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             if (page > 0) {
                 addMouseListener(new MouseAdapter() {
-                    public void mouseEntered(MouseEvent e) { hoverAnim.go(hover, 1f); }
+                    public void mouseEntered(MouseEvent e) { if (!isEnabled()) return; hoverAnim.go(hover, 1f); }
                     public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
-                    public void mouseClicked(MouseEvent e) { setCurrentPage(page); }
+                    public void mouseClicked(MouseEvent e) { if (!isEnabled()) return; setCurrentPage(page); }
                 });
             }
         }

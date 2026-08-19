@@ -39,6 +39,7 @@ public class Tabs extends JComponent {
         add(cardPanel, BorderLayout.CENTER);
         addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
+                if (!isEnabled()) return;
                 if (e.getY() > HEADER_H) return;
                 int[] xs = tabPositions();
                 for (int i = 0; i < titles.size(); i++) {
