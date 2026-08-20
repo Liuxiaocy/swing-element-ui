@@ -11,6 +11,7 @@ public final class Animator {
     private final Listener listener;
     private float from, to;
     private long start;
+    private Runnable onComplete;
 
     public Animator(int durationMs, Easing easing, Listener listener) {
         this.duration = durationMs;
@@ -20,9 +21,14 @@ public final class Animator {
     }
 
     public void go(float from, float to) {
+        go(from, to, null);
+    }
+
+    public void go(float from, float to, Runnable onComplete) {
         this.from = from;
         this.to = to;
         this.start = System.currentTimeMillis();
+        this.onComplete = onComplete;
         this.timer.start();
     }
 
@@ -32,8 +38,14 @@ public final class Animator {
 
     private void tick() {
         float p = (System.currentTimeMillis() - start) / (float) duration;
-        if (p >= 1f) { p = 1f; timer.stop(); }
+        boolean done = p >= 1f;
+        if (done) { p = 1f; timer.stop(); }
         listener.update(from + (to - from) * easing.apply(p));
+        if (done && onComplete != null) {
+            Runnable cb = onComplete;
+            onComplete = null;
+            cb.run();
+        }
     }
 
     public static void main(String[] args) throws Exception {
