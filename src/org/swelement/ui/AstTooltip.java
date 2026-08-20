@@ -82,7 +82,7 @@ public class AstTooltip {
                 FontMetrics fm = getFontMetrics(f);
                 int w = 24 + fm.stringWidth(currentText == null ? "" : currentText);
                 int h = fm.getHeight() + 12;
-                w = Math.min(360, Math.max(48, w));
+                w = Math.min(320, Math.max(48, w));
                 return new Dimension(w, h);
             }
             @Override public Dimension getMinimumSize() { return getPreferredSize(); }
