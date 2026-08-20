@@ -55,7 +55,7 @@ public final class ElementTheme {
         return vv <= 0.03928f ? vv / 12.92f : (float) Math.pow((vv + 0.055) / 1.055, 2.4);
     }
     /** Relative luminance per WCAG (approx, range [0,1]) */
-    public static float luminance(Color c) {
+    private static float luminance(Color c) {
         return 0.2126f * srgb(c.getRed()) + 0.7152f * srgb(c.getGreen()) + 0.0722f * srgb(c.getBlue());
     }
     /** Fails (AssertionError) when fg vs bg contrast < 4.5:1 — enabled only with -ea.
