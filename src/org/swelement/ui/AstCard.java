@@ -32,7 +32,7 @@ public class AstCard extends JComponent {
         if (shadowOnHover) {
             addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent e) { if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 1f); } }
-                public void mouseExited(MouseEvent e)  { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
+                public void mouseExited(MouseEvent e)  { if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 0f); } }
             });
         }
     }
@@ -87,13 +87,18 @@ public class AstCard extends JComponent {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Insets in = getInsets();
+        int x = in.left, y = in.top;
+        int w = getWidth() - in.left - in.right;
+        int h = getHeight() - in.top - in.bottom;
+        w = Math.max(0, w); h = Math.max(0, h);
         Color bg = Color.WHITE;
         Color borderColor = bordered
                 ? ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, hover)
                 : new Color(0, 0, 0, 0);
         ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstCard.body");
         int r = ElementTheme.RADIUS * 2;
-        RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, getWidth()-1.5f, getHeight()-1.5f, r, r);
+        RoundRectangle2D rect = new RoundRectangle2D.Float(x + 0.5f, y + 0.5f, w - 1.5f, h - 1.5f, r, r);
         g2.setColor(bg); g2.fill(rect);
         if (bordered) {
             g2.setColor(borderColor);
@@ -101,36 +106,35 @@ public class AstCard extends JComponent {
             g2.draw(rect);
         }
         // Hover outer glow ring: PRIMARY translucent stroke 1.5px
-        if (hover > 0.01f) {
+        if (hover > 0.01f && w > 2 && h > 2) {
             int a = Math.round(36 * hover);
             g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
             g2.setStroke(new BasicStroke(1.5f));
-            g2.draw(new RoundRectangle2D.Float(1f, 1f, getWidth()-2.5f, getHeight()-2.5f, r, r));
+            g2.draw(new RoundRectangle2D.Float(x + 1f, y + 1f, w - 2.5f, h - 2.5f, r, r));
         }
-        // Title bar separator at y=48 (1px, BORDER_BASE)
+        // Title bar separator at y+48 (1px, BORDER_BASE)
         g2.setColor(ElementTheme.BORDER_BASE);
-        g2.drawLine(0, 48, getWidth(), 48);
-        // Title string: bold 16px, x=20, baseline vertically centered in 48px title bar
+        g2.drawLine(x, y + 48, x + w, y + 48);
+        // Title string: bold 16px, x+20, baseline vertically centered in 48px title bar
         g2.setColor(ElementTheme.TEXT_MAIN);
         ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstCard.title");
         g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
         FontMetrics fm = g2.getFontMetrics();
-        int titleBaseline = (48 - fm.getHeight()) / 2 + fm.getAscent();
+        int titleBaseline = y + (48 - fm.getHeight()) / 2 + fm.getAscent();
         // Don't paint title on top of right-justified headerActions (max title width: width - actions.width - 28px)
         int actionsW = headerActions.getPreferredSize().width + 28;
-        int maxW = Math.max(10, getWidth() - actionsW);
+        int availableW = Math.max(10, w - actionsW);
         String shown = title;
-        if (fm.stringWidth(shown) > maxW) {
-            // ellipsize — approximate by stripping characters from end + append …
+        if (availableW > 20 && fm.stringWidth(shown) > availableW) {
             String ellipsis = "\u2026";
             int ellW = fm.stringWidth(ellipsis);
-            while (shown.length() > 0 && fm.stringWidth(shown) + ellW > maxW) {
+            while (shown.length() > 0 && fm.stringWidth(shown) + ellW > availableW) {
                 shown = shown.substring(0, shown.length() - 1);
             }
             shown = shown + ellipsis;
         }
-        if (maxW > 20) {
-            g2.drawString(shown, 20, titleBaseline);
+        if (availableW > 20) {
+            g2.drawString(shown, x + 20, titleBaseline);
         }
         g2.dispose();
     }
