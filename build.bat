@@ -52,7 +52,8 @@ src\org\swelement\ui\AstTooltip.java ^
 src\org\swelement\ui\AstDropdown.java ^
 src\org\swelement\ui\AstDialog.java ^
 src\org\swelement\ui\AstMessageBox.java ^
-src\org\swelement\ui\AstMessage.java
+src\org\swelement\ui\AstMessage.java ^
+src\org\swelement\demo\AstPopupDemo.java
 
 "%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 if errorlevel 1 (
