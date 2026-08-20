@@ -73,22 +73,36 @@ public class Alert extends JComponent {
         g2.fillRect(0, 0, getWidth(), getHeight());
         g2.setColor(new Color(COLORS[type].getRed(), COLORS[type].getGreen(), COLORS[type].getBlue(), a));
         g2.fillRect(0, 0, 4, getHeight());
-        g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
-        FontMetrics fm = g2.getFontMetrics();
-        g2.drawString(ICONS[type], 16, (desc == null ? getHeight() : 22));
-        g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD));
-        FontMetrics tfm = g2.getFontMetrics();
-        g2.drawString(title, 40, (desc == null ? getHeight() : 22) - tfm.getAscent() / 2f + tfm.getAscent() / 2f);
-        if (desc != null) {
+
+        if (desc == null) {
+            // 精简模式（高40）：图标与标题垂直居中
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(ICONS[type], 16, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD));
+            FontMetrics tfm = g2.getFontMetrics();
+            g2.drawString(title, 40, (getHeight() - tfm.getHeight()) / 2f + tfm.getAscent());
+        } else {
+            // 完整模式（高56）：标题上、描述下
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(ICONS[type], 16, 22 - fm.getHeight() / 2f + fm.getAscent() - 2);
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD));
+            FontMetrics tfm = g2.getFontMetrics();
+            g2.drawString(title, 40, 22 - tfm.getHeight() / 2f + tfm.getAscent() - 2);
             g2.setFont(ElementTheme.FONT);
-            g2.setColor(new Color(0x606266));
-            g2.drawString(desc, 40, 42);
+            FontMetrics dfm = g2.getFontMetrics();
+            Color descColor = new Color(0x606266);
+            g2.setColor(new Color(descColor.getRed(), descColor.getGreen(), descColor.getBlue(), a));
+            g2.drawString(desc, 40, 40 - dfm.getHeight() / 2f + dfm.getAscent() - 2);
         }
         if (closable) {
             g2.setFont(ElementTheme.FONT.deriveFont(14f));
             FontMetrics xfm = g2.getFontMetrics();
-            g2.setColor(new Color(0xC0C4CC));
-            g2.drawString("\u00d7", getWidth() - 24 - xfm.stringWidth("\u00d7") / 2, (getHeight() + 8) / 2f);
+            Color closeColor = new Color(0xC0C4CC);
+            g2.setColor(new Color(closeColor.getRed(), closeColor.getGreen(), closeColor.getBlue(), a));
+            g2.drawString("\u00d7", getWidth() - 24 - xfm.stringWidth("\u00d7") / 2f,
+                    (getHeight() - xfm.getHeight()) / 2f + xfm.getAscent());
         }
         g2.dispose();
     }

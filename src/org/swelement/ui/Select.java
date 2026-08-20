@@ -102,11 +102,47 @@ public class Select extends JPanel {
         if (field != null) field.addMouseListener(click);
     }
 
+    /** Convenience constructor: single-select non-filterable with given labels (value = label). */
+    public Select(String[] labels) {
+        this(false, false);
+        for (String s : labels) addOption(new Option(s, s));
+    }
+
+    /** Select a single option by its value (Object.equals). For single-select mode. */
+    public void setSelectedValue(Object value) {
+        selected.clear();
+        if (value != null) {
+            for (Option o : options) {
+                if (value.equals(o.value)) { selected.add(o); break; }
+            }
+        }
+        updateDisplay();
+    }
+
+    /** Returns the first selected option's value (for single-select mode), or null. */
+    public Object getSelectedValue() {
+        return selected.isEmpty() ? null : selected.get(0).value;
+    }
+
+    /** Select option by index. */
+    public void setSelectedIndex(int i) {
+        selected.clear();
+        if (i >= 0 && i < options.size()) selected.add(options.get(i));
+        updateDisplay();
+    }
+
+    public int getSelectedIndex() {
+        if (selected.isEmpty()) return -1;
+        return options.indexOf(selected.get(0));
+    }
+
     public void addOption(Option o) { options.add(o); }
 
     public List<Option> getSelected() { return new ArrayList<>(selected); }
 
     public void clearSelection() { selected.clear(); updateDisplay(); }
+
+    public List<Option> getOptions() { return new ArrayList<>(options); }
 
     static boolean matches(String label, String filter) {
         return label.toLowerCase().contains(filter.toLowerCase());
@@ -249,9 +285,10 @@ public class Select extends JPanel {
                 g2.fillRect(0, 0, getWidth(), getHeight());
             }
             boolean isSel = selected.contains(option);
+            g2.setFont(ElementTheme.FONT);
             g2.setColor(option.disabled ? new Color(0xC0C4CC)
                     : (isSel ? ElementTheme.PRIMARY : ElementTheme.TEXT_REGULAR));
-            FontMetrics fm = g2.getFontMetrics(ElementTheme.FONT);
+            FontMetrics fm = g2.getFontMetrics();
             String text = option.label + (multiple && isSel ? "  \u221a" : "");
             g2.drawString(text, 12, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
             g2.dispose();

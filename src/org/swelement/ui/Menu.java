@@ -115,6 +115,7 @@ public class Menu extends JComponent {
                         public void mouseEntered(MouseEvent e) { if (!isEnabled()) return; hoverAnim.go(hover, 1f); }
                         public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
                     });
+                    setFont(ElementTheme.FONT);
                 }
 
                 @Override
@@ -125,8 +126,9 @@ public class Menu extends JComponent {
                         g2.setColor(ElementTheme.lerp(Color.WHITE, new Color(0xECF5FF), hover));
                         g2.fillRect(0, 0, getWidth(), getHeight());
                     }
-                    g2.setColor(ElementTheme.TEXT_REGULAR);
-                    FontMetrics fm = g2.getFontMetrics(ElementTheme.FONT);
+                    g2.setFont(ElementTheme.FONT);
+                    g2.setColor(isEnabled() ? ElementTheme.TEXT_REGULAR : new Color(0xC0C4CC));
+                    FontMetrics fm = g2.getFontMetrics();
                     g2.drawString(getText(), 16, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
                     g2.dispose();
                 }

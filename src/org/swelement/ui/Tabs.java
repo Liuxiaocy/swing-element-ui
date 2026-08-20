@@ -6,6 +6,8 @@ import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.EventListenerList;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -19,6 +21,7 @@ public class Tabs extends JComponent {
     private final Animator indXAnim = new Animator(250, Easing::easeInOut, v -> { indX = v; repaint(); });
     private final Animator indWAnim = new Animator(250, Easing::easeInOut, v -> { indW = v; repaint(); });
     private final Animator contentAnim = new Animator(200, Easing::easeInOut, v -> { contentAlpha = v; repaint(); });
+    private final EventListenerList listenerList = new EventListenerList();
     private float indX, indW, contentAlpha = 1f;
     private int selected = 0;
     private final CardLayout cards = new CardLayout();
@@ -52,6 +55,23 @@ public class Tabs extends JComponent {
         });
     }
 
+    /** Convenience constructor: build tabs with titles + empty content panels. */
+    public Tabs(String[] tabTitles, int initialIndex) {
+        this();
+        for (String t : tabTitles) {
+            JPanel p = new JPanel(new BorderLayout());
+            p.setOpaque(false);
+            addTab(t, p);
+        }
+        if (initialIndex >= 0 && initialIndex < tabTitles.length) {
+            selected = initialIndex;
+            if (initialIndex > 0) {
+                // cards.show has been done by addTab for index 0 only, so switch if needed
+                cards.show(cardPanel, String.valueOf(initialIndex));
+            }
+        }
+    }
+
     public void addTab(String title, JComponent panel) {
         titles.add(title);
         cardPanel.add(panel, String.valueOf(titles.size() - 1));
@@ -61,6 +81,21 @@ public class Tabs extends JComponent {
 
     public int getSelectedIndex() { return selected; }
 
+    public String getSelectedTitle() {
+        return (selected >= 0 && selected < titles.size()) ? titles.get(selected) : null;
+    }
+
+    public void addChangeListener(ChangeListener l) { listenerList.add(ChangeListener.class, l); }
+
+    public void removeChangeListener(ChangeListener l) { listenerList.remove(ChangeListener.class, l); }
+
+    private void fireStateChanged() {
+        ChangeListener[] ls = listenerList.getListeners(ChangeListener.class);
+        if (ls.length == 0) return;
+        javax.swing.event.ChangeEvent ev = new javax.swing.event.ChangeEvent(this);
+        for (ChangeListener l : ls) l.stateChanged(ev);
+    }
+
     public void setSelectedIndex(int i) {
         if (i < 0 || i >= titles.size() || i == selected) return;
         selected = i;
@@ -68,6 +103,7 @@ public class Tabs extends JComponent {
         contentAnim.go(0f, 1f);
         slideIndicator();
         repaint();
+        fireStateChanged();
     }
 
     private int[] tabPositions() {

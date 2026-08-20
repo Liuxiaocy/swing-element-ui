@@ -10,6 +10,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import javax.swing.event.ChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -17,6 +18,7 @@ import java.util.function.IntConsumer;
 public class Pagination extends JComponent {
     private int total, pageSize = 10, current = 1;
     private final List<IntConsumer> listeners = new ArrayList<>();
+    private final javax.swing.event.EventListenerList swingListeners = new javax.swing.event.EventListenerList();
     private final JPanel row = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
     private final JTextField jumper = new JTextField(3);
 
@@ -30,6 +32,21 @@ public class Pagination extends JComponent {
         jumper.addActionListener(this::onJump);
     }
 
+    public Pagination(int totalCount, int pageSize, int initialPage) {
+        this();
+        this.total = Math.max(0, totalCount);
+        this.pageSize = Math.max(1, pageSize);
+        this.current = 1;
+        rebuild();
+        setCurrentPage(initialPage);
+    }
+
+    public int getTotalCount() { return total; }
+
+    public int getPageSize() { return pageSize; }
+
+    public int getTotalPages() { return pages(); }
+
     public void setTotal(int t) { total = Math.max(0, t); rebuild(); }
 
     public void setPageSize(int s) { pageSize = Math.max(1, s); rebuild(); }
@@ -41,9 +58,18 @@ public class Pagination extends JComponent {
         current = Math.max(1, Math.min(pages, v));
         rebuild();
         for (IntConsumer l : listeners) l.accept(current);
+        ChangeListener[] ls = swingListeners.getListeners(ChangeListener.class);
+        if (ls.length > 0) {
+            javax.swing.event.ChangeEvent ev = new javax.swing.event.ChangeEvent(this);
+            for (ChangeListener l : ls) l.stateChanged(ev);
+        }
     }
 
     public void addPageChangeListener(IntConsumer l) { listeners.add(l); }
+
+    public void addChangeListener(ChangeListener l) { swingListeners.add(ChangeListener.class, l); }
+
+    public void removeChangeListener(ChangeListener l) { swingListeners.remove(ChangeListener.class, l); }
 
     private int pages() { return total == 0 ? 1 : (total + pageSize - 1) / pageSize; }
 
@@ -111,9 +137,9 @@ public class Pagination extends JComponent {
                 g2.setColor(active ? ElementTheme.PRIMARY : ElementTheme.lerp(Color.WHITE, new Color(0xF5F7FA), hover));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
             }
-            g2.setColor(active ? Color.WHITE : (page > 0 ? new Color(0x606266) : new Color(0xC0C4CC)));
-            FontMetrics fm = g2.getFontMetrics(ElementTheme.FONT.deriveFont(12f));
             g2.setFont(ElementTheme.FONT.deriveFont(12f));
+            g2.setColor(active ? Color.WHITE : (page > 0 ? new Color(0x606266) : new Color(0xC0C4CC)));
+            FontMetrics fm = g2.getFontMetrics();
             g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
             g2.dispose();
         }

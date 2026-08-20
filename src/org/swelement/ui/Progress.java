@@ -7,8 +7,12 @@ import org.swelement.core.ElementTheme;
 import javax.swing.*;
 import java.awt.*;
 
+import javax.swing.event.ChangeListener;
+import javax.swing.event.EventListenerList;
+
 public class Progress extends JComponent {
     private final Animator fillAnim = new Animator(300, Easing::easeOut, v -> { shown = v; repaint(); });
+    private final EventListenerList listenerList = new EventListenerList();
     private float shown;
     private int value;
     private boolean showText = true;
@@ -18,13 +22,33 @@ public class Progress extends JComponent {
         setPreferredSize(new Dimension(320, 20));
     }
 
+    public Progress(int initialValue) {
+        this();
+        setValue(initialValue);
+    }
+
+    public int getValue() { return value; }
+
     public void setValue(int v) {
+        int old = value;
         value = Math.max(0, Math.min(100, v));
         fillAnim.go(shown, value / 100f);
         repaint();
+        if (old != value) fireStateChanged();
     }
 
     public void setShowText(boolean b) { showText = b; repaint(); }
+
+    public void addChangeListener(ChangeListener l) { listenerList.add(ChangeListener.class, l); }
+
+    public void removeChangeListener(ChangeListener l) { listenerList.remove(ChangeListener.class, l); }
+
+    private void fireStateChanged() {
+        ChangeListener[] ls = listenerList.getListeners(ChangeListener.class);
+        if (ls.length == 0) return;
+        javax.swing.event.ChangeEvent ev = new javax.swing.event.ChangeEvent(this);
+        for (ChangeListener l : ls) l.stateChanged(ev);
+    }
 
     @Override
     protected void paintComponent(Graphics g) {

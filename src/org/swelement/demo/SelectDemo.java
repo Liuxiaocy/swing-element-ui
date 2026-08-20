@@ -1,47 +1,111 @@
 package org.swelement.demo;
 
+import org.swelement.ui.Button;
 import org.swelement.ui.Select;
-import org.swelement.ui.Select.Option;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 
 public class SelectDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Select Demo");
-            JPanel p = new JPanel(new FlowLayout(40, 40, 40));
-
-            Select single = new Select(false, false);
-            single.addOption(new Option("北京", 1));
-            single.addOption(new Option("上海", 2));
-            single.addOption(new Option("广州", 3));
-            p.add(single);
-
-            Select groups = new Select(false, false);
-            groups.addOption(new Option("苹果", 1, "水果", false));
-            groups.addOption(new Option("香蕉", 2, "水果", false));
-            groups.addOption(new Option("白菜", 3, "蔬菜", false));
-            groups.addOption(new Option("萝卜", 4, "蔬菜", false));
-            p.add(groups);
-
-            Select multi = new Select(true, false);
-            multi.addOption(new Option("Red", 1));
-            multi.addOption(new Option("Green", 2));
-            multi.addOption(new Option("Blue", 3));
-            p.add(multi);
-
-            Select search = new Select(true, true);
-            for (int i = 1; i <= 10; i++) search.addOption(new Option("选项 " + i, i));
-            p.add(search);
-
-            Select disabled = new Select(false, false);
-            disabled.addOption(new Option("禁用项", 1));
-            disabled.setEnabled(false);
-            p.add(disabled);
-
+            JFrame f = new JFrame("Select Demo - 下拉弹层淡入、选项选中高亮、禁用状态");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            f.setContentPane(p);
+
+            JPanel root = new JPanel();
+            root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
+            root.setBorder(new EmptyBorder(20, 24, 20, 24));
+
+            // 基础选择：城市
+            JPanel p1 = new JPanel(new GridBagLayout());
+            p1.setBorder(new TitledBorder("基础用法（点击选择框观察下拉弹层淡入 + 旋转箭头 + 选项 hover 背景高亮）"));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(8, 12, 8, 12);
+            gbc.anchor = GridBagConstraints.WEST;
+
+            gbc.gridx = 0; gbc.gridy = 0;
+            p1.add(new JLabel("🏙  所在城市"), gbc);
+            Select city = new Select(new String[]{"北京", "上海", "广州", "深圳", "杭州", "成都", "武汉", "西安", "南京", "重庆", "苏州", "天津"});
+            city.setPreferredSize(new Dimension(280, 40));
+            city.setSelectedIndex(4); // 默认杭州
+            gbc.gridx = 1; p1.add(city, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 1;
+            p1.add(new JLabel("🎨 UI 风格"), gbc);
+            Select style = new Select(new String[]{"Element UI", "Ant Design", "Material Design", "Bootstrap", "Flat UI"});
+            style.setPreferredSize(new Dimension(280, 40));
+            gbc.gridx = 1; p1.add(style, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 2;
+            p1.add(new JLabel("🚫 禁用选择"), gbc);
+            Select dis = new Select(new String[]{"选项 A", "选项 B", "选项 C"});
+            dis.setPreferredSize(new Dimension(280, 40));
+            dis.setEnabled(false);
+            gbc.gridx = 1; p1.add(dis, gbc);
+
+            // 长列表
+            JPanel p2 = new JPanel(new GridBagLayout());
+            p2.setBorder(new TitledBorder("长列表（会自动出现滚动条；可观察滚动中选中项的位置）"));
+            gbc = new GridBagConstraints();
+            gbc.insets = new Insets(8, 12, 8, 12);
+            gbc.anchor = GridBagConstraints.WEST;
+            gbc.gridx = 0; gbc.gridy = 0;
+            p2.add(new JLabel("👤 员工编号"), gbc);
+            String[] many = new String[50];
+            for (int i = 0; i < 50; i++) many[i] = "员工-" + String.format("%04d", i + 1) + " (" + (i % 5 == 0 ? "在职" : i % 7 == 0 ? "休假" : "出差") + ")";
+            Select emp = new Select(many);
+            emp.setPreferredSize(new Dimension(340, 40));
+            emp.setSelectedIndex(12);
+            gbc.gridx = 1; p2.add(emp, gbc);
+
+            // 选中结果
+            JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 8));
+            p3.setBorder(new TitledBorder("结果"));
+            JLabel echo = new JLabel("（点击「查看选择」汇总所有选择结果）");
+            echo.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
+            echo.setForeground(new Color(0x606266));
+            Button check = new Button("查看当前选择", Button.PRIMARY, false);
+            check.addActionListener(e -> {
+                Object cv = city.getSelectedValue();
+                Object sv = style.getSelectedValue();
+                Object ev = emp.getSelectedValue();
+                String c = cv == null ? "(未选)" : cv.toString();
+                String s = sv == null ? "(未选)" : sv.toString();
+                String em = ev == null ? "(未选)" : ev.toString();
+                echo.setText("<html>🏙 城市 = " + c + " ｜ 🎨 风格 = " + s + " ｜ 👤 员工 = " + em + "</html>");
+            });
+            Button reset = new Button("全部重置", Button.DEFAULT, true);
+            reset.addActionListener(e -> {
+                city.clearSelection();
+                style.clearSelection();
+                emp.clearSelection();
+                echo.setText("（已重置所有下拉）");
+            });
+            p3.add(check);
+            p3.add(reset);
+            p3.add(echo);
+
+            // 弹窗按钮：点击按钮弹出一个居中的 Select 独立弹层
+            JPanel p4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+            p4.setBorder(new TitledBorder("以按钮触发：点按钮选中某城市"));
+            String[] cs = {"北京", "上海", "广州", "深圳", "杭州", "成都", "武汉"};
+            for (String c : cs) {
+                Button b = new Button(c, Button.DEFAULT, true);
+                b.addActionListener(e -> city.setSelectedValue(c));
+                p4.add(b);
+            }
+
+            root.add(p1);
+            root.add(Box.createVerticalStrut(8));
+            root.add(p2);
+            root.add(Box.createVerticalStrut(8));
+            root.add(p3);
+            root.add(Box.createVerticalStrut(8));
+            root.add(p4);
+
+            f.setContentPane(root);
             f.pack();
             f.setLocationRelativeTo(null);
             f.setVisible(true);

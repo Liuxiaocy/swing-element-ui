@@ -44,6 +44,8 @@ public class Tag extends JComponent {
 
     public void setText(String t) { text = t; repaint(); }
 
+    public String getText() { return text; }
+
     public void close(Runnable onClosed) {
         this.onClosed = onClosed;
         origW = getWidth();
