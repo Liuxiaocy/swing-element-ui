@@ -50,7 +50,9 @@ src\org\swelement\ui\AstLoading.java ^
 src\org\swelement\demo\AstLoadingDemo.java ^
 src\org\swelement\ui\AstTooltip.java ^
 src\org\swelement\ui\AstDropdown.java ^
-src\org\swelement\ui\AstDialog.java
+src\org\swelement\ui\AstDialog.java ^
+src\org\swelement\ui\AstMessageBox.java ^
+src\org\swelement\ui\AstMessage.java
 
 "%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 if errorlevel 1 (
@@ -87,3 +89,11 @@ if %ERRORLEVEL% NEQ 0 ( echo AstDropdown self-check FAILED & exit /b 1 )
 echo --- AstDialog self-check ---
 java -ea -cp out org.swelement.ui.AstDialog
 if %ERRORLEVEL% NEQ 0 ( echo AstDialog self-check FAILED & exit /b 1 )
+
+echo --- AstMessageBox self-check ---
+java -ea -cp out org.swelement.ui.AstMessageBox
+if %ERRORLEVEL% NEQ 0 ( echo AstMessageBox self-check FAILED & exit /b 1 )
+
+echo --- AstMessage self-check ---
+java -ea -cp out org.swelement.ui.AstMessage
+if %ERRORLEVEL% NEQ 0 ( echo AstMessage self-check FAILED & exit /b 1 )

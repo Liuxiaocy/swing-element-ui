@@ -40,7 +40,6 @@ public class AstDialog {
         if (owner == null) throw new IllegalArgumentException("owner must not be null");
         if (title == null) throw new IllegalArgumentException("title must not be null");
         if (okText == null) throw new IllegalArgumentException("okText must not be null");
-        if (cancelText == null) throw new IllegalArgumentException("cancelText must not be null");
         if (!(owner instanceof RootPaneContainer)) throw new IllegalArgumentException("owner must be a RootPaneContainer (JFrame/JDialog/...)");
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(new Runnable() { public void run() {
@@ -177,11 +176,15 @@ public class AstDialog {
             };
             footer.setLayout(new FlowLayout(FlowLayout.RIGHT, 12, 16));
             footer.setOpaque(false);
-            Button cancelBtn = new Button(cancelText, Button.DEFAULT, false);
             Button okBtn = new Button(okText, Button.PRIMARY, false);
-            cancelBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_CANCEL); }});
             okBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_OK); }});
-            footer.add(cancelBtn); footer.add(okBtn);
+            boolean hasCancel = cancelText != null && cancelText.length() > 0;
+            if (hasCancel) {
+                Button cancelBtn = new Button(cancelText, Button.DEFAULT, false);
+                cancelBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_CANCEL); }});
+                footer.add(cancelBtn);
+            }
+            footer.add(okBtn);
             add(footer, BorderLayout.SOUTH);
         }
 

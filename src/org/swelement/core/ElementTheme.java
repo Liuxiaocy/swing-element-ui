@@ -69,8 +69,23 @@ public final class ElementTheme {
                 + " bg=RGB(" + bg.getRed() + "," + bg.getGreen() + "," + bg.getBlue() + ")";
     }
 
-    /** Convenience: returns WHITE for dark backgrounds, TEXT_MAIN for light backgrounds (threshold 0.55 luminance). */
+    private static float contrastRatio(float lum1, float lum2) {
+        float lighter = Math.max(lum1, lum2), darker = Math.min(lum1, lum2);
+        return (lighter + 0.05f) / (darker + 0.05f);
+    }
+
+    /** Returns WHITE/TEXT_MAIN/BLACK — first that meets WCAG 4.5:1 on bg; tie-break prefers highest contrast. */
     public static Color pickTextColorForBg(Color bg) {
-        return luminance(bg) < 0.55f ? Color.WHITE : TEXT_MAIN;
+        float lumBg = luminance(bg);
+        float rW = contrastRatio(luminance(Color.WHITE), lumBg);
+        float rT = contrastRatio(luminance(TEXT_MAIN), lumBg);
+        float rB = contrastRatio(luminance(Color.BLACK), lumBg);
+        if (rW >= 4.5f && rW >= rT && rW >= rB) return Color.WHITE;
+        if (rT >= 4.5f && rT >= rB) return TEXT_MAIN;
+        if (rB >= 4.5f) return Color.BLACK;
+        // None meets threshold → pick highest contrast
+        if (rW >= rT && rW >= rB) return Color.WHITE;
+        if (rT >= rB) return TEXT_MAIN;
+        return Color.BLACK;
     }
 }
