@@ -2,6 +2,7 @@ package org.swelement.demo;
 
 import org.swelement.ui.Badge;
 import org.swelement.ui.Button;
+import org.swelement.ui.Input;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,42 +12,122 @@ import java.awt.*;
 public class BadgeDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Badge Demo - 徽标角标、红点、数字缩放弹出动画");
+            JFrame f = new JFrame("Badge Demo - 徽标角标、红点、多组件类型");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
             root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
             root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-            // 预先创建几个 Badge 实例方便后面控制
+            // ========== 第一组：Button 上角标 ==========
             Badge b1 = new Badge();
-            b1.setContent(makeBoxButton("消息", 90, 36));
+            b1.setContent(new Button("消息", Button.DEFAULT, false));
             b1.setCount(8);
 
             Badge b2 = new Badge();
-            b2.setContent(makeBoxButton("评论", 90, 36));
+            b2.setContent(new Button("评论", Button.DEFAULT, false));
             b2.setCount(100);
 
             Badge b3 = new Badge();
-            b3.setContent(makeBoxButton("通知", 90, 36));
+            b3.setContent(new Button("通知", Button.PRIMARY, false));
             b3.setDot(true);
 
             Badge b4 = new Badge();
-            b4.setContent(makeBoxButton("待办", 90, 36));
+            b4.setContent(new Button("待办", Button.WARNING, false));
             b4.setCount(3);
 
             Badge b5 = new Badge();
-            b5.setContent(makeBoxButton("用户头像", 90, 36));
-            b5.setCount(999);   // 三位数字：展示圆角宽度自适应
+            b5.setContent(new Button("用户中心", Button.SUCCESS, false));
+            b5.setCount(999);
 
-            // ========== 展示区 ==========
-            JPanel show = new JPanel(new FlowLayout(FlowLayout.CENTER, 40, 10));
-            show.setBorder(new TitledBorder("角标展示（数字变化时观察缩放弹出动画）"));
-            show.add(wrapBadgeWithLabel(b1, "数字"));
-            show.add(wrapBadgeWithLabel(b2, ">99 圆角"));
-            show.add(wrapBadgeWithLabel(b3, "红点 dot"));
-            show.add(wrapBadgeWithLabel(b4, "小数"));
-            show.add(wrapBadgeWithLabel(b5, "三位 999"));
+            JPanel show1 = new JPanel(new FlowLayout(FlowLayout.CENTER, 40, 10));
+            show1.setBorder(new TitledBorder("Button 组件角标（数字变化时观察缩放弹出动画）"));
+            show1.add(wrapBadgeWithLabel(b1, "数字 8"));
+            show1.add(wrapBadgeWithLabel(b2, ">99 圆角 99+"));
+            show1.add(wrapBadgeWithLabel(b3, "红点 dot"));
+            show1.add(wrapBadgeWithLabel(b4, "小数 3"));
+            show1.add(wrapBadgeWithLabel(b5, "三位 999"));
+
+            // ========== 第二组：其他类型组件角标 ==========
+            // Input 输入框角标
+            Badge onInput = new Badge();
+            Input input = new Input("搜索关键词...");
+            input.setPreferredSize(new Dimension(200, 40));
+            onInput.setContent(input);
+            onInput.setCount(5);
+
+            // JLabel（头像/图标）角标
+            Badge onAvatar = new Badge();
+            JLabel avatar = new JLabel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(new Color(0x409EFF));
+                    g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(new Font("Microsoft YaHei", Font.BOLD, 18));
+                    FontMetrics fm = g2.getFontMetrics();
+                    g2.drawString("👤", (getWidth() - fm.stringWidth("👤")) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+                    g2.dispose();
+                }
+            };
+            avatar.setPreferredSize(new Dimension(56, 56));
+            onAvatar.setContent(avatar);
+            onAvatar.setDot(true);
+
+            // JPanel（色块图标）角标
+            Badge onIcon = new Badge();
+            JPanel iconBox = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(new Color(0xF56C6C));
+                    g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(new Font("Microsoft YaHei", Font.BOLD, 18));
+                    FontMetrics fm = g2.getFontMetrics();
+                    String icon = "🔔";
+                    g2.drawString(icon, (getWidth() - fm.stringWidth(icon)) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+                    g2.dispose();
+                }
+            };
+            iconBox.setPreferredSize(new Dimension(56, 56));
+            onIcon.setContent(iconBox);
+            onIcon.setCount(12);
+
+            // Checkbox 角标（带勾选状态指示）
+            Badge onCheckbox = new Badge();
+            JCheckBox cb = new JCheckBox("新功能上线");
+            cb.setFont(new Font("Microsoft YaHei", Font.PLAIN, 14));
+            cb.setPreferredSize(new Dimension(140, 28));
+            onCheckbox.setContent(cb);
+            onCheckbox.setDot(true);
+
+            // JLabel（纯文字标签）角标
+            Badge onLabel = new Badge();
+            JLabel textLabel = new JLabel("📋 待审文件") {
+                @Override
+                public void paintComponent(Graphics g) {
+                    g.setColor(new Color(0x909399));
+                    g.setFont(new Font("Microsoft YaHei", Font.BOLD, 14));
+                    super.paintComponent(g);
+                }
+            };
+            textLabel.setFont(new Font("Microsoft YaHei", Font.BOLD, 14));
+            textLabel.setForeground(new Color(0x303133));
+            textLabel.setPreferredSize(new Dimension(120, 28));
+            onLabel.setContent(textLabel);
+            onLabel.setCount(23);
+
+            JPanel show2 = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 14));
+            show2.setBorder(new TitledBorder("不同组件类型角标（角标均显示在组件右上角外部，不遮挡内容）"));
+            show2.add(wrapBadgeWithLabel(onInput, "Input 输入框"));
+            show2.add(wrapBadgeWithLabel(onAvatar, "JLabel 头像 dot"));
+            show2.add(wrapBadgeWithLabel(onIcon, "JPanel 图标"));
+            show2.add(wrapBadgeWithLabel(onCheckbox, "Checkbox 复选框"));
+            show2.add(wrapBadgeWithLabel(onLabel, "JLabel 文字标签"));
 
             // ========== 交互控制区 ==========
             JPanel ctrl = new JPanel(new GridBagLayout());
@@ -85,44 +166,59 @@ public class BadgeDemo {
             sp5.addChangeListener(e -> b5.setCount(((Number) sp5.getValue()).intValue()));
             gbc.gridx = 1; ctrl.add(sp5, gbc);
 
-            // 批量 +1 按钮（观察缩放动画）
-            gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+            gbc.gridx = 0; gbc.gridy = 5;
+            ctrl.add(new JLabel("图标 count:"), gbc);
+            final JSpinner sp6 = new JSpinner(new SpinnerNumberModel(12, 0, 9999, 1));
+            sp6.addChangeListener(e -> onIcon.setCount(((Number) sp6.getValue()).intValue()));
+            gbc.gridx = 1; ctrl.add(sp6, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 6;
+            ctrl.add(new JLabel("头像 dot:"), gbc);
+            final JCheckBox dotCb2 = new JCheckBox("显示红点", true);
+            dotCb2.addActionListener(e -> onAvatar.setDot(dotCb2.isSelected()));
+            gbc.gridx = 1; ctrl.add(dotCb2, gbc);
+
+            gbc.gridx = 0; gbc.gridy = 7;
+            ctrl.add(new JLabel("标签 count:"), gbc);
+            final JSpinner sp7 = new JSpinner(new SpinnerNumberModel(23, 0, 9999, 1));
+            sp7.addChangeListener(e -> onLabel.setCount(((Number) sp7.getValue()).intValue()));
+            gbc.gridx = 1; ctrl.add(sp7, gbc);
+
+            // 批量 +1 按钮
+            gbc.gridx = 0; gbc.gridy = 8; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
             Button plusBtn = new Button("全部 count +1 (看弹出动画)", Button.PRIMARY, false);
             plusBtn.addActionListener(e -> {
                 sp1.setValue((int) sp1.getValue() + 1);
                 sp2.setValue((int) sp2.getValue() + 1);
                 sp4.setValue((int) sp4.getValue() + 1);
                 sp5.setValue((int) sp5.getValue() + 1);
+                sp6.setValue((int) sp6.getValue() + 1);
+                sp7.setValue((int) sp7.getValue() + 1);
             });
             ctrl.add(plusBtn, gbc);
 
-            // 自动递增演示（最右下角的计数）
+            // 自动递增演示
             final int[] n = {8};
-            new Timer(1200, e -> {
+            new Timer(1500, e -> {
                 n[0]++;
                 b1.setCount(n[0]);
                 if (n[0] % 3 == 0) b3.setDot(n[0] % 6 == 0);
             }).start();
 
-            root.add(show);
+            root.add(show1);
+            root.add(Box.createVerticalStrut(10));
+            root.add(show2);
             root.add(Box.createVerticalStrut(10));
             root.add(ctrl);
 
-            f.setContentPane(root);
+            f.setContentPane(new JScrollPane(root));
             f.pack();
+            f.setSize(Math.max(f.getWidth(), 920), Math.min(f.getHeight(), 750));
             f.setLocationRelativeTo(null);
             f.setVisible(true);
         });
     }
 
-    // 辅助：把 Badge 放中心的 Box 容器按钮
-    private static JComponent makeBoxButton(String text, int w, int h) {
-        JButton b = new JButton(text);
-        b.setPreferredSize(new Dimension(w, h));
-        return b;
-    }
-
-    // 辅助：Badge + 下方说明标签
     private static JComponent wrapBadgeWithLabel(Badge b, String desc) {
         JPanel wrap = new JPanel();
         wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
