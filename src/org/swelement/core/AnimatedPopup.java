@@ -32,6 +32,20 @@ public class AnimatedPopup extends JComponent {
     private final JPanel content;
     private Component invoker;
     private Runnable dismissListener;
+    private PopupLayer assignedLayer = PopupLayer.POPUP;
+    private final AWTEventListener awtDismissListener = new AWTEventListener() {
+        public void eventDispatched(AWTEvent event) {
+            if (event.getID() == MouseEvent.MOUSE_PRESSED) {
+                MouseEvent me = (MouseEvent) event;
+                Component src = me.getComponent();
+                if (AnimatedPopup.this.getParent() == null) return;
+                if (AnimatedPopup.this.isAncestorOf(src)) return;
+                if (invoker != null && (src == invoker || (invoker instanceof Container && ((Container)invoker).isAncestorOf(src)))) return;
+                hidePopup();
+                if (dismissListener != null) dismissListener.run();
+            }
+        }
+    };
 
     public AnimatedPopup() {
         setOpaque(false);
@@ -58,22 +72,7 @@ public class AnimatedPopup extends JComponent {
             content.setBorder(new EmptyBorder(Math.round(8 * (1 - v)), 0, 0, 0));
             repaint();
         });
-        Toolkit.getDefaultToolkit().addAWTEventListener(this::onAwtEvent, AWTEvent.MOUSE_EVENT_MASK);
-    }
-
-    private void onAwtEvent(AWTEvent e) {
-        if (e.getID() != MouseEvent.MOUSE_PRESSED || !isShowing()) return;
-        MouseEvent me = (MouseEvent) e;
-        if (invoker != null && invoker.isShowing()) {
-            Point iv = invoker.getLocationOnScreen();
-            if (me.getXOnScreen() >= iv.x && me.getXOnScreen() < iv.x + invoker.getWidth()
-                    && me.getYOnScreen() >= iv.y && me.getYOnScreen() < iv.y + invoker.getHeight()) return;
-        }
-        Point pp = getLocationOnScreen();
-        if (me.getXOnScreen() >= pp.x && me.getXOnScreen() < pp.x + getWidth()
-                && me.getYOnScreen() >= pp.y && me.getYOnScreen() < pp.y + getHeight()) return;
-        hidePopup();
-        if (dismissListener != null) dismissListener.run();
+        Toolkit.getDefaultToolkit().addAWTEventListener(awtDismissListener, AWTEvent.MOUSE_EVENT_MASK);
     }
 
     public JPanel getContent() { return content; }
@@ -108,6 +107,7 @@ public class AnimatedPopup extends JComponent {
         parent.remove(this);
         parent.repaint(r.x, r.y, r.width, r.height);
         openAnim.stop();
+        Toolkit.getDefaultToolkit().removeAWTEventListener(awtDismissListener);
     }
 
     public void show(Component invoker, Direction dir) {
@@ -125,7 +125,7 @@ public class AnimatedPopup extends JComponent {
         setBounds(p.x, p.y, getPreferredSize().width, getPreferredSize().height);
         alpha = 0f;
         if (content != null) content.setBorder(new javax.swing.border.EmptyBorder(8, 0, 0, 0));
-        lp.add(this, JLayeredPane.POPUP_LAYER, layerZ.get(PopupLayer.POPUP));
+        lp.add(this, JLayeredPane.POPUP_LAYER, layerZ.get(assignedLayer));
         lp.repaint(p.x, p.y, getWidth(), getHeight());
         if (openAnim != null) openAnim.go(0f, 1f);
     }
@@ -133,6 +133,7 @@ public class AnimatedPopup extends JComponent {
     public void hideWithAnimation(final Runnable afterHidden) {
         if (getParent() == null) { if (afterHidden != null) afterHidden.run(); return; }
         globalStack.remove(this);
+        openAnim.stop();
         closeAnim.stop();
         alpha = 1f;
         closeAnim.go(0f, 1f);
@@ -143,6 +144,7 @@ public class AnimatedPopup extends JComponent {
                 ((Timer)e.getSource()).stop();
                 parent.remove(AnimatedPopup.this);
                 parent.repaint(r.x, r.y, r.width, r.height);
+                Toolkit.getDefaultToolkit().removeAWTEventListener(awtDismissListener);
                 if (afterHidden != null) afterHidden.run();
             }
         });
@@ -151,6 +153,7 @@ public class AnimatedPopup extends JComponent {
     }
 
     public static void registerGlobal(AnimatedPopup p, PopupLayer layer) {
+        p.assignedLayer = layer;
         globalStack.add(p);
     }
 }
