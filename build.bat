@@ -41,7 +41,9 @@ src\org\swelement\demo\SwitchDemo.java ^
 src\org\swelement\demo\TabsDemo.java ^
 src\org\swelement\demo\TagDemo.java ^
 src\org\swelement\ui\AstContainer.java ^
-src\org\swelement\demo\AstContainerDemo.java
+src\org\swelement\demo\AstContainerDemo.java ^
+src\org\swelement\ui\AstAvatar.java ^
+src\org\swelement\demo\AstAvatarDemo.java
 
 "%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 if errorlevel 1 (
@@ -54,3 +56,7 @@ echo BUILD OK
 echo --- AstContainer self-check ---
 java -ea -cp out org.swelement.ui.AstContainer
 if %ERRORLEVEL% NEQ 0 ( echo AstContainer self-check FAILED & exit /b 1 )
+
+echo --- AstAvatar self-check ---
+java -ea -cp out org.swelement.ui.AstAvatar
+if %ERRORLEVEL% NEQ 0 ( echo AstAvatar self-check FAILED & exit /b 1 )
