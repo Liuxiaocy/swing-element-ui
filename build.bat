@@ -4,11 +4,53 @@ set "JAVAC=javac"
 if exist "C:\Program Files\Java\jdk1.8.0_311\bin\javac.exe" set "JAVAC=C:\Program Files\Java\jdk1.8.0_311\bin\javac.exe"
 "%JAVAC%" -version >nul 2>nul || (echo ERROR: javac not found & exit /b 1)
 if not exist out mkdir out
-(for /f "delims=" %%f in ('dir /s /b src\*.java') do set "p=%%f" & echo "!p:\=/!") > .sources.txt
-"%JAVAC%" -encoding UTF-8 --release 8 -d out @.sources.txt
+
+SET SOURCES=^
+src\org\swelement\core\ElementTheme.java ^
+src\org\swelement\core\Easing.java ^
+src\org\swelement\core\Animator.java ^
+src\org\swelement\core\AnimatedPopup.java ^
+src\org\swelement\core\GlassPane.java ^
+src\org\swelement\core\PopupPositioner.java ^
+src\org\swelement\ui\Alert.java ^
+src\org\swelement\ui\Badge.java ^
+src\org\swelement\ui\Button.java ^
+src\org\swelement\ui\Checkbox.java ^
+src\org\swelement\ui\Input.java ^
+src\org\swelement\ui\Menu.java ^
+src\org\swelement\ui\Pagination.java ^
+src\org\swelement\ui\Progress.java ^
+src\org\swelement\ui\Radio.java ^
+src\org\swelement\ui\Select.java ^
+src\org\swelement\ui\Slider.java ^
+src\org\swelement\ui\Switch.java ^
+src\org\swelement\ui\Tabs.java ^
+src\org\swelement\ui\Tag.java ^
+src\org\swelement\demo\AlertDemo.java ^
+src\org\swelement\demo\BadgeDemo.java ^
+src\org\swelement\demo\ButtonDemo.java ^
+src\org\swelement\demo\CheckboxDemo.java ^
+src\org\swelement\demo\InputDemo.java ^
+src\org\swelement\demo\MenuDemo.java ^
+src\org\swelement\demo\PaginationDemo.java ^
+src\org\swelement\demo\ProgressDemo.java ^
+src\org\swelement\demo\RadioDemo.java ^
+src\org\swelement\demo\SelectDemo.java ^
+src\org\swelement\demo\SliderDemo.java ^
+src\org\swelement\demo\SwitchDemo.java ^
+src\org\swelement\demo\TabsDemo.java ^
+src\org\swelement\demo\TagDemo.java ^
+src\org\swelement\ui\AstContainer.java ^
+src\org\swelement\demo\AstContainerDemo.java
+
+"%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 if errorlevel 1 (
   echo --release 8 not supported, retrying with -source/-target 8
-  "%JAVAC%" -encoding UTF-8 -source 8 -target 8 -d out @.sources.txt
+  "%JAVAC%" -encoding UTF-8 -source 8 -target 8 -d out %SOURCES%
 )
 if errorlevel 1 (echo BUILD FAILED & exit /b 1)
 echo BUILD OK
+
+echo --- AstContainer self-check ---
+java -ea -cp out org.swelement.ui.AstContainer
+if %ERRORLEVEL% NEQ 0 ( echo AstContainer self-check FAILED & exit /b 1 )
