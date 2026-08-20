@@ -49,7 +49,7 @@ public class AstAvatar extends JComponent {
         badge.setDot(false);
         badge.setCount(0);
         addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { if (isEnabled()) hoverAnim.stop(); hoverAnim.go(hover, 1f); }
+            public void mouseEntered(MouseEvent e) { if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 1f); } }
             public void mouseExited(MouseEvent e)  { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
         });
     }
@@ -77,9 +77,8 @@ public class AstAvatar extends JComponent {
             g2.setStroke(new BasicStroke(2f));
             g2.draw(s);
         }
-        float lum = ElementTheme.luminance(bgPaint);
-        Color fg = lum < 0.55f ? Color.WHITE : ElementTheme.TEXT_MAIN;
-        ElementTheme.assertContrast(fg, bgPaint, "AstAvatar shape="+shape+" lum="+String.format("%.2f",lum));
+        Color fg = ElementTheme.pickTextColorForBg(bgPaint);
+        ElementTheme.assertContrast(fg, bgPaint, "AstAvatar shape="+shape+" lum="+String.format("%.2f", ElementTheme.luminance(bgPaint)));
         if (icon != null) {
             int iw = Math.min(icon.getIconWidth(), Math.max(4, size - 8));
             int ih = Math.min(icon.getIconHeight(), Math.max(4, size - 8));
@@ -102,9 +101,11 @@ public class AstAvatar extends JComponent {
     @Override public Dimension getMaximumSize()   { return new Dimension(size, size); }
 
     @Override public void doLayout() {
-        int bw = Math.max(36, size + 20);
-        int bh = Math.max(36, size + 20);
-        badge.setBounds(size - 14, -10, bw, bh);
+        // Badge EmptyBorder insets are (top=12, left=12, bottom=0, right=0).
+        // Position badge so its content-inside-insets covers avatar 0..size bounding box
+        // → center of badge paint = (size-12, 12) in badge coords, which lands at (size-12-12+12, 12-12+12) = (size-12, 12) in avatar coords.
+        final int PAD = 12;
+        badge.setBounds(-PAD, -PAD, size + PAD, size + PAD);
     }
 
     private static final class ColorFactory {

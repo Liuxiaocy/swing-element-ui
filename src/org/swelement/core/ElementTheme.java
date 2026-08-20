@@ -68,4 +68,9 @@ public final class ElementTheme {
                 + " fg=RGB(" + fg.getRed() + "," + fg.getGreen() + "," + fg.getBlue() + ")"
                 + " bg=RGB(" + bg.getRed() + "," + bg.getGreen() + "," + bg.getBlue() + ")";
     }
+
+    /** Convenience: returns WHITE for dark backgrounds, TEXT_MAIN for light backgrounds (threshold 0.55 luminance). */
+    public static Color pickTextColorForBg(Color bg) {
+        return luminance(bg) < 0.55f ? Color.WHITE : TEXT_MAIN;
+    }
 }
