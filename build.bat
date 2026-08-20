@@ -48,7 +48,8 @@ src\org\swelement\ui\AstCard.java ^
 src\org\swelement\demo\AstCardDemo.java ^
 src\org\swelement\ui\AstLoading.java ^
 src\org\swelement\demo\AstLoadingDemo.java ^
-src\org\swelement\ui\AstTooltip.java
+src\org\swelement\ui\AstTooltip.java ^
+src\org\swelement\ui\AstDropdown.java
 
 "%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 if errorlevel 1 (
@@ -77,3 +78,7 @@ if %ERRORLEVEL% NEQ 0 ( echo AstLoading self-check FAILED & exit /b 1 )
 echo --- AstTooltip self-check ---
 java -ea -cp out org.swelement.ui.AstTooltip
 if %ERRORLEVEL% NEQ 0 ( echo AstTooltip self-check FAILED & exit /b 1 )
+
+echo --- AstDropdown self-check ---
+java -ea -cp out org.swelement.ui.AstDropdown
+if %ERRORLEVEL% NEQ 0 ( echo AstDropdown self-check FAILED & exit /b 1 )
