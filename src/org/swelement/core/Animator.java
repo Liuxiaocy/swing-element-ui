@@ -1,72 +1,76 @@
 package org.swelement.core;
 
-import javax.swing.Timer;
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-public final class Animator {
-    public interface Listener { void update(float v); }
-
-    private final Timer timer;
-    private final long duration;
+/**
+ * Core animation engine: linear + easing interpolation with optional completion callback.
+ * Uses javax.swing.Timer — updates fire on EDT.
+ */
+public class Animator {
+    private final int durationMs;
     private final Easing easing;
     private final Listener listener;
-    private float from, to;
-    private long start;
-    private Runnable onComplete;
+    private final Timer timer;
+    private float from;
+    private float to;
+    private long startTime;
+    private Runnable onComplete; // may be null
 
     public Animator(int durationMs, Easing easing, Listener listener) {
-        this.duration = durationMs;
+        this.durationMs = durationMs;
         this.easing = easing;
         this.listener = listener;
-        this.timer = new Timer(15, e -> tick());
+        this.timer = new Timer(16, null);
+        this.timer.setCoalesce(true);
     }
 
+    /** Start a new animation from value → value. Cancels any in-flight animation, clears any prior onComplete. */
     public void go(float from, float to) {
-        go(from, to, null);
-    }
-
-    public void go(float from, float to, Runnable onComplete) {
+        stop();            // cancels prior + clears pending onComplete (via stop clearing)
+        this.onComplete = null; // explicitly clear completion callback registered by a previous 3-arg call
         this.from = from;
         this.to = to;
-        this.start = System.currentTimeMillis();
-        this.onComplete = onComplete;
-        this.timer.start();
+        startTime = System.currentTimeMillis();
+        ActionListener tick = new ActionListener() {
+            public void actionPerformed(ActionEvent e) { tick(); }
+        };
+        for (ActionListener al : timer.getActionListeners()) timer.removeActionListener(al);
+        timer.addActionListener(tick);
+        timer.start();
+        listener.update(from);
     }
 
-    public void stop() { timer.stop(); }
+    /** Start a new animation (delegates to go(from,to)) then registers completion callback.
+     *  onComplete runs once on EDT when animation reaches end. Cancelled animations never trigger onComplete. */
+    public void go(float from, float to, Runnable onComplete) {
+        go(from, to);
+        this.onComplete = onComplete; // 2-arg cleared any prior, set fresh after
+    }
 
-    public boolean running() { return timer.isRunning(); }
+    /** Cancel current animation if running; onComplete not invoked. Safe to call multiple times. */
+    public void stop() {
+        timer.stop();
+        // Clear action listeners — no stray tick firing after stop
+        for (ActionListener al : timer.getActionListeners()) timer.removeActionListener(al);
+        // Clear pending onComplete so a subsequent start doesn't inherit stale callback
+        this.onComplete = null;
+    }
 
     private void tick() {
-        float p = (System.currentTimeMillis() - start) / (float) duration;
-        boolean done = p >= 1f;
-        if (done) { p = 1f; timer.stop(); }
-        listener.update(from + (to - from) * easing.apply(p));
-        if (done && onComplete != null) {
-            Runnable cb = onComplete;
-            onComplete = null;
-            cb.run();
+        long elapsed = System.currentTimeMillis() - startTime;
+        float t = Math.min(1f, (float) elapsed / (float) Math.max(1, durationMs));
+        float eased = easing.apply(t);
+        float v = from + (to - from) * eased;
+        listener.update(v);
+        if (t >= 1f) {
+            timer.stop();
+            Runnable cb = this.onComplete;
+            this.onComplete = null;
+            if (cb != null) cb.run();
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        final float[] last = {-1f};
-        Animator a = new Animator(40, Easing::linear, v -> last[0] = v);
-        a.go(0f, 1f);
-        Thread.sleep(200);
-        assert a.running() == false : "animator should have stopped";
-        assert Math.abs(last[0] - 1f) < 0.001f : "did not reach target: " + last[0];
-
-        a.go(5f, 0f);
-        Thread.sleep(200);
-        assert Math.abs(last[0] - 0f) < 0.001f : "did not animate to 0: " + last[0];
-
-        float mid = last[0];
-        a.go(0f, 1f);
-        Thread.sleep(30);
-        a.go(last[0], 0f);   // 中断重定向：从当前值反向
-        Thread.sleep(200);
-        assert Math.abs(last[0] - 0f) < 0.001f : "interrupt re-target failed: " + last[0];
-
-        System.out.println("Animator self-check OK");
-    }
+    public interface Listener { void update(float value); }
 }

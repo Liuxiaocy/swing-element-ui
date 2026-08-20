@@ -106,11 +106,12 @@ public class AstLoading extends JComponent {
 
     public void hideLoading() {
         this.visible = false;
+        if (spinTimer.isRunning()) spinTimer.stop();
         fadeAnim.stop();
         fadeAnim.go(overlay, 0f, new Runnable() { public void run() {
-            if (spinTimer.isRunning()) spinTimer.stop();
-            setVisible(mode == Mode.WRAP); // Wrap: stay visible but overlay is 0 (target still rendered); Fullscreen: hidden
-            if (mode == Mode.FULLSCREEN) setVisible(false);
+            if (mode == Mode.FULLSCREEN) {
+                setVisible(false);
+            }
             requestRepaintAll();
         }});
     }
@@ -193,9 +194,10 @@ public class AstLoading extends JComponent {
             g2.setColor(new Color(0xFF, 0xFF, 0xFF, aCard));
             RoundRectangle2D card = new RoundRectangle2D.Float(cardX, cardY, cardW, cardH, ElementTheme.RADIUS*2, ElementTheme.RADIUS*2);
             g2.fill(card);
-            g2.setColor(new Color(0xE4, 0xE7, 0xED, Math.round(0xFF * overlay)));
+            g2.setColor(new Color(ElementTheme.BORDER_BASE.getRed(), ElementTheme.BORDER_BASE.getGreen(), ElementTheme.BORDER_BASE.getBlue(), Math.round(0xFF * overlay)));
             g2.setStroke(new BasicStroke(1f));
             g2.draw(card);
+            ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstLoading fullscreen card text on white bg");
         }
 
         // Spinner: 12-segment rotating arcs (Element UI ring indicator)
