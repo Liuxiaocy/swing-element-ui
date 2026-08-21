@@ -56,7 +56,10 @@ src\org\swelement\ui\AstMessage.java ^
 src\org\swelement\demo\AstPopupDemo.java ^
 src\org\swelement\ui\AstCascader.java ^
 src\org\swelement\ui\AstDatePicker.java ^
-src\org\swelement\ui\AstForm.java
+src\org\swelement\ui\AstForm.java ^
+src\org\swelement\ui\AstTree.java ^
+src\org\swelement\ui\AstTable.java ^
+src\org\swelement\demo\AstAdvancedDemo.java
 
 "%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 if errorlevel 1 (
@@ -113,3 +116,11 @@ if %ERRORLEVEL% NEQ 0 ( echo AstDatePicker self-check FAILED & exit /b 1 )
 echo --- AstForm self-check ---
 java -ea -cp out org.swelement.ui.AstForm
 if %ERRORLEVEL% NEQ 0 ( echo AstForm self-check FAILED & exit /b 1 )
+
+echo --- AstTree self-check ---
+java -ea -cp out org.swelement.ui.AstTree
+if %ERRORLEVEL% NEQ 0 ( echo AstTree self-check FAILED & exit /b 1 )
+
+echo --- AstTable self-check ---
+java -ea -cp out org.swelement.ui.AstTable
+if %ERRORLEVEL% NEQ 0 ( echo AstTable self-check FAILED & exit /b 1 )
