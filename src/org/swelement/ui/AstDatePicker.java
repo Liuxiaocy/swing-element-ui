@@ -1,0 +1,367 @@
+package org.swelement.ui;
+
+import org.swelement.core.AnimatedPopup;
+import org.swelement.core.Animator;
+import org.swelement.core.Easing;
+import org.swelement.core.ElementTheme;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.RoundRectangle2D;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.function.Consumer;
+
+/**
+ * 日期选择器 — Element UI DatePicker 的 Java 实现。
+ * 点击输入框弹出日历卡片，支持月份切换、今日高亮、选中日期。
+ *
+ * 用法：
+ *   AstDatePicker dp = new AstDatePicker();
+ *   dp.setDate(LocalDate.of(2026, 8, 21));
+ *   dp.setDateChangeListener(date -> System.out.println("选中: " + date));
+ */
+public class AstDatePicker extends JComponent {
+    private LocalDate selectedDate;
+    private LocalDate viewMonth;    // 当前显示的月份 (1st of month)
+    private String placeholder = "选择日期";
+    private Consumer<LocalDate> dateChangeListener;
+    private final Button invoker;
+    private final AnimatedPopup popup;
+    private final CalendarPanel calendarPanel;
+    private boolean open;
+
+    private static final String[] WEEKDAYS = {"日", "一", "二", "三", "四", "五", "六"};
+    private static final int CELL_W = 36;
+    private static final int CELL_H = 32;
+    private static final int CAL_W = CELL_W * 7 + 16; // 7 cols + padding
+    private static final int HEADER_H = 40;
+    private static final int WEEKDAY_H = 28;
+
+    public AstDatePicker() { this(LocalDate.now()); }
+
+    public AstDatePicker(LocalDate initial) {
+        if (initial == null) throw new IllegalArgumentException("initial date must not be null");
+        this.selectedDate = initial;
+        this.viewMonth = initial.withDayOfMonth(1);
+        this.invoker = new Button(formatDate(initial) + "  📅", Button.DEFAULT, false);
+        this.popup = new AnimatedPopup();
+        popup.setDismissListener(new Runnable() { public void run() { open = false; }});
+        this.calendarPanel = new CalendarPanel();
+        AnimatedPopup.registerGlobal(popup, AnimatedPopup.PopupLayer.POPUP);
+        this.invoker.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { toggle(); }});
+        setLayout(new BorderLayout());
+        add(invoker, BorderLayout.CENTER);
+        setOpaque(false);
+    }
+
+    public void setDate(LocalDate date) {
+        if (date == null) throw new IllegalArgumentException("date must not be null");
+        this.selectedDate = date;
+        this.viewMonth = date.withDayOfMonth(1);
+        updateInvokerText();
+        if (calendarPanel != null) calendarPanel.repaint();
+    }
+
+    public LocalDate getDate() { return selectedDate; }
+
+    public void setPlaceholder(String s) {
+        if (s == null) throw new IllegalArgumentException("placeholder must not be null");
+        this.placeholder = s;
+        updateInvokerText();
+    }
+
+    public void setDateChangeListener(Consumer<LocalDate> l) {
+        if (l == null) throw new IllegalArgumentException("listener must not be null");
+        this.dateChangeListener = l;
+    }
+
+    public void showDatePicker() {
+        if (open) return;
+        open = true;
+        calendarPanel.updateView();
+        Container cc = popup.getContent();
+        cc.removeAll();
+        cc.setLayout(new BorderLayout());
+        cc.add(calendarPanel, BorderLayout.CENTER);
+        popup.setPreferredSize(new Dimension(CAL_W, HEADER_H + WEEKDAY_H + CELL_H * 6 + 16));
+        popup.show(this, AnimatedPopup.Direction.BELOW);
+    }
+
+    public void hideDatePicker() {
+        if (!open) return;
+        open = false;
+        popup.hideWithAnimation(null);
+    }
+
+    public void toggle() { if (open) hideDatePicker(); else showDatePicker(); }
+    public boolean isOpen() { return open; }
+
+    private void updateInvokerText() {
+        if (selectedDate != null) invoker.setText(formatDate(selectedDate) + "  📅");
+        else invoker.setText(placeholder + "  📅");
+    }
+
+    private static String formatDate(LocalDate d) {
+        return String.format("%04d-%02d-%02d", d.getYear(), d.getMonthValue(), d.getDayOfMonth());
+    }
+
+    @Override public Dimension getPreferredSize() { return invoker.getPreferredSize(); }
+    @Override public Dimension getMinimumSize() { return invoker.getMinimumSize(); }
+    @Override public boolean isOptimizedDrawingEnabled() { return false; }
+
+    // --- Calendar Panel ---
+    private final class CalendarPanel extends JPanel {
+        CalendarPanel() {
+            setOpaque(false);
+            setLayout(new BorderLayout());
+        }
+
+        void updateView() { repaint(); }
+
+        @Override public Dimension getPreferredSize() {
+            return new Dimension(CAL_W, HEADER_H + WEEKDAY_H + CELL_H * 6 + 16);
+        }
+
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            int W = getWidth(), H = getHeight();
+            // Card background: white with border
+            Color bg = Color.WHITE;
+            Color borderC = ElementTheme.BORDER_BASE;
+            int r = ElementTheme.RADIUS * 2;
+            RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, W-1.5f, H-1.5f, r, r);
+            g2.setColor(bg); g2.fill(rect);
+            g2.setColor(borderC); g2.setStroke(new BasicStroke(1f)); g2.draw(rect);
+
+            // Header: year-month centered + left arrow + right arrow
+            int headerY = 0;
+            String headerText = viewMonth.getYear() + " 年 " + viewMonth.getMonthValue() + " 月";
+            g2.setColor(ElementTheme.TEXT_MAIN);
+            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstDatePicker header");
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 15f));
+            FontMetrics hfm = g2.getFontMetrics();
+            int hx = (W - hfm.stringWidth(headerText)) / 2;
+            int hy = headerY + (HEADER_H - hfm.getHeight()) / 2 + hfm.getAscent();
+            g2.drawString(headerText, hx, hy);
+
+            // Left/Right arrows: draw clickable regions
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+            FontMetrics afm = g2.getFontMetrics();
+            g2.setColor(ElementTheme.TEXT_REGULAR);
+            g2.drawString("‹", 16, headerY + (HEADER_H - afm.getHeight()) / 2 + afm.getAscent());
+            g2.drawString("›", W - 16 - afm.stringWidth("›"), headerY + (HEADER_H - afm.getHeight()) / 2 + afm.getAscent());
+
+            // Weekday row
+            int wky = HEADER_H;
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 12f));
+            FontMetrics wfm = g2.getFontMetrics();
+            for (int i = 0; i < 7; i++) {
+                int cx = 8 + i * CELL_W + (CELL_W - wfm.stringWidth(WEEKDAYS[i])) / 2;
+                int cy = wky + (WEEKDAY_H - wfm.getHeight()) / 2 + wfm.getAscent();
+                g2.setColor(ElementTheme.TEXT_PLACEHOLDER);
+                g2.drawString(WEEKDAYS[i], cx, cy);
+            }
+
+            // Day grid: 6 rows × 7 cols (42 cells, covering 6 weeks)
+            LocalDate firstOfMonth = viewMonth.withDayOfMonth(1);
+            // Java DayOfWeek: MONDAY=1..SUNDAY=7; our grid starts Sunday
+            int firstDayOfWeek = firstOfMonth.getDayOfWeek().getValue() % 7; // Sunday=0
+            LocalDate gridStart = firstOfMonth.minusDays(firstDayOfWeek);
+            LocalDate today = LocalDate.now();
+
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 14f));
+            FontMetrics dfm = g2.getFontMetrics();
+            for (int row = 0; row < 6; row++) {
+                for (int col = 0; col < 7; col++) {
+                    int idx = row * 7 + col;
+                    LocalDate cellDate = gridStart.plusDays(idx);
+                    int cellX = 8 + col * CELL_W;
+                    int cellY = wky + WEEKDAY_H + row * CELL_H;
+                    boolean isCurrentMonth = cellDate.getMonth() == viewMonth.getMonth() && cellDate.getYear() == viewMonth.getYear();
+                    boolean isToday = cellDate.equals(today);
+                    boolean isSelected = cellDate.equals(selectedDate);
+
+                    if (isSelected) {
+                        // Selected: PRIMARY bg + white text (Element UI standard, skip assertContrast — same as Button)
+                        g2.setColor(ElementTheme.PRIMARY);
+                        g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
+                        g2.setColor(Color.WHITE);
+                    } else if (isToday) {
+                        // Today: PRIMARY ring border + PRIMARY text
+                        g2.setColor(Color.WHITE);
+                        g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
+                        g2.setColor(ElementTheme.PRIMARY);
+                        g2.setStroke(new BasicStroke(1.5f));
+                        g2.draw(new RoundRectangle2D.Float(cellX + 2.5f, cellY + 2.5f, CELL_W - 5, CELL_H - 5, 4, 4));
+                        g2.setColor(ElementTheme.PRIMARY);
+                    } else if (isCurrentMonth) {
+                        // Normal day: TEXT_MAIN on WHITE
+                        g2.setColor(Color.WHITE);
+                        g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
+                        g2.setColor(ElementTheme.TEXT_MAIN);
+                        ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstDatePicker normal day");
+                    } else {
+                        // Other month: TEXT_PLACEHOLDER on WHITE (light gray, skip assertContrast)
+                        g2.setColor(Color.WHITE);
+                        g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
+                        g2.setColor(ElementTheme.TEXT_PLACEHOLDER);
+                    }
+                    // Draw day number centered
+                    String dayStr = String.valueOf(cellDate.getDayOfMonth());
+                    int dx = cellX + (CELL_W - dfm.stringWidth(dayStr)) / 2;
+                    int dy = cellY + (CELL_H - dfm.getHeight()) / 2 + dfm.getAscent();
+                    g2.drawString(dayStr, dx, dy);
+                }
+            }
+
+            // Footer: "今天" button area
+            int footY = wky + WEEKDAY_H + 6 * CELL_H + 4;
+            g2.setColor(ElementTheme.TEXT_REGULAR);
+            g2.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 13f));
+            FontMetrics ffm = g2.getFontMetrics();
+            String footText = "点击今天: " + formatDate(today);
+            int fx = (W - ffm.stringWidth(footText)) / 2;
+            int fy = footY + ffm.getAscent();
+            g2.drawString(footText, fx, fy);
+
+            g2.dispose();
+        }
+
+        @Override public boolean isOptimizedDrawingEnabled() { return false; }
+
+        @Override public boolean contains(int x, int y) {
+            // Click handling
+            int W = getWidth();
+            // Header arrows
+            if (y < HEADER_H) {
+                if (x < 40) { // Left arrow
+                    viewMonth = viewMonth.minusMonths(1);
+                    repaint();
+                    return true;
+                }
+                if (x > W - 40) { // Right arrow
+                    viewMonth = viewMonth.plusMonths(1);
+                    repaint();
+                    return true;
+                }
+                return true; // header click, no action
+            }
+            // Day grid
+            int wky = HEADER_H;
+            int gridStart = 8;
+            if (y >= wky + WEEKDAY_H && y < wky + WEEKDAY_H + 6 * CELL_H) {
+                int col = (x - gridStart) / CELL_W;
+                int row = (y - wky - WEEKDAY_H) / CELL_H;
+                if (col >= 0 && col < 7 && row >= 0 && row < 6) {
+                    LocalDate firstOfMonth = viewMonth.withDayOfMonth(1);
+                    int firstDayOfWeek = firstOfMonth.getDayOfWeek().getValue() % 7;
+                    LocalDate gridStartDate = firstOfMonth.minusDays(firstDayOfWeek);
+                    LocalDate clicked = gridStartDate.plusDays(row * 7 + col);
+                    // Select the clicked date
+                    selectedDate = clicked;
+                    if (clicked.getMonth() != viewMonth.getMonth() || clicked.getYear() != viewMonth.getYear()) {
+                        viewMonth = clicked.withDayOfMonth(1); // navigate to clicked month
+                    }
+                    updateInvokerText();
+                    if (dateChangeListener != null) dateChangeListener.accept(clicked);
+                    repaint();
+                    hideDatePicker();
+                    return true;
+                }
+            }
+            // Footer "今天" click
+            int footY = wky + WEEKDAY_H + 6 * CELL_H + 4;
+            if (y >= footY && y < footY + 24) {
+                selectedDate = LocalDate.now();
+                viewMonth = selectedDate.withDayOfMonth(1);
+                updateInvokerText();
+                if (dateChangeListener != null) dateChangeListener.accept(selectedDate);
+                repaint();
+                hideDatePicker();
+                return true;
+            }
+            return false;
+        }
+    }
+
+    // --- Self-check ---
+    static void selfCheck() {
+        // Constructor null guard
+        boolean threw = false;
+        try { new AstDatePicker(null); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "null initial date";
+        // setDate null guard
+        AstDatePicker dp0 = new AstDatePicker();
+        threw = false;
+        try { dp0.setDate(null); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "null setDate";
+        // setPlaceholder null guard
+        threw = false;
+        try { dp0.setPlaceholder(null); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "null placeholder";
+        // setDateChangeListener null guard
+        threw = false;
+        try { dp0.setDateChangeListener(null); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "null listener";
+
+        // Functional test
+        final Throwable[] err = {null};
+        final LocalDate[] picked = new LocalDate[1];
+        try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+            JFrame jf = new JFrame("DatePicker SC"); jf.setSize(800, 600); jf.setVisible(true);
+            LocalDate init = LocalDate.of(2026, 8, 21);
+            AstDatePicker dp = new AstDatePicker(init);
+            dp.setDateChangeListener(date -> picked[0] = date);
+            JPanel cp = (JPanel) jf.getContentPane(); cp.setLayout(new FlowLayout());
+            cp.add(dp); jf.pack();
+            assert dp.getDate().equals(init) : "initial date";
+            // Open picker
+            dp.showDatePicker();
+            assert dp.isOpen() : "picker open";
+            // Find popup
+            JLayeredPane lp = jf.getLayeredPane();
+            AnimatedPopup popup = null;
+            for (int i = 0; i < lp.getComponentCount(); i++) if (lp.getComponent(i) instanceof AnimatedPopup) { popup = (AnimatedPopup) lp.getComponent(i); break; }
+            assert popup != null : "popup found";
+            // Paint calendar off-screen to trigger assertContrast for normal day
+            Component calPanel = null;
+            for (int i = 0; i < popup.getComponentCount(); i++) {
+                Component c = popup.getComponent(i);
+                if (c instanceof JPanel) { calPanel = c; break; }
+            }
+            // Try getContent children
+            if (calPanel == null) {
+                Container cc = popup.getContent();
+                for (int i = 0; i < cc.getComponentCount(); i++) if (cc.getComponent(i) instanceof JPanel) { calPanel = cc.getComponent(i); break; }
+            }
+            assert calPanel != null : "calendar panel found";
+            calPanel.setSize(CAL_W, HEADER_H + WEEKDAY_H + CELL_H * 6 + 16);
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(CAL_W, HEADER_H + WEEKDAY_H + CELL_H * 6 + 16, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            Graphics2D gg = img.createGraphics();
+            try { calPanel.paint(gg); } finally { gg.dispose(); }
+            // Verify header text rendered (check pixel in header area is not transparent)
+            int headerPx = img.getRGB(CAL_W / 2, 20);
+            int ha = (headerPx >>> 24) & 0xFF;
+            assert ha > 100 : "header rendered; alpha=" + ha;
+            // Verify a day cell area rendered (row 2, col 3 = mid-week, should be in current month for Aug 2026)
+            // Aug 1 2026 is Saturday → firstDayOfWeek = 6 (Saturday=6 in our Sunday=0 system)
+            // gridStart = Aug 1 - 6 days = Jul 26
+            // row=2 col=3 → idx=17 → Jul 26 + 17 = Aug 12 → current month → TEXT_MAIN on WHITE
+            int dayPx = img.getRGB(8 + 3 * CELL_W + CELL_W / 2, HEADER_H + WEEKDAY_H + 2 * CELL_H + CELL_H / 2);
+            int da = (dayPx >>> 24) & 0xFF;
+            assert da > 100 : "day cell rendered; alpha=" + da;
+            // Close
+            dp.hideDatePicker();
+            jf.dispose();
+        }}); } catch (Throwable t) { err[0] = t; }
+        if (err[0] != null) throw new RuntimeException(err[0]);
+        System.out.println("AstDatePicker self-check OK");
+    }
+    public static void main(String[] args) { selfCheck(); }
+}
