@@ -4,15 +4,48 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.AWTEventListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
 public class AnimatedPopup extends JComponent {
+    public enum Direction { ABOVE, BELOW, LEFT, RIGHT, TOP_CENTER, BOTTOM_RIGHT_CORNER }
+    public enum PopupLayer { POPUP, TOOL, MODAL }
+    private static final java.util.List<AnimatedPopup> globalStack =
+            java.util.Collections.synchronizedList(new java.util.ArrayList<AnimatedPopup>());
+    private static final java.util.IdentityHashMap<PopupLayer,Integer> layerZ =
+            new java.util.IdentityHashMap<PopupLayer,Integer>() {{
+                put(PopupLayer.POPUP, 0);
+                put(PopupLayer.TOOL, 100);
+                put(PopupLayer.MODAL, 200);
+            }};
+
+    private final Animator closeAnim = new Animator(180, new org.swelement.core.Easing() {
+        public float apply(float t) { return org.swelement.core.Easing.easeIn(t); }
+    }, new Animator.Listener() {
+        public void update(float v) { alpha = 1f - v; repaint(); }
+    });
+
     private final Animator openAnim;
     private float alpha;
     private final JPanel content;
     private Component invoker;
     private Runnable dismissListener;
+    private PopupLayer assignedLayer = PopupLayer.POPUP;
+    private final AWTEventListener awtDismissListener = new AWTEventListener() {
+        public void eventDispatched(AWTEvent event) {
+            if (event.getID() == MouseEvent.MOUSE_PRESSED) {
+                MouseEvent me = (MouseEvent) event;
+                Component src = me.getComponent();
+                if (AnimatedPopup.this.getParent() == null) return;
+                if (AnimatedPopup.this.isAncestorOf(src)) return;
+                if (invoker != null && (src == invoker || (invoker instanceof Container && ((Container)invoker).isAncestorOf(src)))) return;
+                hidePopup();
+                if (dismissListener != null) dismissListener.run();
+            }
+        }
+    };
 
     public AnimatedPopup() {
         setOpaque(false);
@@ -39,22 +72,7 @@ public class AnimatedPopup extends JComponent {
             content.setBorder(new EmptyBorder(Math.round(8 * (1 - v)), 0, 0, 0));
             repaint();
         });
-        Toolkit.getDefaultToolkit().addAWTEventListener(this::onAwtEvent, AWTEvent.MOUSE_EVENT_MASK);
-    }
-
-    private void onAwtEvent(AWTEvent e) {
-        if (e.getID() != MouseEvent.MOUSE_PRESSED || !isShowing()) return;
-        MouseEvent me = (MouseEvent) e;
-        if (invoker != null && invoker.isShowing()) {
-            Point iv = invoker.getLocationOnScreen();
-            if (me.getXOnScreen() >= iv.x && me.getXOnScreen() < iv.x + invoker.getWidth()
-                    && me.getYOnScreen() >= iv.y && me.getYOnScreen() < iv.y + invoker.getHeight()) return;
-        }
-        Point pp = getLocationOnScreen();
-        if (me.getXOnScreen() >= pp.x && me.getXOnScreen() < pp.x + getWidth()
-                && me.getYOnScreen() >= pp.y && me.getYOnScreen() < pp.y + getHeight()) return;
-        hidePopup();
-        if (dismissListener != null) dismissListener.run();
+        Toolkit.getDefaultToolkit().addAWTEventListener(awtDismissListener, AWTEvent.MOUSE_EVENT_MASK);
     }
 
     public JPanel getContent() { return content; }
@@ -89,5 +107,53 @@ public class AnimatedPopup extends JComponent {
         parent.remove(this);
         parent.repaint(r.x, r.y, r.width, r.height);
         openAnim.stop();
+        Toolkit.getDefaultToolkit().removeAWTEventListener(awtDismissListener);
+    }
+
+    public void show(Component invoker, Direction dir) {
+        this.invoker = invoker;
+        hidePopup();
+        Window w = SwingUtilities.getWindowAncestor(invoker);
+        if (!(w instanceof RootPaneContainer)) return;
+        PopupPositioner pp = new PopupPositioner(getPreferredSize(),
+                GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds());
+        Rectangle inv = new Rectangle(invoker.getLocationOnScreen(), invoker.getSize());
+        PopupPositioner.Result r = pp.calc(inv, dir);
+        JLayeredPane lp = ((RootPaneContainer) w).getLayeredPane();
+        Point p = new Point(r.location);
+        SwingUtilities.convertPointFromScreen(p, lp);
+        setBounds(p.x, p.y, getPreferredSize().width, getPreferredSize().height);
+        alpha = 0f;
+        if (content != null) content.setBorder(new javax.swing.border.EmptyBorder(8, 0, 0, 0));
+        lp.add(this, JLayeredPane.POPUP_LAYER, layerZ.get(assignedLayer));
+        lp.repaint(p.x, p.y, getWidth(), getHeight());
+        if (openAnim != null) openAnim.go(0f, 1f);
+    }
+
+    public void hideWithAnimation(final Runnable afterHidden) {
+        if (getParent() == null) { if (afterHidden != null) afterHidden.run(); return; }
+        globalStack.remove(this);
+        openAnim.stop();
+        closeAnim.stop();
+        alpha = 1f;
+        closeAnim.go(0f, 1f);
+        final Container parent = getParent();
+        final Rectangle r = getBounds();
+        Timer t = new Timer(185, new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                ((Timer)e.getSource()).stop();
+                parent.remove(AnimatedPopup.this);
+                parent.repaint(r.x, r.y, r.width, r.height);
+                Toolkit.getDefaultToolkit().removeAWTEventListener(awtDismissListener);
+                if (afterHidden != null) afterHidden.run();
+            }
+        });
+        t.setRepeats(false);
+        t.start();
+    }
+
+    public static void registerGlobal(AnimatedPopup p, PopupLayer layer) {
+        p.assignedLayer = layer;
+        globalStack.add(p);
     }
 }
