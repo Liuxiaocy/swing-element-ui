@@ -59,7 +59,22 @@ src\org\swelement\ui\AstDatePicker.java ^
 src\org\swelement\ui\AstForm.java ^
 src\org\swelement\ui\AstTree.java ^
 src\org\swelement\ui\AstTable.java ^
-src\org\swelement\demo\AstAdvancedDemo.java
+src\org\swelement\demo\AstAdvancedDemo.java ^
+src\org\swelement\demo\AstP2P3Demo.java ^
+src\org\swelement\ui\AstDivider.java ^
+src\org\swelement\ui\AstIcon.java ^
+src\org\swelement\ui\AstRate.java ^
+src\org\swelement\ui\AstBreadcrumb.java ^
+src\org\swelement\ui\AstSteps.java ^
+src\org\swelement\ui\AstCollapse.java ^
+src\org\swelement\ui\AstInputNumber.java ^
+src\org\swelement\ui\AstPopover.java ^
+src\org\swelement\ui\AstDrawer.java ^
+src\org\swelement\ui\AstTimePicker.java ^
+src\org\swelement\ui\AstTransfer.java ^
+src\org\swelement\ui\AstTimeline.java ^
+src\org\swelement\ui\AstCalendar.java ^
+src\org\swelement\ui\AstCarousel.java
 
 "%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 if errorlevel 1 (
@@ -124,3 +139,59 @@ if %ERRORLEVEL% NEQ 0 ( echo AstTree self-check FAILED & exit /b 1 )
 echo --- AstTable self-check ---
 java -ea -cp out org.swelement.ui.AstTable
 if %ERRORLEVEL% NEQ 0 ( echo AstTable self-check FAILED & exit /b 1 )
+
+echo --- AstDivider self-check ---
+java -ea -cp out org.swelement.ui.AstDivider
+if %ERRORLEVEL% NEQ 0 ( echo AstDivider self-check FAILED & exit /b 1 )
+
+echo --- AstIcon self-check ---
+java -ea -cp out org.swelement.ui.AstIcon
+if %ERRORLEVEL% NEQ 0 ( echo AstIcon self-check FAILED & exit /b 1 )
+
+echo --- AstRate self-check ---
+java -ea -cp out org.swelement.ui.AstRate
+if %ERRORLEVEL% NEQ 0 ( echo AstRate self-check FAILED & exit /b 1 )
+
+echo --- AstBreadcrumb self-check ---
+java -ea -cp out org.swelement.ui.AstBreadcrumb
+if %ERRORLEVEL% NEQ 0 ( echo AstBreadcrumb self-check FAILED & exit /b 1 )
+
+echo --- AstSteps self-check ---
+java -ea -cp out org.swelement.ui.AstSteps
+if %ERRORLEVEL% NEQ 0 ( echo AstSteps self-check FAILED & exit /b 1 )
+
+echo --- AstCollapse self-check ---
+java -ea -cp out org.swelement.ui.AstCollapse
+if %ERRORLEVEL% NEQ 0 ( echo AstCollapse self-check FAILED & exit /b 1 )
+
+echo --- AstInputNumber self-check ---
+java -ea -cp out org.swelement.ui.AstInputNumber
+if %ERRORLEVEL% NEQ 0 ( echo AstInputNumber self-check FAILED & exit /b 1 )
+
+echo --- AstPopover self-check ---
+java -ea -cp out org.swelement.ui.AstPopover
+if %ERRORLEVEL% NEQ 0 ( echo AstPopover self-check FAILED & exit /b 1 )
+
+echo --- AstDrawer self-check ---
+java -ea -cp out org.swelement.ui.AstDrawer
+if %ERRORLEVEL% NEQ 0 ( echo AstDrawer self-check FAILED & exit /b 1 )
+
+echo --- AstTimePicker self-check ---
+java -ea -cp out org.swelement.ui.AstTimePicker
+if %ERRORLEVEL% NEQ 0 ( echo AstTimePicker self-check FAILED & exit /b 1 )
+
+echo --- AstTransfer self-check ---
+java -ea -cp out org.swelement.ui.AstTransfer
+if %ERRORLEVEL% NEQ 0 ( echo AstTransfer self-check FAILED & exit /b 1 )
+
+echo --- AstTimeline self-check ---
+java -ea -cp out org.swelement.ui.AstTimeline
+if %ERRORLEVEL% NEQ 0 ( echo AstTimeline self-check FAILED & exit /b 1 )
+
+echo --- AstCalendar self-check ---
+java -ea -cp out org.swelement.ui.AstCalendar
+if %ERRORLEVEL% NEQ 0 ( echo AstCalendar self-check FAILED & exit /b 1 )
+
+echo --- AstCarousel self-check ---
+java -ea -cp out org.swelement.ui.AstCarousel
+if %ERRORLEVEL% NEQ 0 ( echo AstCarousel self-check FAILED & exit /b 1 )
