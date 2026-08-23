@@ -6,8 +6,6 @@ import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
 public class Alert extends JComponent {
     public static final int SUCCESS = 0, WARNING = 1, INFO = 2, ERROR = 3;
@@ -20,7 +18,7 @@ public class Alert extends JComponent {
     private Runnable onClosed;
     private int origW, origH;
 
-    private final Animator inAnim = new Animator(300, Easing::easeOut, v -> { inP = v; repaint(); });
+    private final Animator inAnim = new Animator(300, Easing::easeOut, v -> { inP = v; repaint(); syncClose(); });
     private final Animator outAnim = new Animator(250, Easing::easeIn, v -> {
         outP = v;
         int h = Math.max(1, Math.round(origH * (1 - v)));
@@ -32,10 +30,12 @@ public class Alert extends JComponent {
             r.run();
         }
         repaint();
+        syncClose();
     });
     private final int type;
     private final String title, desc;
     private final boolean closable;
+    private CloseButton closeBtn;
 
     public Alert(int type, String title, String desc, boolean closable) {
         this.type = type;
@@ -44,16 +44,29 @@ public class Alert extends JComponent {
         this.closable = closable;
         setOpaque(false);
         setPreferredSize(new Dimension(360, desc == null ? 40 : 56));
+        setLayout(null); // CloseButton 绝对定位
         if (closable) {
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            addMouseListener(new MouseAdapter() {
-                public void mouseClicked(MouseEvent e) {
-                    if (!isEnabled()) return;
-                    if (e.getX() > getWidth() - 28) close(() -> {});
-                }
-            });
+            closeBtn = new CloseButton(24);
+            closeBtn.addActionListener(e -> close(() -> {}));
+            add(closeBtn);
         }
         inAnim.go(0f, 1f);
+    }
+
+    @Override
+    public void doLayout() {
+        super.doLayout();
+        if (closeBtn != null) {
+            closeBtn.setBounds(getWidth() - 16 - 24, (getHeight() - 24) / 2, 24, 24);
+        }
+    }
+
+    /** 淡入淡出动画驱动 CloseButton 的 alpha 与可交互性。 */
+    private void syncClose() {
+        if (closeBtn == null) return;
+        float a = inP * (1 - outP);
+        closeBtn.setAlpha(a);
+        closeBtn.setInteractive(a > 0.5f);
     }
 
     public void close(Runnable onClosed) {
@@ -96,14 +109,29 @@ public class Alert extends JComponent {
             g2.setColor(new Color(descColor.getRed(), descColor.getGreen(), descColor.getBlue(), a));
             g2.drawString(desc, 40, 40 - dfm.getHeight() / 2f + dfm.getAscent() - 2);
         }
-        if (closable) {
-            g2.setFont(ElementTheme.FONT.deriveFont(14f));
-            FontMetrics xfm = g2.getFontMetrics();
-            Color closeColor = new Color(0xC0C4CC);
-            g2.setColor(new Color(closeColor.getRed(), closeColor.getGreen(), closeColor.getBlue(), a));
-            g2.drawString("\u00d7", getWidth() - 24 - xfm.stringWidth("\u00d7") / 2f,
-                    (getHeight() - xfm.getHeight()) / 2f + xfm.getAscent());
-        }
         g2.dispose();
     }
+
+    static void selfCheck() {
+        Alert a = new Alert(Alert.INFO, "标题", "描述文字", true);
+        assert a.getComponentCount() == 1 && a.getComponent(0) instanceof CloseButton
+                : "closable alert has CloseButton child, count=" + a.getComponentCount();
+        Alert b = new Alert(Alert.INFO, "标题", null, false);
+        assert b.getComponentCount() == 0 : "non-closable alert has no child";
+        // close() 动画完成后回调触发（Animator 走 EDT）
+        final Throwable[] err = {null};
+        final boolean[] closed = {false};
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                a.setSize(360, 56);
+                a.close(() -> closed[0] = true);
+            });
+            Thread.sleep(400);
+        } catch (Throwable t) { err[0] = t; }
+        if (err[0] != null) throw new RuntimeException(err[0]);
+        assert closed[0] : "onClosed callback should fire after close animation";
+        System.out.println("Alert self-check OK");
+    }
+
+    public static void main(String[] args) { selfCheck(); }
 }
