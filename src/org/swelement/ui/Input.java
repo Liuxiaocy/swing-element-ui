@@ -15,6 +15,14 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
 public class Input extends JPanel {
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private static final int[] TIER_HEIGHT = {40, 32, 28};
+    private static final float[] TIER_FONT = {14f, 13f, 12f};
+    private static final int[] TIER_VPAD = {10, 8, 4};
+    private static final int[] TIER_HPAD = {16, 12, 8};
+    private static final int[] TIER_CLEAR = {18, 16, 14};
+    private int tier = SIZE_DEFAULT;
+
     private final JTextField field;
     private final CloseButton clearBtn = new CloseButton(16);
     private final Animator focusAnim = new Animator(200, Easing::easeInOut, v -> { focus = v; repaint(); });
@@ -42,7 +50,6 @@ public class Input extends JPanel {
             }
         };
         field.setOpaque(false);
-        field.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 8));
         field.setFont(ElementTheme.FONT);
         field.setForeground(ElementTheme.TEXT_MAIN);
         field.getDocument().addDocumentListener(new DocumentListener() {
@@ -72,6 +79,29 @@ public class Input extends JPanel {
         field.addMouseListener(m);   // field 铺满面板，鼠标事件落在 field 上
         addMouseListener(m);
         east.addMouseListener(m);    // 鼠标从 field 移入 east（清空按钮区）时保持 hovering，× 不淡出
+        applyTier();
+    }
+
+    /** 尺寸档位（对齐 Element UI）：高度 40/32/28，档位联动字体、内边距与清空按钮尺寸。 */
+    public void setSize(int tier) {
+        if (tier < SIZE_LARGE || tier > SIZE_SMALL)
+            throw new IllegalArgumentException("invalid size tier: " + tier);
+        this.tier = tier;
+        applyTier();
+    }
+
+    private void applyTier() {
+        field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        field.setBorder(BorderFactory.createEmptyBorder(TIER_VPAD[tier], TIER_HPAD[tier], TIER_VPAD[tier], 8));
+        clearBtn.setButtonSize(TIER_CLEAR[tier]);
+        revalidate();
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        Dimension d = super.getPreferredSize();
+        d.height = TIER_HEIGHT[tier];
+        return d;
     }
 
     private void updateClear() {
@@ -120,6 +150,18 @@ public class Input extends JPanel {
     }
 
     static void selfCheck() {
+        Input df = new Input("默认");
+        assert df.getPreferredSize().height == 32 : "DEFAULT height 32, got " + df.getPreferredSize().height;
+        Input lg = new Input("大");
+        lg.setSize(Input.SIZE_LARGE);
+        assert lg.getPreferredSize().height == 40 : "LARGE height 40, got " + lg.getPreferredSize().height;
+        Input sm = new Input("小");
+        sm.setSize(Input.SIZE_SMALL);
+        assert sm.getPreferredSize().height == 28 : "SMALL height 28, got " + sm.getPreferredSize().height;
+        boolean threw = false;
+        try { sm.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "invalid tier must throw";
+
         Input in = new Input("占位符");
         assert in.getText().isEmpty() : "initial text empty";
         in.setText("hello");
