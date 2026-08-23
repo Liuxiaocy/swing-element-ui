@@ -42,6 +42,8 @@ public class Button extends JButton {
     private int size = SIZE_DEFAULT;
     private boolean round = false;
     private boolean circle = false;
+    private String icon = null;
+    private int iconPosition = ICON_LEFT;
     private final int type;
     private final boolean plain;
 
@@ -82,6 +84,17 @@ public class Button extends JButton {
         repaint();
     }
 
+    public void setIcon(String icon) {
+        this.icon = icon;
+        revalidate();
+        repaint();
+    }
+
+    public void setIconPosition(int pos) {
+        this.iconPosition = pos;
+        repaint();
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
@@ -114,7 +127,23 @@ public class Button extends JButton {
         g2.setFont(btnFont);
         FontMetrics fm = g2.getFontMetrics(btnFont);
         String text = getText();
-        g2.drawString(text, (getWidth() - fm.stringWidth(text)) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+        int textW = fm.stringWidth(text);
+        int iconW = (icon != null) ? fm.stringWidth(icon) : 0;
+        int gap = (iconW > 0 && textW > 0) ? SIZE_ICON_GAP[size] : 0;
+        int contentW = textW + iconW + gap;
+        float startX = (getWidth() - contentW) / 2f;
+        float baseY = (getHeight() - fm.getHeight()) / 2f + fm.getAscent();
+        if (icon != null) {
+            if (iconPosition == ICON_LEFT) {
+                g2.drawString(icon, startX, baseY);
+                g2.drawString(text, startX + iconW + gap, baseY);
+            } else {
+                g2.drawString(text, startX, baseY);
+                g2.drawString(icon, startX + textW + gap, baseY);
+            }
+        } else {
+            g2.drawString(text, startX, baseY);
+        }
         g2.dispose();
     }
 
@@ -122,7 +151,10 @@ public class Button extends JButton {
     public Dimension getPreferredSize() {
         Font font = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
         FontMetrics fm = getFontMetrics(font);
-        int w = SIZE_HPAD[size] * 2 + fm.stringWidth(getText());
+        int textW = fm.stringWidth(getText());
+        int iconW = (icon != null) ? fm.stringWidth(icon) : 0;
+        int gap = (iconW > 0 && textW > 0) ? SIZE_ICON_GAP[size] : 0;
+        int w = SIZE_HPAD[size] * 2 + textW + iconW + gap;
         int h = SIZE_VPAD[size] * 2 + fm.getHeight();
         if (circle) {
             int s = Math.max(w, h);
@@ -146,6 +178,17 @@ public class Button extends JButton {
         assert pd.width == pd.height : "circle button preferredSize must be square, got " + pd.width + "x" + pd.height;
         rc.setRound(true);
         assert pd.width == pd.height : "round+circle still square";
+
+        Button ib = new Button("");
+        ib.setIcon("\u2713");
+        assert ib.getPreferredSize().width > 0 : "icon-only button should have positive width";
+        Button ib2 = new Button("确定");
+        ib2.setIcon("\u2713");
+        assert ib2.getPreferredSize().width > new Button("确定").getPreferredSize().width
+                : "button with icon should be wider than text-only";
+        ib2.setIconPosition(Button.ICON_RIGHT);
+        assert ib2.getPreferredSize().width > new Button("确定").getPreferredSize().width
+                : "icon-right button should also be wider";
 
         System.out.println("Button self-check OK");
     }
