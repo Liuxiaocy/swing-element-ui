@@ -18,6 +18,7 @@ src\org\swelement\ui\Button.java ^
 src\org\swelement\ui\Checkbox.java ^
 src\org\swelement\ui\CloseButton.java ^
 src\org\swelement\ui\Input.java ^
+src\org\swelement\ui\TextArea.java ^
 src\org\swelement\ui\Menu.java ^
 src\org\swelement\ui\Pagination.java ^
 src\org\swelement\ui\Progress.java ^
@@ -100,6 +101,10 @@ if %ERRORLEVEL% NEQ 0 ( echo Alert self-check FAILED & exit /b 1 )
 echo --- Input self-check ---
 java -ea -cp out org.swelement.ui.Input
 if %ERRORLEVEL% NEQ 0 ( echo Input self-check FAILED & exit /b 1 )
+
+echo --- TextArea self-check ---
+java -ea -cp out org.swelement.ui.TextArea
+if %ERRORLEVEL% NEQ 0 ( echo TextArea self-check FAILED & exit /b 1 )
 
 echo --- AstContainer self-check ---
 java -ea -cp out org.swelement.ui.AstContainer
