@@ -19,7 +19,7 @@
 - 构建产物在 `out/`，源码 UTF-8
 
 **Spec 与本计划的两处 reconcile（以对比度约束为准，AGENTS.md 最高优先级）：**
-1. CloseButton 默认色从 spec 表格的 `0x909399`/`0x409EFF`（对白底约 3:1，不达标）改为 `0x606266`（≥7:1）/ hover `0x1d6fb5`（primary 深变体，≥4.5:1）——与 spec「selfCheck 用深灰变体验证」一致
+1. CloseButton 默认色从 spec 表格的 `0x909399`/`0x409EFF`（对白底约 3:1，不达标）改为 `0x606266`（≈6.1:1，AA 达标且有余量）/ hover `0x1d6fb5`（primary 深变体，≥4.5:1）——与 spec「selfCheck 用深灰变体验证」一致
 2. spec 假设 AstMessageBox 复用 `makeCard`，实际 grep 确认**没有**（AstMessageBox 不引用 makeCard）；AstDialog 加 × 不影响 AstMessageBox，build.bat 中其 selfCheck 仍作为回归验证运行
 
 ---
