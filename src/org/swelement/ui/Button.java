@@ -40,6 +40,8 @@ public class Button extends JButton {
     private final Animator activeAnim = new Animator(120, Easing::easeInOut, v -> { active = v; repaint(); });
     private float hover, active;
     private int size = SIZE_DEFAULT;
+    private boolean round = false;
+    private boolean circle = false;
     private final int type;
     private final boolean plain;
 
@@ -69,6 +71,17 @@ public class Button extends JButton {
         repaint();
     }
 
+    public void setRound(boolean round) {
+        this.round = round;
+        repaint();
+    }
+
+    public void setCircle(boolean circle) {
+        this.circle = circle;
+        revalidate();
+        repaint();
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
@@ -88,7 +101,8 @@ public class Button extends JButton {
         }
         if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
 
-        Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, ElementTheme.RADIUS * 2, ElementTheme.RADIUS * 2);
+        float arc = (round || circle) ? getHeight() / 2f : ElementTheme.RADIUS * 2;
+        Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
         g2.setColor(bg);
         g2.fill(shape);
         g2.setColor(border);
@@ -110,6 +124,10 @@ public class Button extends JButton {
         FontMetrics fm = getFontMetrics(font);
         int w = SIZE_HPAD[size] * 2 + fm.stringWidth(getText());
         int h = SIZE_VPAD[size] * 2 + fm.getHeight();
+        if (circle) {
+            int s = Math.max(w, h);
+            return new Dimension(s, s);
+        }
         return new Dimension(w, h);
     }
 
@@ -121,6 +139,14 @@ public class Button extends JButton {
         b.setSize(Button.SIZE_SMALL);
         assert b.getPreferredSize().height < new Button("测试").getPreferredSize().height
                 : "SIZE_SMALL should be shorter than SIZE_DEFAULT";
+
+        Button rc = new Button("圆");
+        rc.setCircle(true);
+        Dimension pd = rc.getPreferredSize();
+        assert pd.width == pd.height : "circle button preferredSize must be square, got " + pd.width + "x" + pd.height;
+        rc.setRound(true);
+        assert pd.width == pd.height : "round+circle still square";
+
         System.out.println("Button self-check OK");
     }
 
