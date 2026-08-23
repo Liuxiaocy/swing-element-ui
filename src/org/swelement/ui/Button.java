@@ -50,6 +50,7 @@ public class Button extends JButton {
     private float loadAngle = 0f;
     private boolean savedEnabled;
     private String savedText;
+    private boolean textButton = false;
     private final int type;
     private final boolean plain;
 
@@ -129,13 +130,29 @@ public class Button extends JButton {
         loadAnim.go(0f, 1f, () -> { if (loading) startLoadLoop(); });
     }
 
+    public void setTextButton(boolean textBtn) {
+        this.textButton = textBtn;
+        repaint();
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         Color bg, fg, border;
-        if (!isEnabled()) {
+        if (textButton) {
+            if (!isEnabled()) {
+                bg = new Color(0, 0, 0, 0);
+                fg = new Color(0xC0C4CC);
+                border = new Color(0, 0, 0, 0);
+            } else {
+                int alpha = Math.round(255 * hover);
+                bg = new Color(0xEC, 0xF5, 0xFF, alpha);
+                fg = ElementTheme.PRIMARY;
+                border = new Color(0, 0, 0, 0);
+            }
+        } else if (!isEnabled()) {
             bg = plain ? FILL_BLANK : new Color(0xA0CFFF);
             fg = new Color(0xC0C4CC);
             border = plain ? BORDER_BASE : bg;
@@ -145,16 +162,20 @@ public class Button extends JButton {
             border = plain ? BORDER[type] : bg;
             if (plain) bg = ElementTheme.lerp(FILL_BLANK, new Color(0xECF5FF), hover);
             if (plain) fg = ElementTheme.lerp(BASE_FG[type], PRIMARY_COLOR, hover);
+            if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
         }
-        if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
 
         float arc = (round || circle) ? getHeight() / 2f : ElementTheme.RADIUS * 2;
         Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
-        g2.setColor(bg);
-        g2.fill(shape);
-        g2.setColor(border);
-        g2.setStroke(new BasicStroke(1f));
-        g2.draw(shape);
+        if (!textButton || hover > 0) {
+            g2.setColor(bg);
+            g2.fill(shape);
+        }
+        if (!textButton) {
+            g2.setColor(border);
+            g2.setStroke(new BasicStroke(1f));
+            g2.draw(shape);
+        }
 
         g2.setColor(fg);
         Font btnFont = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
@@ -255,6 +276,10 @@ public class Button extends JButton {
         lb2.setLoading(true);
         assert "保存中...".equals(lb2.getText()) : "custom loading text should be used, got " + lb2.getText();
         lb2.setLoading(false);
+
+        Button tb = new Button("文本按钮");
+        tb.setTextButton(true);
+        assert tb.getPreferredSize().width > 0 : "text button should have positive width";
 
         System.out.println("Button self-check OK");
     }
