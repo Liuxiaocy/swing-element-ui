@@ -45,6 +45,11 @@ public class Select extends JPanel {
     private final Animator arrowAnim = new Animator(200, Easing::easeInOut, v -> { arrowAngle = v; repaint(); });
     private float arrowAngle;
     private boolean popupShown, fieldFocus;
+    // 可清空 ×（复用 Input 批次 1 的 east 面板配方，替代手绘 × + 坐标命中）
+    private final CloseButton clearBtn = new CloseButton(16);
+    private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
+    private float clearVis;
+    private boolean hovering;
 
     public Select(boolean multiple, boolean filterable) {
         this.multiple = multiple;
@@ -73,6 +78,32 @@ public class Select extends JPanel {
         }
         add(center, BorderLayout.CENTER);
 
+        // 可清空 ×（复用 Input 批次 1 的 east 面板配方，替代手绘 × + 坐标命中测试）
+        clearBtn.setAlpha(0f);
+        clearBtn.setInteractive(false);
+        clearBtn.setOnClose(() -> {
+            if (multiple) return;
+            selected.clear();
+            updateDisplay();
+            rebuildList(null);
+            repaint();
+        });
+        JPanel east = new JPanel(new GridBagLayout());
+        east.setOpaque(false);
+        east.setBorder(new EmptyBorder(0, 4, 0, 8));
+        east.add(clearBtn);
+        add(east, BorderLayout.EAST);
+
+        MouseAdapter hoverM = new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { hovering = true;  updateClear(); }
+            public void mouseExited(MouseEvent e)  { hovering = false; updateClear(); }
+        };
+        addMouseListener(hoverM); display.addMouseListener(hoverM); tagsPanel.addMouseListener(hoverM); east.addMouseListener(hoverM);
+        if (field != null) field.addMouseListener(hoverM);
+        east.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) { if (!isEnabled()) return; togglePopup(); }
+        });
+
         optionList.setOpaque(false);
         optionList.setLayout(new BoxLayout(optionList, BoxLayout.Y_AXIS));
         popup.getContent().add(optionList, BorderLayout.CENTER);
@@ -87,12 +118,6 @@ public class Select extends JPanel {
         MouseAdapter click = new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 if (!isEnabled()) return;
-                if (!multiple && !selected.isEmpty() && e.getX() > getWidth() - 46 && e.getX() < getWidth() - 28) {
-                    selected.clear();
-                    updateDisplay();
-                    repaint();
-                    return;
-                }
                 togglePopup();
             }
         };
@@ -146,6 +171,16 @@ public class Select extends JPanel {
 
     static boolean matches(String label, String filter) {
         return label.toLowerCase().contains(filter.toLowerCase());
+    }
+
+    private void updateClear() {
+        float target = (!multiple && !selected.isEmpty() && hovering && isEnabled()) ? 1f : 0f;
+        clearAnim.go(clearVis, target);
+    }
+
+    private void syncClear() {
+        clearBtn.setAlpha(clearVis);
+        clearBtn.setInteractive(clearVis > 0.5f);
     }
 
     private void togglePopup() {
@@ -227,6 +262,7 @@ public class Select extends JPanel {
         }
         tagsPanel.revalidate();
         tagsPanel.repaint();
+        updateClear();
     }
 
     @Override
@@ -242,20 +278,17 @@ public class Select extends JPanel {
         g2.setStroke(new BasicStroke(highlighted ? 2f : 1f));
         g2.draw(shape);
 
-        float ax = getWidth() - 18f, ay = getHeight() / 2f;
-        Graphics2D a2 = (Graphics2D) g2.create();
-        a2.rotate(Math.PI * arrowAngle, ax, ay);
-        a2.setColor(new Color(0xC0C4CC));
-        a2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        a2.drawLine(Math.round(ax - 4), Math.round(ay - 1), Math.round(ax), Math.round(ay + 2));
-        a2.drawLine(Math.round(ax + 4), Math.round(ay - 1), Math.round(ax), Math.round(ay + 2));
-        a2.dispose();
-
-        if (!multiple && !selected.isEmpty()) {  // 可清空 ×
-            g2.setColor(new Color(0xC0C4CC));
-            FontMetrics fm = g2.getFontMetrics(ElementTheme.FONT);
-            g2.drawString("\u00d7", getWidth() - 38 - fm.stringWidth("\u00d7") / 2, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+        if (clearVis < 0.5f) {  // × 淡入过半即隐藏箭头（Element「× 替换箭头」）
+            float ax = getWidth() - 18f, ay = getHeight() / 2f;
+            Graphics2D a2 = (Graphics2D) g2.create();
+            a2.rotate(Math.PI * arrowAngle, ax, ay);
+            a2.setColor(new Color(0xC0C4CC));
+            a2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            a2.drawLine(Math.round(ax - 4), Math.round(ay - 1), Math.round(ax), Math.round(ay + 2));
+            a2.drawLine(Math.round(ax + 4), Math.round(ay - 1), Math.round(ax), Math.round(ay + 2));
+            a2.dispose();
         }
+
         g2.dispose();
     }
 
@@ -301,7 +334,42 @@ public class Select extends JPanel {
         assert matches("苹果", "苹");
         assert !matches("Apple", "pear");
         assert !matches("", "a");
+
+        // 可清空：hover 淡入 ×，点击清空选择（复用 Input 的测试配方）
+        final Select sel = new Select(new String[]{"北京", "上海", "广州"});
+        sel.setSelectedIndex(1);
+        assert "上海".equals(sel.getSelectedValue());
+        final Throwable[] err = {null};
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                sel.setSize(280, 40);
+                sel.doLayout();
+                sel.dispatchEvent(new java.awt.event.MouseEvent(sel, java.awt.event.MouseEvent.MOUSE_ENTERED,
+                        System.currentTimeMillis(), 0, 10, 10, 0, false));
+            });
+            Thread.sleep(300);
+            SwingUtilities.invokeAndWait(() -> clearBtnClickForTest(sel));
+            Thread.sleep(50);
+        } catch (Throwable t) { err[0] = t; }
+        if (err[0] != null) throw new RuntimeException(err[0]);
+        assert sel.getSelectedValue() == null : "clear should empty selection, got " + sel.getSelectedValue();
         System.out.println("Select self-check OK");
+    }
+
+    /** 测试辅助：向 Select 内的 CloseButton 派发按下事件。 */
+    private static void clearBtnClickForTest(Select sel) {
+        for (Component c : sel.getComponents()) {
+            if (c instanceof JPanel) {
+                for (Component cc : ((JPanel) c).getComponents()) {
+                    if (cc instanceof CloseButton) {
+                        cc.dispatchEvent(new java.awt.event.MouseEvent(cc, java.awt.event.MouseEvent.MOUSE_PRESSED,
+                                System.currentTimeMillis(), 0, 8, 8, 1, false));
+                        return;
+                    }
+                }
+            }
+        }
+        throw new AssertionError("CloseButton not found in Select");
     }
 
     public static void main(String[] args) { selfCheck(); }
