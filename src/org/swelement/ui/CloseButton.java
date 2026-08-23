@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 公共可点击关闭按钮：矢量 × 符号 + hover 圆形底色淡入。
  * 所有可关闭组件（Tag/Alert/Input/AstDialog 等）统一使用，替代"自绘 × + 坐标命中测试"。
- * 对比度：默认色 0x606266 对白底 >= 7:1（WCAG AA），hover 色 0x1d6fb5 为 primary 深变体（>= 4.5:1）。
+ * 对比度：默认色 0x606266 对白底 ≈6.1:1（≥4.5:1，WCAG AA 达标且有余量），hover 色 0x1d6fb5 为 primary 深变体（>= 4.5:1）。
  */
 public class CloseButton extends JComponent {
     private final int size;

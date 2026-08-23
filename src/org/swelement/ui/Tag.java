@@ -6,6 +6,7 @@ import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseEvent;
 
 public class Tag extends JComponent {
     public static final int PRIMARY = 0, SUCCESS = 1, WARNING = 2, DANGER = 3, INFO = 4;
@@ -170,6 +171,7 @@ public class Tag extends JComponent {
         for (int t = 0; t < 5; t++) {
             ElementTheme.assertContrast(DEEP_FG[t], LIGHT_BG[t], "tag light type=" + t);
             ElementTheme.assertContrast(DEEP_FG[t], Color.WHITE, "tag plain type=" + t);
+            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, LIGHT_BG[t], "tag hover-x on light type=" + t);
         }
         // 显式 setPreferredSize 必须被尊重（close 收缩动画依赖此：Animator 通过 setPreferredSize 驱动）
         Tag shrink = new Tag("标签", Tag.PRIMARY, false);
@@ -210,6 +212,27 @@ public class Tag extends JComponent {
             });
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+        // 点击 CloseButton 触发关闭动画并回调 onClosed（primary close 路径）
+        final Throwable[] err2 = {null};
+        final boolean[] closed = {false};
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                JFrame f = new JFrame();
+                JPanel p = new JPanel();
+                Tag c = new Tag("可关闭", Tag.SUCCESS, true);
+                c.setOnClosed(() -> closed[0] = true);
+                p.add(c);
+                f.add(p);
+                f.pack();
+                Component cb = c.getComponent(0);
+                cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_CLICKED,
+                        System.currentTimeMillis(), 0, cb.getWidth() / 2, cb.getHeight() / 2, 1, false));
+                f.dispose();
+            });
+            Thread.sleep(400); // 等待 ~200ms 关闭动画完成
+        } catch (Throwable t) { err2[0] = t; }
+        if (err2[0] != null) throw new RuntimeException(err2[0]);
+        assert closed[0] : "clicking close button should fire onClosed after close animation";
         System.out.println("Tag self-check OK");
     }
 
