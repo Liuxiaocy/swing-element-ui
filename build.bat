@@ -16,6 +16,7 @@ src\org\swelement\ui\Alert.java ^
 src\org\swelement\ui\Badge.java ^
 src\org\swelement\ui\Button.java ^
 src\org\swelement\ui\Checkbox.java ^
+src\org\swelement\ui\CloseButton.java ^
 src\org\swelement\ui\Input.java ^
 src\org\swelement\ui\Menu.java ^
 src\org\swelement\ui\Pagination.java ^
