@@ -130,6 +130,8 @@ public class AstDialog {
             setLayout(new BorderLayout());
             setBorder(new EmptyBorder(0, 0, 0, 0));
             // Title: NORTH, height 48, bold 16, separator 1px at bottom, left padding 24, right padding 24
+            final CloseButton closeX = new CloseButton(24);
+            closeX.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_CANCEL); }});
             final JPanel titleBar = new JPanel() {
                 @Override protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
@@ -150,8 +152,14 @@ public class AstDialog {
                 @Override public Dimension getPreferredSize() { return new Dimension(480, 48); }
                 @Override public Dimension getMinimumSize() { return new Dimension(200, 48); }
                 @Override public boolean isOptimizedDrawingEnabled() { return false; }
+                @Override public void doLayout() {
+                    super.doLayout();
+                    closeX.setBounds(getWidth() - 24 - 16, (getHeight() - 24) / 2, 24, 24);
+                }
             };
             titleBar.setOpaque(false);
+            titleBar.setLayout(null); // closeX 绝对定位
+            titleBar.add(closeX);
             add(titleBar, BorderLayout.NORTH);
 
             // Body: CENTER, padding 24 top/bottom, 24 left/right
@@ -306,6 +314,17 @@ public class AstDialog {
             Component ok = findChildByText((Container) card, "保存");
             Component cancel = findChildByText((Container) card, "取消");
             assert ok != null : "保存 button present"; assert cancel != null : "取消 button present";
+            Component closeX = null;
+            Queue<Container> bfs = new LinkedList<Container>(); bfs.add((Container) card);
+            while (!bfs.isEmpty() && closeX == null) {
+                Container cur = bfs.poll();
+                for (int i = 0; i < cur.getComponentCount(); i++) {
+                    Component ch = cur.getComponent(i);
+                    if (ch instanceof CloseButton) { closeX = ch; break; }
+                    if (ch instanceof Container) bfs.add((Container) ch);
+                }
+            }
+            assert closeX != null : "close × present in dialog title bar";
             clickComponent(cancel);
             try { Thread.sleep(300); } catch (InterruptedException ignore) {}
             assert res[0] == RESULT_CANCEL : "canceled → result should be RESULT_CANCEL="+RESULT_CANCEL+" actual="+res[0];
@@ -317,9 +336,28 @@ public class AstDialog {
             card = firstPanelChild(c);
             Component ok2 = findChildByText((Container) card, "确定");
             assert ok2 != null : "确定 button present";
-            clickComponent(ok2);
+            Component closeX2 = null;
+            Queue<Container> bfs2 = new LinkedList<Container>(); bfs2.add((Container) card);
+            while (!bfs2.isEmpty() && closeX2 == null) {
+                Container cur = bfs2.poll();
+                for (int i = 0; i < cur.getComponentCount(); i++) {
+                    Component ch = cur.getComponent(i);
+                    if (ch instanceof CloseButton) { closeX2 = ch; break; }
+                    if (ch instanceof Container) bfs2.add((Container) ch);
+                }
+            }
+            assert closeX2 != null : "close × present (second dialog)";
+            clickComponent(closeX2);
             try { Thread.sleep(300); } catch (InterruptedException ignore) {}
-            assert res[0] == RESULT_OK : "result OK expected=" + RESULT_OK + " actual="+res[0];
+            assert res[0] == RESULT_CANCEL : "× click should cancel, actual=" + res[0];
+            // 第三次：重新打开验证 ok 按钮仍正常
+            AstDialog.show(jf, "T3", body, new ResultCallback() { public void onResult(int resultCode) { res[0] = resultCode; }});
+            try { Thread.sleep(260); } catch (InterruptedException ignore) {}
+            card = firstPanelChild((Container) jf.getGlassPane());
+            Component ok3 = findChildByText((Container) card, "确定");
+            clickComponent(ok3);
+            try { Thread.sleep(300); } catch (InterruptedException ignore) {}
+            assert res[0] == RESULT_OK : "OK still works after × cancel, actual=" + res[0];
             jf.dispose();
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
