@@ -169,6 +169,7 @@ public class AstDropdown extends JComponent {
                 }
                 @Override public void mousePressed(MouseEvent e) {
                     if (!isEnabled()) return;
+                    if (!open) return; // 已关闭/关闭动画中的陈旧行不再触发（快速连点只生效一次）
                     if (item.action != null) item.action.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, item.label));
                     // Clicked an item → close dropdown
                     hideDropdown();

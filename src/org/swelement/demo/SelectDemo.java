@@ -97,6 +97,22 @@ public class SelectDemo {
                 p4.add(b);
             }
 
+            // 可清空
+            JPanel p5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 8));
+            p5.setBorder(new TitledBorder("可清空（单选有值时悬停，箭头变 ×，点击清除）"));
+            Select clearable = new Select(new String[]{"北京", "上海", "广州", "深圳"});
+            clearable.setPreferredSize(new Dimension(280, 40));
+            clearable.setSelectedIndex(1);
+            JLabel clearEcho = new JLabel("当前值：上海");
+            clearEcho.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
+            clearEcho.setForeground(new Color(0x606266));
+            Button showVal = new Button("查看当前值", Button.DEFAULT, true);
+            showVal.addActionListener(e -> {
+                Object v = clearable.getSelectedValue();
+                clearEcho.setText("当前值：" + (v == null ? "(已清空)" : v.toString()));
+            });
+            p5.add(clearable); p5.add(showVal); p5.add(clearEcho);
+
             root.add(p1);
             root.add(Box.createVerticalStrut(8));
             root.add(p2);
@@ -104,6 +120,8 @@ public class SelectDemo {
             root.add(p3);
             root.add(Box.createVerticalStrut(8));
             root.add(p4);
+            root.add(Box.createVerticalStrut(8));
+            root.add(p5);
 
             f.setContentPane(root);
             f.pack();

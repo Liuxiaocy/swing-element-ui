@@ -52,7 +52,7 @@ public class BadgeDemo {
             // Input 输入框角标
             Badge onInput = new Badge();
             Input input = new Input("搜索关键词...");
-            input.setPreferredSize(new Dimension(200, 40));
+            input.setColumns(14);
             onInput.setContent(input);
             onInput.setCount(5);
 

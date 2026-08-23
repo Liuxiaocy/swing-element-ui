@@ -220,6 +220,9 @@ public class Input extends JPanel {
     public String getText() {
         return password ? new String(((JPasswordField) field).getPassword()) : field.getText();
     }
+
+    /** 列数（透传给内嵌文本框，决定首选宽度；高度由尺寸档位决定）。 */
+    public void setColumns(int columns) { field.setColumns(columns); revalidate(); }
     public void setText(String t) { field.setText(t); }
 
     @Override
