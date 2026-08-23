@@ -35,6 +35,10 @@ public class Button extends JButton {
     private static final Color[] BASE_FG  = {new Color(0x606266), WHITE, WHITE, WHITE, WHITE, WHITE};
     private static final Color[] HOVER_FG = {PRIMARY_COLOR, WHITE, WHITE, WHITE, WHITE, WHITE};
     private static final Color[] BORDER   = {BORDER_BASE, PRIMARY_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR, INFO_COLOR};
+    private static final Color[] TYPE_FG  = {new Color(0x606266), PRIMARY_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR, INFO_COLOR};
+    private static final Color[] PLAIN_BG = {FILL_BLANK, new Color(0xECF5FF), new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xFEF0F0), new Color(0xF4F4F5)};
+    // Darker text variants for plain mode — ensures WCAG 4.5:1 contrast on light backgrounds
+    private static final Color[] PLAIN_FG = {new Color(0x606266), new Color(0x1d6fb5), new Color(0x2d6b18), new Color(0x955d12), new Color(0xb83232), new Color(0x606266)};
 
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
     private final Animator activeAnim = new Animator(120, Easing::easeInOut, v -> { active = v; repaint(); });
@@ -144,7 +148,7 @@ public class Button extends JButton {
         if (textButton) {
             if (!isEnabled()) {
                 bg = new Color(0, 0, 0, 0);
-                fg = new Color(0xC0C4CC);
+                fg = new Color(0x606266);
                 border = new Color(0, 0, 0, 0);
             } else {
                 int alpha = Math.round(255 * hover);
@@ -152,16 +156,30 @@ public class Button extends JButton {
                 fg = ElementTheme.PRIMARY;
                 border = new Color(0, 0, 0, 0);
             }
+        } else if (loading) {
+            // loading: use normal colors with reduced opacity so text stays visible
+            bg = ElementTheme.lerp(ElementTheme.lerp(BASE_BG[type], HOVER_BG[type], hover), ACTIVE_BG[type], active);
+            fg = ElementTheme.lerp(BASE_FG[type], HOVER_FG[type], hover);
+            border = plain ? BORDER[type] : bg;
+            if (plain) {
+                bg = PLAIN_BG[type];
+                fg = PLAIN_FG[type];
+            }
+            if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
+            bg = new Color(bg.getRed(), bg.getGreen(), bg.getBlue(), 200);
+            fg = new Color(fg.getRed(), fg.getGreen(), fg.getBlue(), 230);
         } else if (!isEnabled()) {
-            bg = plain ? FILL_BLANK : new Color(0xA0CFFF);
-            fg = new Color(0xC0C4CC);
-            border = plain ? BORDER_BASE : bg;
+            bg = plain ? FILL_BLANK : new Color(0xF5F7FA);
+            fg = new Color(0x606266);
+            border = plain ? BORDER_BASE : new Color(0xE4E7ED);
         } else {
             bg = ElementTheme.lerp(ElementTheme.lerp(BASE_BG[type], HOVER_BG[type], hover), ACTIVE_BG[type], active);
             fg = ElementTheme.lerp(BASE_FG[type], HOVER_FG[type], hover);
             border = plain ? BORDER[type] : bg;
-            if (plain) bg = ElementTheme.lerp(FILL_BLANK, new Color(0xECF5FF), hover);
-            if (plain) fg = ElementTheme.lerp(BASE_FG[type], PRIMARY_COLOR, hover);
+            if (plain) {
+                bg = PLAIN_BG[type];
+                fg = PLAIN_FG[type];
+            }
             if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
         }
 
@@ -280,6 +298,13 @@ public class Button extends JButton {
         Button tb = new Button("文本按钮");
         tb.setTextButton(true);
         assert tb.getPreferredSize().width > 0 : "text button should have positive width";
+
+        // Contrast checks: text must be readable against background in all states
+        for (int t = 0; t < 6; t++) {
+            ElementTheme.assertContrast(PLAIN_FG[t], PLAIN_BG[t], "plain type=" + t);
+        }
+        ElementTheme.assertContrast(new Color(0x606266), new Color(0xF5F7FA), "disabled on gray");
+        ElementTheme.assertContrast(new Color(0x606266), Color.WHITE, "disabled on white");
 
         System.out.println("Button self-check OK");
     }
