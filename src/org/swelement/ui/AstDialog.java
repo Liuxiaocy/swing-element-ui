@@ -130,7 +130,7 @@ public class AstDialog {
             setLayout(new BorderLayout());
             setBorder(new EmptyBorder(0, 0, 0, 0));
             // Title: NORTH, height 48, bold 16, separator 1px at bottom, left padding 24, right padding 24
-            final CloseButton closeX = new CloseButton(24);
+            final CloseButton closeX = new CloseButton(20);
             closeX.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_CANCEL); }});
             final JPanel titleBar = new JPanel() {
                 @Override protected void paintComponent(Graphics g) {
@@ -154,7 +154,7 @@ public class AstDialog {
                 @Override public boolean isOptimizedDrawingEnabled() { return false; }
                 @Override public void doLayout() {
                     super.doLayout();
-                    closeX.setBounds(getWidth() - 24 - 16, (getHeight() - 24) / 2, 24, 24);
+                    closeX.setBounds(getWidth() - 16 - 20, (getHeight() - 20) / 2, 20, 20);
                 }
             };
             titleBar.setOpaque(false);

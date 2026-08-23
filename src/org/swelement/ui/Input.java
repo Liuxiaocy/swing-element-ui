@@ -16,7 +16,7 @@ import java.awt.geom.RoundRectangle2D;
 
 public class Input extends JPanel {
     private final JTextField field;
-    private final CloseButton clearBtn = new CloseButton(20);
+    private final CloseButton clearBtn = new CloseButton(16);
     private final Animator focusAnim = new Animator(200, Easing::easeInOut, v -> { focus = v; repaint(); });
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
     private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
@@ -56,6 +56,8 @@ public class Input extends JPanel {
         clearBtn.setInteractive(false);
         JPanel east = new JPanel(new GridBagLayout()); // 居中放置，避免 BorderLayout.EAST 拉伸高度
         east.setOpaque(false);
+        // 右留 8px、左留 4px，使清空按钮与输入框右边缘及文字均保持间距，不顶边
+        east.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 8));
         east.add(clearBtn);
         add(east, BorderLayout.EAST);
 

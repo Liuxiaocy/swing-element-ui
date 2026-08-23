@@ -93,9 +93,10 @@ public class CloseButton extends JComponent {
         }
         Color c = ElementTheme.lerp(color, hoverColor, hover);
         g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), a));
-        float len = size * 0.4f; // × 半臂长
+        // × 半臂长取盒子约 1/3，留白更克制（不再撑满盒子，观感更接近 Element 细 ×）
+        float len = size * 0.34f;
         float cx = getWidth() / 2f, cy = getHeight() / 2f;
-        g2.setStroke(new BasicStroke(Math.max(1.4f, size / 14f)));
+        g2.setStroke(new BasicStroke(Math.max(1.2f, size / 16f)));
         g2.drawLine(Math.round(cx - len), Math.round(cy - len), Math.round(cx + len), Math.round(cy + len));
         g2.drawLine(Math.round(cx - len), Math.round(cy + len), Math.round(cx + len), Math.round(cy - len));
         g2.dispose();

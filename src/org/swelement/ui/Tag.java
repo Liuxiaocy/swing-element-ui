@@ -16,7 +16,7 @@ public class Tag extends JComponent {
     private static final float[] SIZE_FONT = {14f, 12f, 12f};
     private static final int[] SIZE_VPAD = {8, 4, 2};
     private static final int[] SIZE_HPAD = {16, 10, 8};
-    private static final int[] CLOSE_SIZE = {20, 18, 16};
+    private static final int[] CLOSE_SIZE = {16, 14, 12};
     private static final int CLOSE_GAP = 4;
     private static final int CLOSE_RIGHT = 6;
 

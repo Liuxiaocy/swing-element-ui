@@ -46,7 +46,7 @@ public class Alert extends JComponent {
         setPreferredSize(new Dimension(360, desc == null ? 40 : 56));
         setLayout(null); // CloseButton 绝对定位
         if (closable) {
-            closeBtn = new CloseButton(24);
+            closeBtn = new CloseButton(20);
             closeBtn.addActionListener(e -> close(() -> {}));
             add(closeBtn);
         }
@@ -57,7 +57,7 @@ public class Alert extends JComponent {
     public void doLayout() {
         super.doLayout();
         if (closeBtn != null) {
-            closeBtn.setBounds(getWidth() - 16 - 24, (getHeight() - 24) / 2, 24, 24);
+            closeBtn.setBounds(getWidth() - 16 - 20, (getHeight() - 20) / 2, 20, 20);
         }
     }
 
