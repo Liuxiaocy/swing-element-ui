@@ -12,6 +12,13 @@ import java.awt.geom.RoundRectangle2D;
 
 public class Button extends JButton {
     public static final int DEFAULT = 0, PRIMARY = 1, SUCCESS = 2, WARNING = 3, DANGER = 4, INFO = 5;
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    public static final int ICON_LEFT = 0, ICON_RIGHT = 1;
+
+    private static final float[] SIZE_FONT = {16f, 14f, 12f};
+    private static final int[] SIZE_VPAD = {12, 9, 6};
+    private static final int[] SIZE_HPAD = {24, 20, 12};
+    private static final int[] SIZE_ICON_GAP = {10, 8, 6};
 
     private static final Color WHITE = Color.WHITE;
     private static final Color FILL_BLANK = ElementTheme.FILL_BLANK;
@@ -32,6 +39,7 @@ public class Button extends JButton {
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
     private final Animator activeAnim = new Animator(120, Easing::easeInOut, v -> { active = v; repaint(); });
     private float hover, active;
+    private int size = SIZE_DEFAULT;
     private final int type;
     private final boolean plain;
 
@@ -53,6 +61,12 @@ public class Button extends JButton {
             public void mousePressed(MouseEvent e) { if (isEnabled()) activeAnim.go(active, 1f); }
             public void mouseReleased(MouseEvent e){ activeAnim.go(active, 0f); }
         });
+    }
+
+    public void setSize(int size) {
+        this.size = size;
+        revalidate();
+        repaint();
     }
 
     @Override
@@ -82,7 +96,9 @@ public class Button extends JButton {
         g2.draw(shape);
 
         g2.setColor(fg);
-        FontMetrics fm = g2.getFontMetrics();
+        Font btnFont = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+        g2.setFont(btnFont);
+        FontMetrics fm = g2.getFontMetrics(btnFont);
         String text = getText();
         g2.drawString(text, (getWidth() - fm.stringWidth(text)) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
         g2.dispose();
@@ -90,8 +106,23 @@ public class Button extends JButton {
 
     @Override
     public Dimension getPreferredSize() {
-        Dimension d = super.getPreferredSize();
-        FontMetrics fm = getFontMetrics(getFont());
-        return new Dimension(fm.stringWidth(getText()) + 40, fm.getHeight() + 18);
+        Font font = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+        FontMetrics fm = getFontMetrics(font);
+        int w = SIZE_HPAD[size] * 2 + fm.stringWidth(getText());
+        int h = SIZE_VPAD[size] * 2 + fm.getHeight();
+        return new Dimension(w, h);
     }
+
+    static void selfCheck() {
+        Button b = new Button("测试");
+        b.setSize(Button.SIZE_LARGE);
+        assert b.getPreferredSize().height > new Button("测试").getPreferredSize().height
+                : "SIZE_LARGE should be taller than SIZE_DEFAULT";
+        b.setSize(Button.SIZE_SMALL);
+        assert b.getPreferredSize().height < new Button("测试").getPreferredSize().height
+                : "SIZE_SMALL should be shorter than SIZE_DEFAULT";
+        System.out.println("Button self-check OK");
+    }
+
+    public static void main(String[] args) { selfCheck(); }
 }
