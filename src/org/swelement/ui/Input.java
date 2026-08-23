@@ -31,6 +31,10 @@ public class Input extends JPanel {
     private JPanel eyeBtn;
     private AstIcon eyeIcon;
     private boolean pwVisible = false;
+    private final JPanel east;
+    private final MouseAdapter hoverKeeper;
+    private JPanel west;
+    private AstIcon prefixIcon, suffixIcon;
 
     private final JTextField field;
     private final CloseButton clearBtn = new CloseButton(16);
@@ -61,7 +65,8 @@ public class Input extends JPanel {
         clearBtn.addActionListener(e -> { setText(""); field.requestFocus(); });
         clearBtn.setAlpha(0f);
         clearBtn.setInteractive(false);
-        JPanel east = new JPanel(new GridBagLayout()); // 居中放置，避免 BorderLayout.EAST 拉伸高度
+        JPanel eastLocal = new JPanel(new GridBagLayout()); // 居中放置，避免 BorderLayout.EAST 拉伸高度
+        east = eastLocal;
         east.setOpaque(false);
         // 右留 8px、左留 4px，使清空按钮与输入框右边缘及文字均保持间距，不顶边
         east.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 8));
@@ -93,6 +98,7 @@ public class Input extends JPanel {
             public void mouseEntered(MouseEvent e) { hovering = true;  hoverAnim.go(hover, 1f); updateClear(); }
             public void mouseExited(MouseEvent e)  { hovering = false; hoverAnim.go(hover, 0f); updateClear(); }
         };
+        hoverKeeper = m;
         field.addMouseListener(m);   // field 铺满面板，鼠标事件落在 field 上
         addMouseListener(m);
         east.addMouseListener(m);    // 鼠标从 field 移入 east（清空按钮区）时保持 hovering，× 不淡出
@@ -119,6 +125,29 @@ public class Input extends JPanel {
         Dimension d = super.getPreferredSize();
         d.height = TIER_HEIGHT[tier];
         return d;
+    }
+
+    /** 前缀图标（AstIcon 常量）。静态装饰，不可点。 */
+    public void setPrefixIcon(int iconType) {
+        if (west == null) {
+            west = new JPanel(new GridBagLayout());
+            west.setOpaque(false);
+            west.setBorder(BorderFactory.createEmptyBorder(0, TIER_HPAD[tier], 0, 4));
+            west.addMouseListener(hoverKeeper);
+            add(west, BorderLayout.WEST);
+        }
+        if (prefixIcon != null) west.remove(prefixIcon);
+        prefixIcon = new AstIcon(iconType, ICON_COLOR, 16);
+        west.add(prefixIcon);
+        revalidate(); repaint();
+    }
+
+    /** 后缀图标（AstIcon 常量），显示在清空按钮左侧。 */
+    public void setSuffixIcon(int iconType) {
+        if (suffixIcon != null) east.remove(suffixIcon);
+        suffixIcon = new AstIcon(iconType, ICON_COLOR, 16);
+        east.add(suffixIcon, 0);
+        revalidate(); repaint();
     }
 
     private JTextField createTextField() {
@@ -248,6 +277,18 @@ public class Input extends JPanel {
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         assert in.getText().isEmpty() : "clear button click should clear text, got: " + in.getText();
+
+        // 前后缀图标
+        Input pi = new Input("搜索");
+        pi.setPrefixIcon(AstIcon.SEARCH);
+        assert countAstIcons(pi) == 1 : "prefix icon added, count=" + countAstIcons(pi);
+        Input si = new Input("");
+        si.setText("x");
+        si.setSuffixIcon(AstIcon.SETTING);
+        assert countAstIcons(si) == 1 : "suffix icon added, count=" + countAstIcons(si);
+        // 重复设置不叠加
+        pi.setPrefixIcon(AstIcon.USER);
+        assert countAstIcons(pi) == 1 : "prefix icon replaced, count=" + countAstIcons(pi);
         System.out.println("Input self-check OK");
     }
 
@@ -292,6 +333,16 @@ public class Input extends JPanel {
             }
         }
         throw new AssertionError("eye button not found in Input");
+    }
+
+    /** 测试辅助：统计 Input 子树中的 AstIcon 数量。 */
+    private static int countAstIcons(Container c) {
+        int n = 0;
+        for (Component cc : c.getComponents()) {
+            if (cc instanceof AstIcon) n++;
+            if (cc instanceof Container) n += countAstIcons((Container) cc);
+        }
+        return n;
     }
 
     public static void main(String[] args) { selfCheck(); }
