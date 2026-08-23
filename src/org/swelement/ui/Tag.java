@@ -61,6 +61,12 @@ public class Tag extends JComponent {
         repaint();
     }
 
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        if (closeBtn != null) closeBtn.setEnabled(enabled); // 禁用态：关闭 × 灰化且不可点
+    }
+
     public void setSize(int size) {
         this.size = size;
         revalidate();
@@ -208,6 +214,10 @@ public class Tag extends JComponent {
                 Component cb = c.getComponent(0);
                 assert cb.getX() + cb.getWidth() <= c.getWidth() && cb.getX() > c.getWidth() / 2
                         : "close button on right side, x=" + cb.getX();
+                // 禁用 Tag → 关闭按钮灰化且不可点（setEnabled 联动）
+                c.setEnabled(false);
+                assert !cb.contains(cb.getWidth() / 2, cb.getHeight() / 2) : "disabled Tag → close button not clickable";
+                c.setEnabled(true);
                 f.dispose();
             });
         } catch (Throwable t) { err[0] = t; }

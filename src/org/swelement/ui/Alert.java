@@ -79,6 +79,7 @@ public class Alert extends JComponent {
     @Override
     public void setEnabled(boolean b) {
         super.setEnabled(b);
+        if (closeBtn != null) closeBtn.setEnabled(b); // 禁用态：关闭 × 灰化且不可点
         syncClose(); // 无动画 tick 时也要刷新 × 的可交互性（如淡入完成后才启用）
     }
 

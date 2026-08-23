@@ -115,6 +115,7 @@ public class Input extends JPanel {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         field.setEnabled(enabled);
+        clearBtn.setEnabled(enabled); // 禁用态：清空按钮灰化且不可点
         clearBtn.setInteractive(enabled && clearVis > 0.5f);
     }
 
