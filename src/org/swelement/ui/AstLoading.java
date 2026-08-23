@@ -52,6 +52,33 @@ public class AstLoading extends JComponent {
     private boolean visible = false;
     private String text = "";
 
+    /**
+     * 冻结层：loading 激活期间拦截鼠标/键盘事件。
+     * FULLSCREEN：消费窗口内一切鼠标与键盘事件（用户明确要求"冻结屏幕，防止用户操作"）。
+     * WRAP：仅消费落在 wrap 边界内的鼠标事件，遮罩区域不可交互。
+     * 常驻注册 + isFreezing() 快速短路，无需管理注册/注销时序。
+     */
+    private final java.awt.event.AWTEventListener freezeListener = new java.awt.event.AWTEventListener() {
+        public void eventDispatched(AWTEvent ev) {
+            if (!isFreezing()) return;
+            if (ev instanceof java.awt.event.MouseEvent) {
+                if (mode == Mode.FULLSCREEN) { ((java.awt.event.MouseEvent) ev).consume(); return; }
+                Component src = ((java.awt.event.MouseEvent) ev).getComponent();
+                if (src == null || !isShowing()) return;
+                java.awt.Point p = SwingUtilities.convertPoint(
+                        src, ((java.awt.event.MouseEvent) ev).getPoint(), AstLoading.this);
+                if (p.x >= 0 && p.y >= 0 && p.x < getWidth() && p.y < getHeight()) {
+                    ((java.awt.event.MouseEvent) ev).consume();
+                }
+            } else if (ev instanceof java.awt.event.KeyEvent && mode == Mode.FULLSCREEN) {
+                ((java.awt.event.KeyEvent) ev).consume();
+            }
+        }
+    };
+
+    /** 遮罩仍显著（含淡出过程）且逻辑上处于 loading 时视为冻结。 */
+    private boolean isFreezing() { return visible || overlay > 0.3f; }
+
     public AstLoading(Mode mode, JComponent target) {
         if (mode == null) throw new IllegalArgumentException("mode must not be null");
         this.mode = mode;
@@ -74,6 +101,9 @@ public class AstLoading extends JComponent {
         }});
         spinTimer.setRepeats(true);
         spinTimer.setCoalesce(true);
+        Toolkit.getDefaultToolkit().addAWTEventListener(freezeListener,
+                AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK
+                        | AWTEvent.MOUSE_WHEEL_EVENT_MASK | AWTEvent.KEY_EVENT_MASK);
     }
 
     public Mode getMode() { return mode; }
@@ -91,7 +121,19 @@ public class AstLoading extends JComponent {
             setSize(getParent() != null ? getParent().getSize() : getPreferredSize());
         }
         fadeAnim.stop();
-        fadeAnim.go(overlay, 1f);
+        if (mode == Mode.WRAP) {
+            // 淡入完成后藏起 target：不透明子组件（如 Progress）的 paintImmediately
+            // 会绕过 paintChildren 里的 overlay 直接上屏，动画透过遮罩闪烁的根因。
+            // 遮罩此时已完全不透明，视觉无差别，但 target 不再产生 dirty region。
+            fadeAnim.go(overlay, 1f, new Runnable() { public void run() {
+                if (visible && target != null && target.isVisible()) {
+                    target.setVisible(false);
+                    repaint();
+                }
+            }});
+        } else {
+            fadeAnim.go(overlay, 1f);
+        }
         if (!spinTimer.isRunning()) spinTimer.start();
         // For FULLSCREEN GlassPane usage: we become visible
         if (mode == Mode.FULLSCREEN) {
@@ -106,6 +148,13 @@ public class AstLoading extends JComponent {
 
     public void hideLoading() {
         this.visible = false;
+        if (mode == Mode.WRAP && target != null && !target.isVisible()) {
+            // 恢复 target：遮罩尚在（将淡出），先画回来再渐隐，无闪空帧。
+            // BorderLayout 对不可见组件不布局，恢复后需重排。
+            target.setVisible(true);
+            revalidate();
+            doLayout();
+        }
         if (spinTimer.isRunning()) spinTimer.stop();
         fadeAnim.stop();
         fadeAnim.go(overlay, 0f, new Runnable() { public void run() {

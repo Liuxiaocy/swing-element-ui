@@ -57,7 +57,7 @@ public class AstCalendar extends JComponent {
         });
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseExited(java.awt.event.MouseEvent e) { hoverCell = -1; repaint(); }
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+            @Override public void mousePressed(java.awt.event.MouseEvent e) {
                 int cell = cellAt(e.getX(), e.getY());
                 if (cell < 0) return;
                 int[] grid = gridInfo();

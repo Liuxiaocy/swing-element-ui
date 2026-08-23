@@ -17,6 +17,9 @@ public class GlassPane extends JPanel {
     private int startAlpha = 0;
     private boolean fadeDirectionOut = false;
     private int alpha;
+    /** 淡出结束后把面板藏掉的一次性定时器。重激活时必须取消，否则陈旧的
+     *  隐藏动作会在 ~220ms 后关闭刚重新打开的抽屉（快速开关失效的根因）。 */
+    private Timer hideTimer;
 
     public GlassPane() {
         setOpaque(false);
@@ -24,6 +27,7 @@ public class GlassPane extends JPanel {
 
     public void setActive(boolean active) {
         alphaAnim.stop();
+        if (hideTimer != null) { hideTimer.stop(); hideTimer = null; }
         fadeDirectionOut = !active;
         if (active) {
             setVisible(true);
@@ -35,14 +39,14 @@ public class GlassPane extends JPanel {
             startAlpha = Math.max(1, alpha);
             alpha = startAlpha;
             alphaAnim.go(0f, 1f);
-            Timer t = new Timer(220, new java.awt.event.ActionListener() {
+            hideTimer = new Timer(220, new java.awt.event.ActionListener() {
                 public void actionPerformed(java.awt.event.ActionEvent e) {
                     ((Timer)e.getSource()).stop();
                     setVisible(false);
                 }
             });
-            t.setRepeats(false);
-            t.start();
+            hideTimer.setRepeats(false);
+            hideTimer.start();
         }
     }
 
@@ -93,6 +97,13 @@ public class GlassPane extends JPanel {
         int after = img.getRGB(10,10);
         int aa = (after >>> 24) & 0xFF;
         assert !gp.isVisible() || aa <= 20 : "after setActive(false) alpha should be small or not visible, was visible="+gp.isVisible()+" alpha="+aa;
+        // 回归：deactivate 后立刻 re-activate，陈旧的隐藏定时器必须被取消，
+        // 面板在超过原 220ms 隐藏窗口之后仍应可见（快速开关抽屉失效的根因复现）。
+        gp.setActive(true);
+        gp.setActive(false);
+        gp.setActive(true);
+        try { Thread.sleep(320); } catch (InterruptedException ignored) {}
+        assert gp.isVisible() : "re-activated glass pane must stay visible after stale hide window";
         jf.dispose();
         System.out.println("GlassPane self-check OK");
     }

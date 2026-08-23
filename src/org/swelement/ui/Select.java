@@ -85,7 +85,7 @@ public class Select extends JPanel {
         });
 
         MouseAdapter click = new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 if (!isEnabled()) return;
                 if (!multiple && !selected.isEmpty() && e.getX() > getWidth() - 46 && e.getX() < getWidth() - 28) {
                     selected.clear();
@@ -218,7 +218,7 @@ public class Select extends JPanel {
                 chip.setBorder(new EmptyBorder(2, 8, 2, 8));
                 chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 chip.addMouseListener(new MouseAdapter() {
-                    public void mouseClicked(MouseEvent e) { if (!isEnabled()) return; selected.remove(o); updateDisplay(); rebuildList(null); }
+                    public void mousePressed(MouseEvent e) { if (!isEnabled()) return; selected.remove(o); updateDisplay(); rebuildList(null); }
                 });
                 tagsPanel.add(chip);
             }
@@ -272,7 +272,7 @@ public class Select extends JPanel {
             addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent e) { if (option.disabled) return; hoverAnim.go(hover, 1f); }
                 public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
-                public void mouseClicked(MouseEvent e) { if (!option.disabled) choose(option); }
+                public void mousePressed(MouseEvent e) { if (!option.disabled) choose(option); }
             });
         }
 

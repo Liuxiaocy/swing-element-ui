@@ -50,7 +50,7 @@ public class Menu extends JComponent {
         subList.setLayout(new BoxLayout(subList, BoxLayout.Y_AXIS));
         subPopup.getContent().add(subList, BorderLayout.CENTER);
         addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 if (!isEnabled()) return;
                 if (e.getY() > HEADER_H) return;
                 int x = 0;
@@ -137,7 +137,7 @@ public class Menu extends JComponent {
             item.setPreferredSize(new Dimension(140, 32));
             item.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             item.addMouseListener(new MouseAdapter() {
-                public void mouseClicked(MouseEvent e) {
+                public void mousePressed(MouseEvent e) {
                     if (!isEnabled()) return;
                     subPopup.setVisible(false);
                     if (a != null) a.run();

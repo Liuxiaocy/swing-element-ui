@@ -84,7 +84,7 @@ public class AstTable extends JComponent {
                 hoverRow = -1;
                 hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
             }
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override public void mousePressed(MouseEvent e) {
                 int idx = dataRowAtPoint(e.getPoint());
                 if (idx < 0 || idx >= rows.size()) return;
                 selectedRow = idx;
@@ -427,17 +427,17 @@ public class AstTable extends JComponent {
                 int clickY = HEADER_H + 2 * ROW_H + ROW_H / 2;
                 int clickX = 10;
                 t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, clickX, clickY, 0, false));
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, clickX, clickY, 1, false));
+                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, clickX, clickY, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == 2 : "clicked row 2; actual=" + clicked[0];
                 assert t2.getSelectedRow() == 2 : "selected row 2";
                 // Click header area (y < HEADER_H) — should not select
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 10, HEADER_H / 2, 1, false));
+                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, HEADER_H / 2, 1, false));
                 try { Thread.sleep(20); } catch (Throwable ignore) {}
                 assert t2.getSelectedRow() == 2 : "header click does not change selection";
                 // Click below last row — should not select
                 int belowY = HEADER_H + 4 * ROW_H + ROW_H / 2;
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 10, belowY, 1, false));
+                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, belowY, 1, false));
                 try { Thread.sleep(20); } catch (Throwable ignore) {}
                 assert t2.getSelectedRow() == 2 : "below-rows click does not change selection";
             } finally {

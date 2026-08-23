@@ -58,7 +58,7 @@ public class AstTimePicker extends JComponent {
         addMouseListener(new MouseAdapter() {
             @Override public void mouseEntered(MouseEvent e) { hoverAnim.stop(); hoverAnim.go(hover, 1f); }
             @Override public void mouseExited(MouseEvent e) { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
-            @Override public void mouseClicked(MouseEvent e) { toggle(); }
+            @Override public void mousePressed(MouseEvent e) { toggle(); }
         });
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }

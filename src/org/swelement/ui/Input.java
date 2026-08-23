@@ -148,7 +148,7 @@ public class Input extends JPanel {
             if (c instanceof JPanel) {
                 for (Component cc : ((JPanel) c).getComponents()) {
                     if (cc instanceof CloseButton) {
-                        cc.dispatchEvent(new java.awt.event.MouseEvent(cc, java.awt.event.MouseEvent.MOUSE_CLICKED,
+                        cc.dispatchEvent(new java.awt.event.MouseEvent(cc, java.awt.event.MouseEvent.MOUSE_PRESSED,
                                 System.currentTimeMillis(), 0, 10, 10, 1, false));
                         return;
                     }

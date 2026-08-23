@@ -280,7 +280,7 @@ public class AstDialog {
         try { Thread.sleep(15); } catch (Throwable ignore) {}
         c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_RELEASED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
         try { Thread.sleep(15); } catch (Throwable ignore) {}
-        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
         try { Thread.sleep(15); } catch (Throwable ignore) {}
     }
 

@@ -227,7 +227,7 @@ public class AstDrawer {
                     addMouseListener(new java.awt.event.MouseAdapter() {
                         @Override public void mouseEntered(java.awt.event.MouseEvent e) { ha.stop(); ha.go(hover, 1f); }
                         @Override public void mouseExited(java.awt.event.MouseEvent e) { ha.stop(); ha.go(hover, 0f); }
-                        @Override public void mouseClicked(java.awt.event.MouseEvent e) { close(); }
+                        @Override public void mousePressed(java.awt.event.MouseEvent e) { close(); }
                     });
                 }
                 @Override public Dimension getPreferredSize() { return new Dimension(36, 36); }

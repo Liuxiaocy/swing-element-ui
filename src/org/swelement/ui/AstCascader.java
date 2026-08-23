@@ -267,7 +267,7 @@ public class AstCascader extends JComponent {
                 @Override public void mouseExited(MouseEvent e) {
                     if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
                 }
-                @Override public void mouseClicked(MouseEvent e) {
+                @Override public void mousePressed(MouseEvent e) {
                     if (!isEnabled()) return;
                     onColumnClick(parent.level, option);
                 }
@@ -441,7 +441,7 @@ public class AstCascader extends JComponent {
         if (c == null) return;
         c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_ENTERED, System.currentTimeMillis(), 0, 10, 10, 0, false));
         try { Thread.sleep(20); } catch (Throwable ignore) {}
-        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 10, 10, 1, false));
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, 10, 1, false));
         try { Thread.sleep(20); } catch (Throwable ignore) {}
     }
 

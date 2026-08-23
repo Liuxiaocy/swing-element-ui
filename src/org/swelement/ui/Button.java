@@ -39,6 +39,22 @@ public class Button extends JButton {
     private static final Color[] PLAIN_BG = {FILL_BLANK, new Color(0xECF5FF), new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xFEF0F0), new Color(0xF4F4F5)};
     // Darker text variants for plain mode — ensures WCAG 4.5:1 contrast on light backgrounds
     private static final Color[] PLAIN_FG = {new Color(0x606266), new Color(0x1d6fb5), new Color(0x2d6b18), new Color(0x955d12), new Color(0xb83232), new Color(0x606266)};
+    // 朴素按钮状态底色：hover/active 逐级加深。文字恒为 PLAIN_FG，底色只会更深，
+    // 对比度单调上升——任何动画过渡帧都满足 AA（避免半白字半深底的中间态）。
+    private static final Color[] PLAIN_HOVER_BG = new Color[6];
+    private static final Color[] PLAIN_ACTIVE_BG = new Color[6];
+    /** active 时文字同步加深：底色 shade 0.84 后深字对比会跌破 4.5，需配合更深的文字。 */
+    private static final Color[] PLAIN_ACTIVE_FG = new Color[6];
+    static {
+        for (int i = 0; i < 6; i++) {
+            PLAIN_HOVER_BG[i] = shade(PLAIN_BG[i], 0.93f);
+            PLAIN_ACTIVE_BG[i] = shade(PLAIN_BG[i], 0.84f);
+            PLAIN_ACTIVE_FG[i] = shade(PLAIN_FG[i], 0.75f);
+        }
+    }
+    private static Color shade(Color c, float f) {
+        return new Color(Math.round(c.getRed() * f), Math.round(c.getGreen() * f), Math.round(c.getBlue() * f));
+    }
 
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
     private final Animator activeAnim = new Animator(120, Easing::easeInOut, v -> { active = v; repaint(); });
@@ -177,8 +193,13 @@ public class Button extends JButton {
             fg = ElementTheme.lerp(BASE_FG[type], HOVER_FG[type], hover);
             border = plain ? BORDER[type] : bg;
             if (plain) {
-                bg = PLAIN_BG[type];
-                fg = PLAIN_FG[type];
+                // Bug 修复：朴素按钮此前无视 hover/active，所有状态同色。
+                bg = ElementTheme.lerp(PLAIN_BG[type], PLAIN_HOVER_BG[type], hover);
+                bg = ElementTheme.lerp(bg, PLAIN_ACTIVE_BG[type], active);
+                // 底色加深会压缩对比度，文字同步加深（更深更快）保证任何过渡帧 ≥ 4.5:1
+                fg = ElementTheme.lerp(PLAIN_FG[type], PLAIN_ACTIVE_FG[type], Math.max(hover, active));
+                // 边框随状态向深主色收敛，强化反馈（边框不承载文字，不受 AA 约束）
+                border = ElementTheme.lerp(BORDER[type], PLAIN_FG[type], Math.max(hover, active));
             }
             if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
         }
@@ -302,6 +323,8 @@ public class Button extends JButton {
         // Contrast checks: text must be readable against background in all states
         for (int t = 0; t < 6; t++) {
             ElementTheme.assertContrast(PLAIN_FG[t], PLAIN_BG[t], "plain type=" + t);
+            ElementTheme.assertContrast(PLAIN_ACTIVE_FG[t], PLAIN_HOVER_BG[t], "plain hover fg type=" + t);
+            ElementTheme.assertContrast(PLAIN_ACTIVE_FG[t], PLAIN_ACTIVE_BG[t], "plain active fg type=" + t);
         }
         ElementTheme.assertContrast(new Color(0x606266), new Color(0xF5F7FA), "disabled on gray");
         ElementTheme.assertContrast(new Color(0x606266), Color.WHITE, "disabled on white");

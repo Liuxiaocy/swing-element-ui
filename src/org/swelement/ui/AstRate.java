@@ -72,7 +72,7 @@ public class AstRate extends JComponent {
                 hoverAnim.stop(); hoverAnim.go(hoverScale, 1f);
                 repaint();
             }
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override public void mousePressed(MouseEvent e) {
                 if (readOnly) return;
                 float v = valueAt(e.getPoint());
                 if (v == value && v > 0) {
@@ -267,22 +267,22 @@ public class AstRate extends JComponent {
                 // Click 3rd star right half → value 3
                 int x = 2 + 2 * (24 + 4) + 18;
                 rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, x, 10, 0, false));
-                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, x, 10, 1, false));
+                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, x, 10, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == 3f : "clicked → 3; actual=" + clicked[0];
                 // Click same again → clear
-                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, x, 10, 1, false));
+                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, x, 10, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == 0f : "clicked again → 0; actual=" + clicked[0];
                 // Half click
                 int xh = 2 + 1 * (24 + 4) + 5;
-                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, xh, 10, 1, false));
+                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, xh, 10, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == 1.5f : "half click → 1.5; actual=" + clicked[0];
                 // readOnly: click does nothing
                 rt.setReadOnly(true);
                 rt.setValue(2f);
-                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, x, 10, 1, false));
+                rt.dispatchEvent(new MouseEvent(rt, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, x, 10, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert rt.getValue() == 2f : "readOnly preserves value";
             } finally {

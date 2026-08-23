@@ -40,7 +40,7 @@ public class CloseButton extends JComponent {
         addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) { if (interactive && isEnabled()) hoverAnim.go(hover, 1f); }
             public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); }
-            public void mouseClicked(MouseEvent e) { fireClicked(); }
+            public void mousePressed(MouseEvent e) { fireClicked(); }
         });
     }
 
@@ -152,14 +152,14 @@ public class CloseButton extends JComponent {
         cb.addActionListener(e -> fired[0]++);
         cb.addMouseListener(new MouseAdapter() {});
         cb.setSize(24, 24);
-        cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_CLICKED,
+        cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_PRESSED,
                 System.currentTimeMillis(), 0, 12, 12, 1, false));
         assert fired[0] == 1 : "click should fire listener, fired=" + fired[0];
 
         // setInteractive(false)：contains false + 点击不触发
         cb.setInteractive(false);
         assert !cb.contains(12, 12) : "non-interactive contains must be false";
-        cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_CLICKED,
+        cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_PRESSED,
                 System.currentTimeMillis(), 0, 12, 12, 1, false));
         assert fired[0] == 1 : "non-interactive click must not fire";
         cb.setInteractive(true);
@@ -188,13 +188,13 @@ public class CloseButton extends JComponent {
         assert rl.getActionListeners().length == 2 : "two listeners registered, got " + rl.getActionListeners().length;
         rl.removeActionListener(a1);
         assert rl.getActionListeners().length == 1 : "after remove one, got " + rl.getActionListeners().length;
-        rl.dispatchEvent(new MouseEvent(rl, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 12, 12, 1, false));
+        rl.dispatchEvent(new MouseEvent(rl, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 12, 12, 1, false));
         assert f2[0] == 1 : "only remaining listener fires, fired=" + f2[0];
 
         final int[] f3 = {0};
         rl.setOnClose(() -> f3[0]++);
         assert rl.getActionListeners().length == 1 : "setOnClose replaces listeners, got " + rl.getActionListeners().length;
-        rl.dispatchEvent(new MouseEvent(rl, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 12, 12, 1, false));
+        rl.dispatchEvent(new MouseEvent(rl, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 12, 12, 1, false));
         assert f3[0] == 1 : "setOnClose callback fires, fired=" + f3[0];
 
         // 禁用灰化：contains false + 点击不触发 + 中心像素为禁用灰
@@ -204,7 +204,7 @@ public class CloseButton extends JComponent {
         dis.addActionListener(e -> f4[0]++);
         dis.setEnabled(false);
         assert !dis.contains(12, 12) : "disabled contains must be false";
-        dis.dispatchEvent(new MouseEvent(dis, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 12, 12, 1, false));
+        dis.dispatchEvent(new MouseEvent(dis, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 12, 12, 1, false));
         assert f4[0] == 0 : "disabled click must not fire";
         dis.setEnabled(true);
         assert dis.contains(12, 12) : "re-enabled contains true";

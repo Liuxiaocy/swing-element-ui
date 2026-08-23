@@ -107,7 +107,7 @@ public class AstTree extends JComponent {
             }
         });
         addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override public void mousePressed(MouseEvent e) {
                 Point p = e.getPoint();
                 int idx = rowAtPoint(p);
                 if (idx < 0 || idx >= flatRows.size()) return;
@@ -468,13 +468,13 @@ public class AstTree extends JComponent {
                 int labelY = 2 + 1 * ROW_H + ROW_H / 2;
                 int labelX = LEFT_PAD + 1 * INDENT + EXPANDER_W + 8;
                 t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, labelX, labelY, 0, false));
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, labelX, labelY, 1, false));
+                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, labelX, labelY, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == x : "clicked label → x selected";
                 assert x.isSelected() : "x marked selected";
                 // Click expander of x → toggle (collapse)
                 int expX = LEFT_PAD + 1 * INDENT + EXPANDER_W / 2;
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, expX, labelY, 1, false));
+                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, expX, labelY, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert !x.isExpanded() : "x collapsed after expander click";
                 assert toggled[0] == x : "toggled listener fired with x";

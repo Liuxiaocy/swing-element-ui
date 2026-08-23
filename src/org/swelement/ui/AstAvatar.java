@@ -14,6 +14,9 @@ import java.awt.geom.RoundRectangle2D;
 public class AstAvatar extends JComponent {
     public static final int CIRCLE = 0, SQUARE = 1;
     public static final int SIZE_SMALL = 32, SIZE_DEFAULT = 40, SIZE_LARGE = 64;
+    /** 角标外扩边距：组件边界比头像大一圈，给右上角角标完整的绘制空间，
+     *  否则角标上半部超出组件 bounds 被 Swing 裁剪（只显示下半圆）。 */
+    public static final int BADGE_PAD = 12;
 
     private final int size, shape;
     private final Color bg;
@@ -59,6 +62,7 @@ public class AstAvatar extends JComponent {
 
     @Override protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
+        g2.translate(BADGE_PAD, BADGE_PAD);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
         Color bgLift = ElementTheme.lerp(bg, ElementTheme.lerp(bg, Color.WHITE, 0.15f), hover * 0.5f);
@@ -96,16 +100,18 @@ public class AstAvatar extends JComponent {
         g2.dispose();
     }
 
-    @Override public Dimension getPreferredSize() { return new Dimension(size, size); }
-    @Override public Dimension getMinimumSize()   { return new Dimension(size, size); }
-    @Override public Dimension getMaximumSize()   { return new Dimension(size, size); }
+    @Override public Dimension getPreferredSize() { return new Dimension(size + 2*BADGE_PAD, size + 2*BADGE_PAD); }
+    @Override public Dimension getMinimumSize()   { return new Dimension(size + 2*BADGE_PAD, size + 2*BADGE_PAD); }
+    @Override public Dimension getMaximumSize()   { return new Dimension(size + 2*BADGE_PAD, size + 2*BADGE_PAD); }
 
     @Override public void doLayout() {
-        // Badge EmptyBorder insets are (top=12, left=12, bottom=0, right=0).
-        // Position badge so its content-inside-insets covers avatar 0..size bounding box
-        // → center of badge paint = (size-12, 12) in badge coords, which lands at (size-12-12+12, 12-12+12) = (size-12, 12) in avatar coords.
-        final int PAD = 12;
-        badge.setBounds(-PAD, -PAD, size + PAD, size + PAD);
+        // Badge 内容 insets (top=12, left=12, bottom=0, right=0)，paintBadge 圆心 = (w-12, 12)（badge 坐标系）。
+        // 目标：圆心落在头像右上角内侧 (BADGE_PAD + size - 12, BADGE_PAD + 12)（组件坐标系）。
+        // 由 bx + w - 12 = BADGE_PAD + size - 12 且 by + 12 = BADGE_PAD + 12 解得：
+        badge.setBounds(0, BADGE_PAD, size + BADGE_PAD, size + BADGE_PAD);
+        // 离屏/无显示场景下 Swing 不会自动 validate，联动布局 badge 内部
+        // （FillLayout 需执行一次才能给 overlay 正确 bounds，否则角标画在 0 尺寸区域）
+        badge.doLayout();
     }
 
     private static final class ColorFactory {
@@ -136,8 +142,20 @@ public class AstAvatar extends JComponent {
         AstAvatar a1 = new AstAvatar('Z', SIZE_DEFAULT, CIRCLE);
         AstAvatar a2 = new AstAvatar(new Color(0xFFFFFF), "U", SIZE_LARGE, SQUARE);
         a1.setBadgeDot(true); a2.setBadgeCount(99);
-        assert a1.getPreferredSize().width == SIZE_DEFAULT;
-        assert a2.getPreferredSize().height == SIZE_LARGE;
+        assert a1.getPreferredSize().width == SIZE_DEFAULT + 2*BADGE_PAD;
+        assert a2.getPreferredSize().height == SIZE_LARGE + 2*BADGE_PAD;
+        // 回归：角标上半部必须完整绘制（旧缺陷：badge 圆心 y<0 被组件 bounds 裁掉上半圆）。
+        // a2 头像白底、角标红底：采样圆心上方 8px 处应为角标红色而非透明白底。
+        java.awt.image.BufferedImage bi = new java.awt.image.BufferedImage(
+                a2.getPreferredSize().width, a2.getPreferredSize().height, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bg2 = bi.createGraphics();
+        try { a2.setSize(a2.getPreferredSize()); a2.doLayout(); a2.paint(bg2); } finally { bg2.dispose(); }
+        int cx = BADGE_PAD + SIZE_LARGE - 12, cy = BADGE_PAD + 12;
+        // 距圆心 4px（而非 8px）：setCount 触发的 pop 动画可能停在 0.6 缩放（半径 5.4px），
+        // 离屏绘制不走 EDT 泵，采样点必须落在缩放后的圆内。旧缺陷下圆心在 y=0，y=20 必在圆外。
+        int px = bi.getRGB(cx, cy - 4);
+        int pr = (px >>> 16) & 0xFF, pg = (px >>> 8) & 0xFF, pa = (px >>> 24) & 0xFF;
+        assert pa > 200 && pr > 180 && pg < 160 : "badge upper half visible; got a="+pa+" r="+pr+" g="+pg;
         boolean caughtContrast = false;
         try {
             AstAvatar bad = new AstAvatar(new Color(0x888888), "A", 40, CIRCLE) {
@@ -153,7 +171,7 @@ public class AstAvatar extends JComponent {
         assert caughtContrast : "same-fg-bg contrast should throw via assertContrast";
         for (int sz : new int[]{SIZE_SMALL, SIZE_DEFAULT, SIZE_LARGE}) {
             AstAvatar ch = new AstAvatar('P', sz, CIRCLE);
-            assert ch.getPreferredSize().width == sz;
+            assert ch.getPreferredSize().width == sz + 2*BADGE_PAD;
         }
         System.out.println("AstAvatar self-check OK");
     }

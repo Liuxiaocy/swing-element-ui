@@ -54,7 +54,8 @@ public class AstLoadingDemo {
         Button hideWrap1 = new Button("隐藏加载", Button.DEFAULT, false);
         final JTextField wrapText1 = new JTextField("数据同步中，请稍候…", 26);
         JButton schedule = new JButton("⏱ 1.8 秒后自动关闭");
-        profileCard.addHeaderAction(hideWrap1); profileCard.addHeaderAction(showWrap1);
+        // 控制按钮必须放在 wrap 之外：loading 遮罩会覆盖被包裹的整个卡片，
+        // 若按钮留在卡片头部，遮罩出现后即被盖住无法再操作（模式A"未生效"的根因）。
 
         // === Demo Section B: WRAP mode over simple table/text area ===
         JPanel dataBody = new JPanel(new BorderLayout());
@@ -77,13 +78,16 @@ public class AstLoadingDemo {
         final JLabel timeStampLbl = new JLabel("最近刷新：未刷新", JLabel.LEFT);
         timeStampLbl.setFont(timeStampLbl.getFont().deriveFont(12f));
         timeStampLbl.setForeground(new Color(0x909399));
-        JPanel timeStuff = new JPanel(new BorderLayout()); timeStuff.add(timeStampLbl, BorderLayout.WEST);
-        dataCard.addHeaderAction(hideWrap2); dataCard.addHeaderAction(showWrap2);
+        JPanel timeStuff = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8)); // 控制行在 wrap 外
+        timeStuff.add(showWrap2); timeStuff.add(hideWrap2); timeStuff.add(timeStampLbl);
 
-        final JPanel leftCardWrap = new JPanel(new BorderLayout()); leftCardWrap.add(wrap1, BorderLayout.CENTER);
+        // 控制行放在 wrap 之外（NORTH），遮罩出现时按钮仍可点击
+        final JPanel leftCardWrap = new JPanel(new BorderLayout());
+        leftCardWrap.add(wrap1, BorderLayout.CENTER);
         JPanel wrapCtrl1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
+        wrapCtrl1.add(showWrap1); wrapCtrl1.add(hideWrap1);
         wrapCtrl1.add(new JLabel("自定义 loading 文案：")); wrapCtrl1.add(wrapText1); wrapCtrl1.add(schedule);
-        wrap1.add(wrapCtrl1, BorderLayout.SOUTH);  // WRAP loader has BorderLayout; target is CENTER, add ctrl south
+        leftCardWrap.add(wrapCtrl1, BorderLayout.NORTH);
 
         final JPanel rightCardWrap = new JPanel(new BorderLayout()); rightCardWrap.add(wrap2, BorderLayout.CENTER);
         rightCardWrap.add(timeStuff, BorderLayout.SOUTH);
@@ -141,6 +145,12 @@ public class AstLoadingDemo {
         openFsCustom.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
             fsLoader.showLoading(fsText.getText());
             cancelFs.setEnabled(true);
+            // 全屏加载会冻结整个窗口（含本按钮），必须自带自动关闭，否则永久锁死
+            new Timer(3500, new ActionListener() { public void actionPerformed(ActionEvent ev) {
+                ((Timer) ev.getSource()).stop();
+                fsLoader.hideLoading();
+                cancelFs.setEnabled(false);
+            }}).start();
         }});
         cancelFs.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
             fsLoader.hideLoading(); cancelFs.setEnabled(false);
@@ -152,14 +162,14 @@ public class AstLoadingDemo {
         JPanel progPanel = new JPanel(new BorderLayout(8, 8));
         progPanel.setBorder(new TitledBorder("综合：WRAP Loading + Progress 进度（启动后逐步推进到 100%）"));
         final Progress masterProg = new Progress(0);
-        JButton startProg = new JButton("▶ 开始模拟上传任务");
+        final JButton startProg = new JButton("▶ 开始模拟上传任务");
         final JButton cancelProg = new JButton("■ 取消任务"); cancelProg.setEnabled(false);
         final JLabel progressEcho = new JLabel("任务状态：待开始", JLabel.LEFT);
         progressEcho.setFont(progressEcho.getFont().deriveFont(12f));
         progressEcho.setForeground(new Color(0x909399));
+        // 控制行放 wrap 外：loading 冻结期间按钮仍可点击（取消任务可用）
         JPanel topRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
         topRow.add(startProg); topRow.add(cancelProg); topRow.add(progressEcho);
-        progPanel.add(topRow, BorderLayout.NORTH);
         progPanel.add(masterProg, BorderLayout.CENTER);
         final AstLoading progWrap = new AstLoading(AstLoading.Mode.WRAP, progPanel);
         startProg.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
@@ -195,7 +205,9 @@ public class AstLoadingDemo {
         // assemble root
         root.add(wrapPanel); root.add(Box.createVerticalStrut(12));
         root.add(fsPanel); root.add(Box.createVerticalStrut(12));
-        JPanel progWrapPanel = new JPanel(new BorderLayout()); progWrapPanel.add(progWrap, BorderLayout.CENTER);
+        JPanel progWrapPanel = new JPanel(new BorderLayout());
+        progWrapPanel.add(progWrap, BorderLayout.CENTER);
+        progWrapPanel.add(topRow, BorderLayout.NORTH); // 控制行在 wrap 外
         root.add(progWrapPanel);
         f.setContentPane(new JScrollPane(root));
         f.setVisible(true);

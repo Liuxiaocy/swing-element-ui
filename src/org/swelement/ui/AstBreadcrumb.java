@@ -47,7 +47,7 @@ public class AstBreadcrumb extends JComponent {
             @Override public void mouseExited(MouseEvent e) {
                 hoverIndex = -1; hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
             }
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override public void mousePressed(MouseEvent e) {
                 int idx = itemIndexAt(e.getPoint());
                 if (idx < 0 || idx >= items.size() - 1) return; // 末段不可点
                 if (itemClickListener != null) itemClickListener.accept(idx);
@@ -217,13 +217,13 @@ public class AstBreadcrumb extends JComponent {
                 gg.setColor(Color.WHITE); gg.fillRect(0, 0, img.getWidth(), img.getHeight());
                 try { b.paint(gg); } finally { gg.dispose(); }
                 // Click item 0 (首页)
-                b.dispatchEvent(new MouseEvent(b, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 10, 10, 1, false));
+                b.dispatchEvent(new MouseEvent(b, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, 10, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == 0 : "clicked item 0; actual=" + clicked[0];
                 // Click last item (详情) → not clickable
                 clicked[0] = -99;
                 int lastX = b.getPreferredSize().width - 30;
-                b.dispatchEvent(new MouseEvent(b, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, lastX, 10, 1, false));
+                b.dispatchEvent(new MouseEvent(b, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, lastX, 10, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == -99 : "last item not clickable; actual=" + clicked[0];
             } finally {

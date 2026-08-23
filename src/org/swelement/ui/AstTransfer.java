@@ -142,7 +142,7 @@ public class AstTransfer extends JComponent {
         leftList.setSelectionForeground(ElementTheme.TEXT_MAIN);
         leftList.setVisibleRowCount(8);
         leftList.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+            @Override public void mousePressed(java.awt.event.MouseEvent e) {
                 int idx = leftList.locationToIndex(e.getPoint());
                 if (idx < 0) return;
                 String key = leftModel.get(idx);
@@ -188,7 +188,7 @@ public class AstTransfer extends JComponent {
         rightList.setSelectionForeground(ElementTheme.TEXT_MAIN);
         rightList.setVisibleRowCount(8);
         rightList.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+            @Override public void mousePressed(java.awt.event.MouseEvent e) {
                 int idx = rightList.locationToIndex(e.getPoint());
                 if (idx < 0) return;
                 String key = rightModel.get(idx);

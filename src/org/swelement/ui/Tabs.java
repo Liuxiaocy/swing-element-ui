@@ -41,7 +41,7 @@ public class Tabs extends JComponent {
         cardPanel.setBorder(new EmptyBorder(HEADER_H, 0, 0, 0));
         add(cardPanel, BorderLayout.CENTER);
         addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 if (!isEnabled()) return;
                 if (e.getY() > HEADER_H) return;
                 int[] xs = tabPositions();

@@ -33,9 +33,11 @@ public class AnimatedPopup extends JComponent {
     private Component invoker;
     private Runnable dismissListener;
     private PopupLayer assignedLayer = PopupLayer.POPUP;
+    private boolean dismissOnOutsideClick = true;
     private final AWTEventListener awtDismissListener = new AWTEventListener() {
         public void eventDispatched(AWTEvent event) {
             if (event.getID() == MouseEvent.MOUSE_PRESSED) {
+                if (!dismissOnOutsideClick) return;
                 MouseEvent me = (MouseEvent) event;
                 Component src = me.getComponent();
                 if (AnimatedPopup.this.getParent() == null) return;
@@ -79,6 +81,24 @@ public class AnimatedPopup extends JComponent {
 
     public void setDismissListener(Runnable r) { dismissListener = r; }
 
+    /**
+     * 是否在弹层外部按下时自动关闭。默认 true。
+     * Toast 一类靠计时器自行消失的浮层应设为 false，否则任何一次点击都会把它打掉，
+     * 且绕过 hideWithAnimation 的簿记回调，导致调用方的开启列表出现僵尸条目。
+     */
+    public void setDismissOnOutsideClick(boolean b) { dismissOnOutsideClick = b; }
+
+    /**
+     * 幂等地挂回全局按下监听。
+     * hidePopup 会摘掉监听，若不在每次展示时重挂，弹层第二次展示后就再也无法点击外部关闭。
+     * 先摘再挂，避免重复注册导致回调多次触发。
+     */
+    private void ensureDismissListenerRegistered() {
+        Toolkit tk = Toolkit.getDefaultToolkit();
+        tk.removeAWTEventListener(awtDismissListener);
+        tk.addAWTEventListener(awtDismissListener, AWTEvent.MOUSE_EVENT_MASK);
+    }
+
     @Override
     public void setVisible(boolean v) {
         if (!v) hidePopup();
@@ -97,6 +117,7 @@ public class AnimatedPopup extends JComponent {
         content.setBorder(new EmptyBorder(8, 0, 0, 0));
         lp.add(this, JLayeredPane.POPUP_LAYER, 0);
         lp.repaint(p.x, p.y, size.width, size.height);
+        ensureDismissListenerRegistered();
         openAnim.go(0f, 1f);
     }
 
@@ -127,6 +148,7 @@ public class AnimatedPopup extends JComponent {
         if (content != null) content.setBorder(new javax.swing.border.EmptyBorder(8, 0, 0, 0));
         lp.add(this, JLayeredPane.POPUP_LAYER, layerZ.get(assignedLayer));
         lp.repaint(p.x, p.y, getWidth(), getHeight());
+        ensureDismissListenerRegistered();
         if (openAnim != null) openAnim.go(0f, 1f);
     }
 

@@ -3,6 +3,7 @@ package org.swelement.ui;
 import org.swelement.core.Animator;
 import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
+import org.swelement.core.StickyToggleModel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,6 +18,7 @@ public class Radio extends JRadioButton {
 
     public Radio(String text) {
         super(text);
+        setModel(new StickyToggleModel()); // 快速点击时指针移出边界仍能完成翻转
         setOpaque(false);
         setFocusPainted(false);
         setFont(ElementTheme.FONT);

@@ -44,12 +44,16 @@ public class AstMessage {
         if (durationMs < 500) durationMs = 500;
         if (!(owner instanceof RootPaneContainer)) throw new IllegalArgumentException("owner must be RootPaneContainer");
         if (!SwingUtilities.isEventDispatchThread()) {
-            SwingUtilities.invokeLater(new Runnable() { public void run() { show(owner, type, text, 1234); }});
+            final int dur = durationMs;
+            SwingUtilities.invokeLater(new Runnable() { public void run() { show(owner, type, text, dur); }});
             return;
         }
         final RootPaneContainer rpc = (RootPaneContainer) owner;
         final ToastCard card = new ToastCard(type, text);
         final AnimatedPopup popup = new AnimatedPopup();
+        // Toast 靠计时器自行消失，不参与「外部点击关闭」，否则触发按钮的 MOUSE_PRESSED
+        // 会立刻打掉刚弹出的 Toast（旧根因：多次点击只剩最后一个 Toast 且位置持续下移）。
+        popup.setDismissOnOutsideClick(false);
         AnimatedPopup.registerGlobal(popup, AnimatedPopup.PopupLayer.TOOL);
         popup.getContent().setLayout(new BorderLayout());
         popup.getContent().add(card, BorderLayout.CENTER);

@@ -188,10 +188,10 @@ public class AstCollapse extends JPanel {
             arrowPanel.setOpaque(false);
             arrowPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             arrowPanel.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) { parent.toggle(index); }
+                @Override public void mousePressed(MouseEvent e) { parent.toggle(index); }
             });
             header.addMouseListener(new MouseAdapter() {
-                @Override public void mouseClicked(MouseEvent e) { parent.toggle(index); }
+                @Override public void mousePressed(MouseEvent e) { parent.toggle(index); }
             });
             header.add(arrowPanel, BorderLayout.EAST);
             add(header, BorderLayout.NORTH);

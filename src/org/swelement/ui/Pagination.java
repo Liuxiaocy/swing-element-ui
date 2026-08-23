@@ -123,7 +123,7 @@ public class Pagination extends JComponent {
                 addMouseListener(new MouseAdapter() {
                     public void mouseEntered(MouseEvent e) { if (!isEnabled()) return; hoverAnim.go(hover, 1f); }
                     public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
-                    public void mouseClicked(MouseEvent e) { if (!isEnabled()) return; setCurrentPage(page); }
+                    public void mousePressed(MouseEvent e) { if (!isEnabled()) return; setCurrentPage(page); }
                 });
             }
         }

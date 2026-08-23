@@ -167,7 +167,7 @@ public class AstDropdown extends JComponent {
                 @Override public void mouseExited(MouseEvent e) {
                     if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
                 }
-                @Override public void mouseClicked(MouseEvent e) {
+                @Override public void mousePressed(MouseEvent e) {
                     if (!isEnabled()) return;
                     if (item.action != null) item.action.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, item.label));
                     // Clicked an item → close dropdown
@@ -283,7 +283,7 @@ public class AstDropdown extends JComponent {
             assert row != null : "row found";
             row.dispatchEvent(new MouseEvent(row, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, row.getWidth()/2, row.getHeight()/2, 1, false));
             try { Thread.sleep(20); } catch (Throwable ignore) {}
-            row.dispatchEvent(new MouseEvent(row, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, row.getWidth()/2, row.getHeight()/2, 1, false));
+            row.dispatchEvent(new MouseEvent(row, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, row.getWidth()/2, row.getHeight()/2, 1, false));
             try { Thread.sleep(40); } catch (Throwable ignore) {}
             assert fireCount[0] == 1 : "action fired once; actual="+fireCount[0];
             assert !dd.isOpen() : "after click dropdown closes";

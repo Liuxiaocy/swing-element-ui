@@ -235,7 +235,7 @@ public class Tag extends JComponent {
                 f.add(p);
                 f.pack();
                 Component cb = c.getComponent(0);
-                cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_CLICKED,
+                cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_PRESSED,
                         System.currentTimeMillis(), 0, cb.getWidth() / 2, cb.getHeight() / 2, 1, false));
                 f.dispose();
             });

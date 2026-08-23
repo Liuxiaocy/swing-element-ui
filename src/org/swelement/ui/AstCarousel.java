@@ -61,7 +61,7 @@ public class AstCarousel extends JComponent {
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseEntered(java.awt.event.MouseEvent e) { hoverPaused = true; arrowAnim.stop(); arrowAnim.go(arrowHover, 1f); }
             @Override public void mouseExited(java.awt.event.MouseEvent e) { hoverPaused = false; arrowAnim.stop(); arrowAnim.go(arrowHover, 0f); }
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+            @Override public void mousePressed(java.awt.event.MouseEvent e) {
                 int w = getWidth();
                 if (e.getX() < 44) prev();
                 else if (e.getX() > w - 44) next();
