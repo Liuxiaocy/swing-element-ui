@@ -156,6 +156,7 @@ public class Tag extends JComponent {
 
     @Override
     public Dimension getPreferredSize() {
+        if (isPreferredSizeSet()) return super.getPreferredSize();
         Font f = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
         FontMetrics fm = getFontMetrics(f);
         int w = SIZE_HPAD[size] + fm.stringWidth(text)
@@ -170,6 +171,11 @@ public class Tag extends JComponent {
             ElementTheme.assertContrast(DEEP_FG[t], LIGHT_BG[t], "tag light type=" + t);
             ElementTheme.assertContrast(DEEP_FG[t], Color.WHITE, "tag plain type=" + t);
         }
+        // 显式 setPreferredSize 必须被尊重（close 收缩动画依赖此：Animator 通过 setPreferredSize 驱动）
+        Tag shrink = new Tag("标签", Tag.PRIMARY, false);
+        shrink.setPreferredSize(new Dimension(1, 26));
+        assert shrink.getPreferredSize().equals(new Dimension(1, 26))
+                : "explicitly-set preferred size must be honored by getPreferredSize";
         // 可关闭 Tag 更宽（为 CloseButton 预留）
         Tag plain = new Tag("标签", Tag.PRIMARY, false);
         Tag closable = new Tag("标签", Tag.PRIMARY, true);
