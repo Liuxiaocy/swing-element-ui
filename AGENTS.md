@@ -6,6 +6,19 @@
 
 在开始任何开发任务之前，**必须先调用 `using-superpowers` 技能**，它会指导你在合适的时机调用对应的方法论技能。
 
+## 组件设计规范（所有组件必须遵循）
+
+详细规范见 `docs/superpowers/specs/component-design-guidelines.md`。
+
+### 可访问性与对比度（最高优先级）
+
+**任何状态下，文字颜色与背景色的对比度必须满足 WCAG 2.1 AA 级（≥ 4.5:1）。**
+
+- 工具：`ElementTheme.assertContrast(fg, bg, where)` 在 `java -ea` 自检中断言
+- 适用状态：默认、hover、active、disabled、loading、plain、text 等所有组合
+- 禁止：浅色背景配白色/浅色文字（如 plain 模式白字白底、disabled 浅灰字浅蓝底）
+- 每个组件的 `selfCheck()` 必须包含所有状态的对比度断言
+
 ## 工作流
 
 1. **brainstorming** — 写代码前先澄清需求，通过提问细化设计，分段展示设计方案供确认
