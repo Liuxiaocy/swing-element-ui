@@ -1,0 +1,133 @@
+# Button 组件展现方式增强设计文档
+
+日期：2026-08-23
+状态：待审核
+
+## 目标
+
+为 `org.swelement.ui.Button` 组件补齐 Element UI 按钮的全部展现方式：尺寸、round 圆角、circle 圆形、图标按钮、loading 加载中、text 文本按钮。保持零依赖、自绘、JDK 8 兼容。
+
+## 范围
+
+仅修改 `Button.java` 和 `ButtonDemo.java`，不影响其他组件。不改变现有公共 API（已有构造函数和方法保持兼容），仅新增方法和常量。
+
+## API 设计
+
+### 新增常量
+
+```java
+// 尺寸
+public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+// 图标位置
+public static final int ICON_LEFT = 0, ICON_RIGHT = 1;
+```
+
+### 新增方法
+
+| 方法 | 说明 | 默认值 |
+|---|---|---|
+| `setSize(int size)` | 设置按钮尺寸 | SIZE_DEFAULT |
+| `setRound(boolean round)` | 胶囊圆角（圆角半径=高度/2） | false |
+| `setCircle(boolean circle)` | 圆形按钮（宽高相等，通常配合图标） | false |
+| `setIcon(String icon)` | 设置 Unicode 图标符号，null 表示无图标 | null |
+| `setIconPosition(int pos)` | 图标在文字左/右 | ICON_LEFT |
+| `setLoading(boolean loading)` | 加载中状态，禁用点击，显示旋转动画 | false |
+| `setLoadingText(String text)` | loading 时显示的文字，null 用默认"加载中" | null |
+| `setTextButton(boolean textBtn)` | text 文本按钮模式（仅 primary 色） | false |
+
+## 各特性实现细节
+
+### 尺寸
+
+三档参数：
+
+| 尺寸 | 字体 | 垂直内边距 | 水平内边距 | 图标间距 |
+|---|---|---|---|---|
+| SIZE_LARGE | 16px | 12px | 24px | 10px |
+| SIZE_DEFAULT | 14px | 9px | 20px | 8px |
+| SIZE_SMALL | 12px | 6px | 12px | 6px |
+
+`getPreferredSize()` 按当前尺寸计算：宽度 = 水平内边距×2 + 文字宽度 + 图标宽度 + 图标间距（如有图标）；高度 = 垂直内边距×2 + 字体高度。
+
+### round
+
+圆角半径覆盖 `ElementTheme.RADIUS`，使用 `getHeight()/2f`。与 size、plain、type 等正交，可任意组合。
+
+### circle
+
+- `getPreferredSize()` 返回正方形：边长 = max(宽度计算值, 高度计算值)
+- 圆角半径 = `getWidth()/2f`
+- 通常配合 `setIcon` 使用且文字为空；若有文字则文字居中绘制
+- circle 隐含 round 效果（无需同时设置 round）
+
+### 图标
+
+- 图标为 Unicode 字符串（如 `"\u2713"` 对勾、`"\u21bb"` 刷新），使用当前尺寸字体绘制
+- 图标位置：ICON_LEFT 时图标在文字左侧，ICON_RIGHT 时在右侧
+- 图标与文字间距按尺寸缩放（见上表）
+- 文字为空且有图标时：纯图标按钮，宽度 = 水平内边距×2 + 图标宽度
+- 无图标时：行为与当前一致
+
+### loading
+
+- `setLoading(true)`：
+  - 保存当前 enabled 状态和文字，然后 `setEnabled(false)`
+  - 启动旋转动画 `loadAnim`（800ms，linear，循环）
+  - 显示文字切换为 loadingText（默认"加载中"）
+- `setLoading(false)`：
+  - 停止旋转动画
+  - 恢复原 enabled 状态和文字
+- 旋转动画：`Animator` 驱动 `loadAngle` 从 0→1 循环，`paintComponent` 中用 `Graphics2D.rotate()` 或直接计算圆弧角度绘制一段圆弧（stroke 宽度 2px，颜色为当前文字色），圆弧位于文字左侧，与文字间距同图标间距
+- loading 时不响应 hover/active 动画（disabled 状态）
+
+### text 按钮
+
+- 仅 primary 色（`#409EFF`），不支持其他 type
+- 不绘制背景填充和边框
+- hover 时：绘制浅色背景 `#ECF5FF`（透明度由 hover 进度插值）
+- 文字颜色：始终为 `#409EFF`（非 disabled 时）；disabled 时 `#C0C4CC`
+- text 按钮模式下，plain 参数被忽略
+- 圆角仍受 round/circle 控制
+
+## 动画与交互
+
+- 现有 `hoverAnim`、`activeAnim` 保持不变
+- 新增 `loadAnim`：`new Animator(800, Easing::linear, v -> { loadAngle = v; repaint(); })`，循环模式（完成后自动重新 go(0,1)）
+- loading 状态下 hover/active 不启动（`isEnabled()` 守卫）
+- text 按钮 hover 动画：背景色从透明插值到 `#ECF5FF`
+
+## paintComponent 绘制顺序
+
+1. 计算当前状态的 bg/fg/border 颜色（考虑 disabled、loading、text 模式、hover、active、plain、type）
+2. 绘制背景（text 模式下仅 hover 时绘制半透明背景）
+3. 绘制边框（非 text 模式）
+4. 绘制 loading 旋转圆弧（如果 loading）
+5. 绘制图标（如果有，且非 loading 或 loading 时图标被圆弧替代）
+6. 绘制文字（loading 时用 loadingText）
+
+## 验证
+
+### Demo 更新
+
+`ButtonDemo.java` 新增展示区域：
+- 尺寸行：large / default / small 各一个 primary 按钮
+- round 行：各 type 的 round 按钮
+- circle 行：带图标的圆形按钮
+- 图标行：图标在左、图标在右、纯图标
+- loading 行：点击按钮触发 loading 状态，2 秒后恢复
+- text 行：text 按钮（含 disabled）
+
+### 自检
+
+在 `Button` 类中新增 `selfCheck()` 静态方法（`main` 入口），断言：
+- circle 模式下 `getPreferredSize()` 宽高相等
+- size 切换后字体大小正确
+- loading 切换后 enabled 状态正确恢复
+- 纯图标按钮（文字为空+有图标）宽度计算正确
+
+## 明确不做
+
+- 不引入外部图标字体或图片资源
+- 不实现 Element Plus 的 link 按钮（2.x 无此组件）
+- 不实现按钮组（ButtonGroup），属于独立组件
+- 不改变现有构造函数签名
