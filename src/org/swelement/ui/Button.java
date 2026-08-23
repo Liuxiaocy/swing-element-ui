@@ -38,12 +38,18 @@ public class Button extends JButton {
 
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
     private final Animator activeAnim = new Animator(120, Easing::easeInOut, v -> { active = v; repaint(); });
+    private final Animator loadAnim = new Animator(800, Easing::linear, v -> { loadAngle = v; repaint(); });
     private float hover, active;
     private int size = SIZE_DEFAULT;
     private boolean round = false;
     private boolean circle = false;
     private String icon = null;
     private int iconPosition = ICON_LEFT;
+    private boolean loading = false;
+    private String loadingText = null;
+    private float loadAngle = 0f;
+    private boolean savedEnabled;
+    private String savedText;
     private final int type;
     private final boolean plain;
 
@@ -95,6 +101,34 @@ public class Button extends JButton {
         repaint();
     }
 
+    public void setLoading(boolean loading) {
+        if (this.loading == loading) return;
+        this.loading = loading;
+        if (loading) {
+            savedEnabled = isEnabled();
+            savedText = getText();
+            setEnabled(false);
+            setText(loadingText != null ? loadingText : "加载中");
+            loadAngle = 0f;
+            startLoadLoop();
+        } else {
+            loadAnim.stop();
+            setEnabled(savedEnabled);
+            setText(savedText);
+        }
+        revalidate();
+        repaint();
+    }
+
+    public void setLoadingText(String text) {
+        this.loadingText = text;
+        if (loading) setText(text != null ? text : "加载中");
+    }
+
+    private void startLoadLoop() {
+        loadAnim.go(0f, 1f, () -> { if (loading) startLoadLoop(); });
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
@@ -128,21 +162,38 @@ public class Button extends JButton {
         FontMetrics fm = g2.getFontMetrics(btnFont);
         String text = getText();
         int textW = fm.stringWidth(text);
-        int iconW = (icon != null) ? fm.stringWidth(icon) : 0;
+        int iconW = (!loading && icon != null) ? fm.stringWidth(icon) : 0;
+        int loadW = loading ? 16 + SIZE_ICON_GAP[size] : 0;
         int gap = (iconW > 0 && textW > 0) ? SIZE_ICON_GAP[size] : 0;
-        int contentW = textW + iconW + gap;
+        int contentW = textW + iconW + gap + loadW;
         float startX = (getWidth() - contentW) / 2f;
         float baseY = (getHeight() - fm.getHeight()) / 2f + fm.getAscent();
-        if (icon != null) {
+        float cursorX = startX;
+
+        if (loading) {
+            Graphics2D lg2 = (Graphics2D) g2.create();
+            lg2.setColor(fg);
+            lg2.setStroke(new BasicStroke(2f));
+            int cx = Math.round(cursorX + 8);
+            int cy = getHeight() / 2;
+            double angle = loadAngle * 2 * Math.PI;
+            lg2.drawArc(cx - 7, cy - 7, 14, 14, (int) Math.toDegrees(angle), 270);
+            lg2.dispose();
+            cursorX += loadW;
+        }
+
+        if (!loading && icon != null) {
             if (iconPosition == ICON_LEFT) {
-                g2.drawString(icon, startX, baseY);
-                g2.drawString(text, startX + iconW + gap, baseY);
+                g2.drawString(icon, cursorX, baseY);
+                cursorX += iconW + gap;
+                g2.drawString(text, cursorX, baseY);
             } else {
-                g2.drawString(text, startX, baseY);
-                g2.drawString(icon, startX + textW + gap, baseY);
+                g2.drawString(text, cursorX, baseY);
+                cursorX += textW + gap;
+                g2.drawString(icon, cursorX, baseY);
             }
         } else {
-            g2.drawString(text, startX, baseY);
+            g2.drawString(text, cursorX, baseY);
         }
         g2.dispose();
     }
@@ -152,9 +203,10 @@ public class Button extends JButton {
         Font font = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
         FontMetrics fm = getFontMetrics(font);
         int textW = fm.stringWidth(getText());
-        int iconW = (icon != null) ? fm.stringWidth(icon) : 0;
+        int iconW = (!loading && icon != null) ? fm.stringWidth(icon) : 0;
+        int loadW = loading ? 16 + SIZE_ICON_GAP[size] : 0;
         int gap = (iconW > 0 && textW > 0) ? SIZE_ICON_GAP[size] : 0;
-        int w = SIZE_HPAD[size] * 2 + textW + iconW + gap;
+        int w = SIZE_HPAD[size] * 2 + textW + iconW + gap + loadW;
         int h = SIZE_VPAD[size] * 2 + fm.getHeight();
         if (circle) {
             int s = Math.max(w, h);
@@ -189,6 +241,20 @@ public class Button extends JButton {
         ib2.setIconPosition(Button.ICON_RIGHT);
         assert ib2.getPreferredSize().width > new Button("确定").getPreferredSize().width
                 : "icon-right button should also be wider";
+
+        Button lb = new Button("提交", Button.PRIMARY, false);
+        assert lb.isEnabled() : "button should be enabled initially";
+        lb.setLoading(true);
+        assert !lb.isEnabled() : "loading button should be disabled";
+        assert "加载中".equals(lb.getText()) : "loading text should default to 加载中, got " + lb.getText();
+        lb.setLoading(false);
+        assert lb.isEnabled() : "button should restore enabled after loading";
+        assert "提交".equals(lb.getText()) : "button should restore original text after loading, got " + lb.getText();
+        Button lb2 = new Button("保存");
+        lb2.setLoadingText("保存中...");
+        lb2.setLoading(true);
+        assert "保存中...".equals(lb2.getText()) : "custom loading text should be used, got " + lb2.getText();
+        lb2.setLoading(false);
 
         System.out.println("Button self-check OK");
     }
