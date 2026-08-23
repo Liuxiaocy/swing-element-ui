@@ -40,7 +40,8 @@ public class AstIcon extends JComponent {
     public static final int REFRESH = 16;
     public static final int EDIT = 17;
     public static final int DELETE = 18;
-    private static final int ICON_COUNT = 19;
+    public static final int EYE_OFF = 19;
+    private static final int ICON_COUNT = 20;
 
     private int type;
     private Color color;
@@ -104,6 +105,7 @@ public class AstIcon extends JComponent {
             case REFRESH: drawRefresh(g2, s); break;
             case EDIT: drawEdit(g2, s); break;
             case DELETE: drawDelete(g2, s); break;
+            case EYE_OFF: drawEyeOff(g2, s); break;
             default: break;
         }
         g2.dispose();
@@ -247,6 +249,18 @@ public class AstIcon extends JComponent {
         g2.draw(new Ellipse2D.Float(cy - pr, cy - pr, pr * 2, pr * 2));
     }
 
+    private static void drawEyeOff(Graphics2D g2, float s) {
+        stroke(g2, s * 0.09f);
+        float cy = cx(s);
+        Path2D p = new Path2D.Float();
+        p.moveTo(s * 0.1f, cy);
+        p.curveTo(s * 0.3f, s * 0.2f, s * 0.7f, s * 0.2f, s * 0.9f, cy);
+        p.curveTo(s * 0.7f, s * 0.8f, s * 0.3f, s * 0.8f, s * 0.1f, cy);
+        g2.draw(p);
+        // 斜杠贯穿（闭眼）
+        g2.draw(new Line2D.Float(s * 0.14f, s * 0.84f, s * 0.86f, s * 0.16f));
+    }
+
     private static void drawRefresh(Graphics2D g2, float s) {
         stroke(g2, s * 0.1f);
         float cx = cx(s), cy = cx(s);
@@ -325,6 +339,22 @@ public class AstIcon extends JComponent {
             }
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+
+        // EYE_OFF 绘制不抛异常且像素非空（密码切换依赖）
+        try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+            AstIcon eo = new AstIcon(EYE_OFF, ElementTheme.PRIMARY, 20);
+            eo.setBounds(0, 0, 20, 20);
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            Graphics2D gg = img.createGraphics();
+            gg.setColor(Color.WHITE); gg.fillRect(0, 0, 20, 20);
+            try { eo.paint(gg); } finally { gg.dispose(); }
+            int nonWhite = 0;
+            for (int x = 0; x < 20; x++) for (int y = 0; y < 20; y++) {
+                int p = img.getRGB(x, y);
+                if (((p >> 16) & 0xFF) < 200 || ((p >> 8) & 0xFF) < 200 || (p & 0xFF) < 200) nonWhite++;
+            }
+            assert nonWhite > 5 : "EYE_OFF should draw visible strokes, nonWhite=" + nonWhite;
+        }}); } catch (Throwable t) { throw new RuntimeException(t); }
         System.out.println("AstIcon self-check OK");
     }
 
