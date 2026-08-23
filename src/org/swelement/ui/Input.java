@@ -69,6 +69,7 @@ public class Input extends JPanel {
         };
         field.addMouseListener(m);   // field 铺满面板，鼠标事件落在 field 上
         addMouseListener(m);
+        east.addMouseListener(m);    // 鼠标从 field 移入 east（清空按钮区）时保持 hovering，× 不淡出
     }
 
     private void updateClear() {

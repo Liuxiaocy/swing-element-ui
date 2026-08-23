@@ -66,7 +66,7 @@ public class Alert extends JComponent {
         if (closeBtn == null) return;
         float a = inP * (1 - outP);
         closeBtn.setAlpha(a);
-        closeBtn.setInteractive(a > 0.5f);
+        closeBtn.setInteractive(a > 0.5f && isEnabled());
     }
 
     public void close(Runnable onClosed) {
