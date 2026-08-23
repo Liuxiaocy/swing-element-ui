@@ -77,6 +77,12 @@ public class Alert extends JComponent {
     }
 
     @Override
+    public void setEnabled(boolean b) {
+        super.setEnabled(b);
+        syncClose(); // 无动画 tick 时也要刷新 × 的可交互性（如淡入完成后才启用）
+    }
+
+    @Override
     protected void paintComponent(Graphics g) {
         int a = Math.round(255 * inP * (1 - outP));
         if (a <= 0) return;
