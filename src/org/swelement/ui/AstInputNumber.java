@@ -89,7 +89,12 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         if (valueListener != null) valueListener.accept(value);
     }
 
-    @Override public String getFormValue() { return Double.toString(getValue()); }
+    @Override public String getFormValue() {
+        double v = getValue();
+        // 整数值返回干净的整数串（"50" 而非 "50.0"），更符合表单提交语义
+        if (Double.isFinite(v) && v == Math.rint(v)) return Long.toString((long) v);
+        return Double.toString(v);
+    }
     @Override public void setFormValue(String v) {
         try { setValue(v == null || v.isEmpty() ? 0 : Double.parseDouble(v)); }
         catch (NumberFormatException e) { setValue(0); }

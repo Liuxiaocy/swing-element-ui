@@ -34,7 +34,7 @@ import java.util.function.Consumer;
  *   cascader.setPlaceholder("请选择城市");
  *   cascader.setSelectionListener(path -> System.out.println("选中: " + path));
  */
-public class AstCascader extends JComponent {
+public class AstCascader extends JComponent implements FormValueProvider, FormInvalidMarker {
     // --- Option model ---
     public static final class Option {
         public final String label;

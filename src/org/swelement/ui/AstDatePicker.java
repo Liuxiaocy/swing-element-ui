@@ -19,7 +19,7 @@ import java.util.function.Consumer;
  *   dp.setDate(LocalDate.of(2026, 8, 21));
  *   dp.setDateChangeListener(date -> System.out.println("选中: " + date));
  */
-public class AstDatePicker extends JComponent {
+public class AstDatePicker extends JComponent implements FormValueProvider, FormInvalidMarker {
     private LocalDate selectedDate;
     private LocalDate viewMonth;    // 当前显示的月份 (1st of month)
     private String placeholder = "选择日期";
@@ -37,13 +37,16 @@ public class AstDatePicker extends JComponent {
     private static final int HEADER_H = 40;
     private static final int WEEKDAY_H = 28;
 
-    public AstDatePicker() { this(LocalDate.now()); }
+    /** 默认构造为一个未选中的空日期选择器（表单场景下不应默认填充为今天）。 */
+    public AstDatePicker() { this(null); }
 
+    /**
+     * @param initial 初始选中日期；传 null 表示未选中（空），常用于表单字段。
+     */
     public AstDatePicker(LocalDate initial) {
-        if (initial == null) throw new IllegalArgumentException("initial date must not be null");
         this.selectedDate = initial;
-        this.viewMonth = initial.withDayOfMonth(1);
-        this.invoker = new AstButton(formatDate(initial) + "  📅", AstButton.DEFAULT, false);
+        this.viewMonth = (initial == null ? LocalDate.now() : initial).withDayOfMonth(1);
+        this.invoker = new AstButton((initial == null ? placeholder : formatDate(initial)) + "  📅", AstButton.DEFAULT, false);
         this.popup = new AnimatedPopup();
         popup.setDismissListener(new Runnable() { public void run() { open = false; }});
         this.calendarPanel = new CalendarPanel();
@@ -307,11 +310,11 @@ public class AstDatePicker extends JComponent {
 
     // --- Self-check ---
     static void selfCheck() {
-        // Constructor null guard
-        boolean threw = false;
-        try { new AstDatePicker(null); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "null initial date";
+        // Constructor: null initial → empty (no selection) picker, not an error
+        AstDatePicker empty = new AstDatePicker(null);
+        assert empty.getFormValue().isEmpty() : "null initial → empty picker";
         // setDate null guard
+        boolean threw = false;
         AstDatePicker dp0 = new AstDatePicker();
         threw = false;
         try { dp0.setDate(null); } catch (IllegalArgumentException e) { threw = true; }
