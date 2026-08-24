@@ -64,10 +64,19 @@ public class AstTable extends JComponent {
     private final Animator hoverAnim;
     private float hoverAlpha;
 
-    private static final int HEADER_H = 36;
-    private static final int ROW_H = 32;
     private static final int CELL_PAD_X = 12;
     private static final int MAX_VISIBLE_ROWS_DEFAULT = 10;
+
+    // --- 尺寸档位（对齐 Element UI）---
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private static final int[] TIER_HEADER_H = {44, 36, 32};
+    private static final int[] TIER_ROW_H = {40, 32, 28};
+    private static final float[] TIER_FONT = {14f, 14f, 13f};
+    private int tier = SIZE_DEFAULT;
+    private int headerH = 36;
+    private int rowH = 32;
+    private Font headerFont = ElementTheme.FONT.deriveFont(Font.BOLD, 14f);
+    private Font cellFont = ElementTheme.FONT.deriveFont(14f);
 
     public AstTable(Column[] cols) {
         if (cols == null) throw new IllegalArgumentException("cols must not be null");
@@ -101,7 +110,28 @@ public class AstTable extends JComponent {
                 }
             }
         });
+        applyTier();
     }
+
+    // --- 尺寸档位（对齐 Element UI）---
+    public void setSize(int tier) {
+        if (tier < SIZE_LARGE || tier > SIZE_SMALL) throw new IllegalArgumentException("tier out of range: " + tier);
+        this.tier = tier;
+        applyTier();
+        revalidate();
+    }
+
+    private void applyTier() {
+        this.headerH = TIER_HEADER_H[tier];
+        this.rowH = TIER_ROW_H[tier];
+        this.headerFont = ElementTheme.FONT.deriveFont(Font.BOLD, TIER_FONT[tier]);
+        this.cellFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
+    }
+
+    /** 当前档位的表头高度（像素）。 */
+    public int getHeaderHeight() { return headerH; }
+    /** 当前档位的数据行高度（像素）。 */
+    public int getRowHeight() { return rowH; }
 
     // --- Public API ---
     public void addRow(Object... values) {
@@ -170,12 +200,12 @@ public class AstTable extends JComponent {
     @Override public Dimension getPreferredSize() {
         int rows_n = rows.size();
         int visibleRows = Math.min(MAX_VISIBLE_ROWS_DEFAULT, Math.max(1, rows_n));
-        int h = HEADER_H + visibleRows * ROW_H + 2;
+        int h = headerH + visibleRows * rowH + 2;
         int w = getTotalWidth() + 2;
         return new Dimension(w, h);
     }
 
-    @Override public Dimension getMinimumSize() { return new Dimension(getTotalWidth() + 2, HEADER_H + ROW_H); }
+    @Override public Dimension getMinimumSize() { return new Dimension(getTotalWidth() + 2, headerH + rowH); }
 
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
@@ -193,7 +223,7 @@ public class AstTable extends JComponent {
         paintHeader(g2, w);
         // 数据行
         for (int i = 0; i < rows.size(); i++) {
-            int y = HEADER_H + i * ROW_H;
+            int y = headerH + i * rowH;
             if (y > h) break;
             paintRow(g2, i, y, w);
         }
@@ -206,26 +236,26 @@ public class AstTable extends JComponent {
     private void paintHeader(Graphics2D g2, int w) {
         // 表头背景 PRIMARY
         g2.setColor(ElementTheme.PRIMARY);
-        g2.fillRect(0, 0, w, HEADER_H);
+        g2.fillRect(0, 0, w, headerH);
         // 表头底部分隔线
         g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f));
-        g2.drawLine(0, HEADER_H - 1, w, HEADER_H - 1);
+        g2.drawLine(0, headerH - 1, w, headerH - 1);
         // 表头文字：白字粗体
         g2.setColor(Color.WHITE);
-        g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 14f));
+        g2.setFont(headerFont);
         int x = 0;
         for (int c = 0; c < columns.size(); c++) {
             Column col = columns.get(c);
             String text = clipText(g2, col.title, col.width - 2 * CELL_PAD_X);
             FontMetrics fm = g2.getFontMetrics();
             int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-            int ty = (HEADER_H - fm.getHeight()) / 2 + fm.getAscent();
+            int ty = (headerH - fm.getHeight()) / 2 + fm.getAscent();
             // 表头白字对 PRIMARY 背景对比度充足（白 vs PRIMARY ≈ 3.0，略低于 4.5 但表头是粗体大字，遵循 Element UI 视觉惯例，跳过断言）
             g2.drawString(text, tx, ty);
             // 列分隔线（除最后一列）
             if (c < columns.size() - 1) {
                 g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
-                g2.drawLine(x + col.width - 1, 4, x + col.width - 1, HEADER_H - 4);
+                g2.drawLine(x + col.width - 1, 4, x + col.width - 1, headerH - 4);
                 g2.setColor(Color.WHITE);
             }
             x += col.width;
@@ -256,21 +286,21 @@ public class AstTable extends JComponent {
             }
         }
         g2.setColor(bg);
-        g2.fillRect(0, y, w, ROW_H);
+        g2.fillRect(0, y, w, rowH);
         // 2) hover 半透明覆盖层（仅非选中行）
         if (!selected && isHovered) {
             int a = Math.round(18 * hoverAlpha);
             g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
-            g2.fillRect(0, y, w, ROW_H);
+            g2.fillRect(0, y, w, rowH);
         }
         // 3) 单元格文字
         g2.setColor(textColor);
-        g2.setFont(ElementTheme.FONT.deriveFont(14f));
+        g2.setFont(cellFont);
         paintCells(g2, row, y, textColor);
         // 4) 行底分隔线（斑马纹行已用背景区分，仅白行画分隔线）
         if (!zebra) {
             g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.5f));
-            g2.drawLine(0, y + ROW_H - 1, w, y + ROW_H - 1);
+            g2.drawLine(0, y + rowH - 1, w, y + rowH - 1);
         }
     }
 
@@ -281,13 +311,13 @@ public class AstTable extends JComponent {
             Column col = columns.get(c);
             String text = clipText(g2, String.valueOf(row[c]), col.width - 2 * CELL_PAD_X);
             int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-            int ty = y + (ROW_H - fm.getHeight()) / 2 + fm.getAscent();
+            int ty = y + (rowH - fm.getHeight()) / 2 + fm.getAscent();
             g2.drawString(text, tx, ty);
             // 列分隔线
             if (c < columns.size() - 1) {
                 Color saved = g2.getColor();
                 g2.setColor(ElementTheme.BORDER_BASE);
-                g2.drawLine(x + col.width - 1, y + 4, x + col.width - 1, y + ROW_H - 4);
+                g2.drawLine(x + col.width - 1, y + 4, x + col.width - 1, y + rowH - 4);
                 g2.setColor(saved);
             }
             x += col.width;
@@ -312,8 +342,8 @@ public class AstTable extends JComponent {
     }
 
     private int dataRowAtPoint(Point p) {
-        if (p.y < HEADER_H) return -1;
-        int idx = (p.y - HEADER_H) / ROW_H;
+        if (p.y < headerH) return -1;
+        int idx = (p.y - headerH) / rowH;
         if (idx < 0 || idx >= rows.size()) return -1;
         return idx;
     }
@@ -423,20 +453,20 @@ public class AstTable extends JComponent {
                 java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(t2.getPreferredSize().width, 200, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                 Graphics2D gg = img.createGraphics();
                 try { t2.paint(gg); } finally { gg.dispose(); }
-                // Click row 2 (李四) — y = HEADER_H + 2*ROW_H + ROW_H/2
-                int clickY = HEADER_H + 2 * ROW_H + ROW_H / 2;
+                // Click row 2 (李四)
+                int clickY = t2.getHeaderHeight() + 2 * t2.getRowHeight() + t2.getRowHeight() / 2;
                 int clickX = 10;
                 t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, clickX, clickY, 0, false));
                 t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, clickX, clickY, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == 2 : "clicked row 2; actual=" + clicked[0];
                 assert t2.getSelectedRow() == 2 : "selected row 2";
-                // Click header area (y < HEADER_H) — should not select
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, HEADER_H / 2, 1, false));
+                // Click header area — should not select
+                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, t2.getHeaderHeight() / 2, 1, false));
                 try { Thread.sleep(20); } catch (Throwable ignore) {}
                 assert t2.getSelectedRow() == 2 : "header click does not change selection";
                 // Click below last row — should not select
-                int belowY = HEADER_H + 4 * ROW_H + ROW_H / 2;
+                int belowY = t2.getHeaderHeight() + 4 * t2.getRowHeight() + t2.getRowHeight() / 2;
                 t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, belowY, 1, false));
                 try { Thread.sleep(20); } catch (Throwable ignore) {}
                 assert t2.getSelectedRow() == 2 : "below-rows click does not change selection";
@@ -445,6 +475,21 @@ public class AstTable extends JComponent {
             }
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+
+        // 尺寸档位（R1）：行高/表头高度随档位单调缩放，非法档位抛异常
+        AstTable tb3 = new AstTable(new Column[]{ new Column("姓名", 120), new Column("年龄", 80) });
+        tb3.setSize(AstTable.SIZE_LARGE);
+        int hHL = tb3.getHeaderHeight(), rHL = tb3.getRowHeight();
+        tb3.setSize(AstTable.SIZE_DEFAULT);
+        int hHD = tb3.getHeaderHeight(), rHD = tb3.getRowHeight();
+        tb3.setSize(AstTable.SIZE_SMALL);
+        int hHS = tb3.getHeaderHeight(), rHS = tb3.getRowHeight();
+        assert hHL > hHD && hHD > hHS : "AstTable 档位表头高度应单调递减, got " + hHL + "," + hHD + "," + hHS;
+        assert rHL > rHD && rHD > rHS : "AstTable 档位行高应单调递减, got " + rHL + "," + rHD + "," + rHS;
+        threw = false;
+        try { tb3.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "AstTable 非法档位应抛异常";
+
         System.out.println("AstTable self-check OK");
     }
 
