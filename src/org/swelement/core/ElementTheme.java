@@ -58,13 +58,21 @@ public final class ElementTheme {
     public static float luminance(Color c) {
         return 0.2126f * srgb(c.getRed()) + 0.7152f * srgb(c.getGreen()) + 0.0722f * srgb(c.getBlue());
     }
-    /** Fails (AssertionError) when fg vs bg contrast < 4.5:1 — enabled only with -ea.
+    /** Fails (AssertionError) when fg vs bg contrast < 4.5:1 (body-text AA) — enabled only with -ea.
      *  Use `where` string to identify offending component state. */
     public static void assertContrast(Color fg, Color bg, String where) {
+        assertContrast(fg, bg, where, 4.5f);
+    }
+
+    /** Like {@link #assertContrast(Color,Color,String)} but with a caller-supplied minimum ratio.
+     *  Use 3.0f for non-text UI elements / graphical markers (WCAG 1.4.11 "non-text contrast"),
+     *  e.g. a required-field asterisk or an accent border whose brand color cannot reach 4.5:1. */
+    public static void assertContrast(Color fg, Color bg, String where, float minRatio) {
         float l1 = luminance(fg), l2 = luminance(bg);
         float lighter = Math.max(l1, l2), darker = Math.min(l1, l2);
         float ratio = (lighter + 0.05f) / (darker + 0.05f);
-        assert ratio >= 4.5f : "[CONTRAST FAIL " + where + "] ratio=" + String.format("%.2f", ratio)
+        assert ratio >= minRatio : "[CONTRAST FAIL " + where + "] ratio=" + String.format("%.2f", ratio)
+                + " (need >= " + String.format("%.2f", minRatio) + ")"
                 + " fg=RGB(" + fg.getRed() + "," + fg.getGreen() + "," + fg.getBlue() + ")"
                 + " bg=RGB(" + bg.getRed() + "," + bg.getGreen() + "," + bg.getBlue() + ")";
     }
