@@ -62,6 +62,7 @@ public class AstCascader extends JComponent {
     private final JPanel columnsContainer;
     private final List<ColumnPanel> columns = new ArrayList<ColumnPanel>();
     private boolean open;
+    private boolean invalid = false;
     private static final int COL_W = 160;
     private static final int ROW_H = 32;
     private static final int MAX_VISIBLE_ROWS = 8;
@@ -119,6 +120,24 @@ public class AstCascader extends JComponent {
 
     public void toggle() { if (open) hideCascader(); else showCascader(); }
     public boolean isOpen() { return open; }
+
+    public void clear() {
+        selectedPath.clear();
+        updateInvokerText();
+        if (open) { rebuildColumns(); updatePopupSize(); }
+        repaint();
+    }
+
+    @Override public String getFormValue() {
+        List<String> p = getSelectedPath();
+        return (p == null || p.isEmpty()) ? "" : String.join(" / ", p);
+    }
+    @Override public void setFormValue(String v) { clear(); }
+    @Override public void setInvalid(boolean inv) {
+        this.invalid = inv;
+        setBorder(inv ? BorderFactory.createLineBorder(ElementTheme.DANGER, 1) : null);
+        repaint();
+    }
 
     private void updateInvokerText() {
         if (selectedPath.isEmpty()) {
@@ -396,6 +415,7 @@ public class AstCascader extends JComponent {
             assert "广东".equals(selected.get(0)) : "level 0 = 广东";
             assert "广州".equals(selected.get(1)) : "level 1 = 广州";
             assert "天河区".equals(selected.get(2)) : "level 2 = 天河区";
+            assert cascader.getFormValue().equals("广东 / 广州 / 天河区") : "Cascader getFormValue, got " + cascader.getFormValue();
             assert !cascader.isOpen() : "cascader closed after leaf selection";
             // Verify invoker text updated
             String invokerText = cascader.getSelectedPath().toString();
@@ -417,6 +437,12 @@ public class AstCascader extends JComponent {
             jf.dispose();
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+        // FormValueProvider 取值契约
+        AstCascader cc2 = new AstCascader(java.util.Arrays.asList(new AstCascader.Option("x")), 1);
+        assert cc2.getFormValue().isEmpty() : "Cascader empty getFormValue";
+        cc2.setFormValue("x");
+        assert cc2.getFormValue().isEmpty() : "Cascader setFormValue clears";
+
         System.out.println("AstCascader self-check OK");
     }
 

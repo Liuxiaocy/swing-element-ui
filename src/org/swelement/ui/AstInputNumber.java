@@ -24,7 +24,7 @@ import java.util.function.Consumer;
  * 长按按钮 500ms 后每 100ms 自动步进（加速）。键盘上下箭头也可步进。
  * 数值越界 clamp；输入非法字符不更新。
  */
-public class AstInputNumber extends JComponent {
+public class AstInputNumber extends JComponent implements FormValueProvider, FormInvalidMarker {
     private double min, max, step;
     private int precision; // 小数位数
     private double value;
@@ -35,6 +35,7 @@ public class AstInputNumber extends JComponent {
     private final StepButton minusBtn, plusBtn;
     private final Timer holdTimer; // 长按加速
     private boolean holdingPlus, holdingMinus;
+    private boolean invalid = false;
 
     private static final int BTN_W = 32;
     private static final int HEIGHT = 32;
@@ -86,6 +87,17 @@ public class AstInputNumber extends JComponent {
         this.value = clamped;
         field.setText(format(value));
         if (valueListener != null) valueListener.accept(value);
+    }
+
+    @Override public String getFormValue() { return Double.toString(getValue()); }
+    @Override public void setFormValue(String v) {
+        try { setValue(v == null || v.isEmpty() ? 0 : Double.parseDouble(v)); }
+        catch (NumberFormatException e) { setValue(0); }
+    }
+    @Override public void setInvalid(boolean inv) {
+        this.invalid = inv;
+        setBorder(inv ? BorderFactory.createLineBorder(ElementTheme.DANGER, 1) : null);
+        repaint();
     }
 
     public void setValueListener(Consumer<Double> l) {
@@ -256,6 +268,14 @@ public class AstInputNumber extends JComponent {
             }
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+        // FormValueProvider 取值契约
+        AstInputNumber fn2 = new AstInputNumber(0, 100, 1, 50);
+        assert fn2.getFormValue().equals("50") : "AstInputNumber.getFormValue";
+        fn2.setFormValue("75");
+        assert fn2.getFormValue().equals("75") : "AstInputNumber.setFormValue";
+        fn2.setFormValue("");
+        assert fn2.getFormValue().equals("0") : "AstInputNumber empty->0";
+
         System.out.println("AstInputNumber self-check OK");
     }
 

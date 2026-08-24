@@ -28,6 +28,7 @@ public class AstDatePicker extends JComponent {
     private final AnimatedPopup popup;
     private final CalendarPanel calendarPanel;
     private boolean open;
+    private boolean invalid = false;
 
     private static final String[] WEEKDAYS = {"日", "一", "二", "三", "四", "五", "六"};
     private static final int CELL_W = 36;
@@ -62,6 +63,25 @@ public class AstDatePicker extends JComponent {
     }
 
     public LocalDate getDate() { return selectedDate; }
+
+    public void clear() {
+        this.selectedDate = null;
+        updateInvokerText();
+        if (calendarPanel != null) calendarPanel.repaint();
+    }
+
+    @Override public String getFormValue() {
+        return getDate() == null ? "" : getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+    }
+    @Override public void setFormValue(String v) {
+        if (v == null || v.isEmpty()) { clear(); return; }
+        try { setDate(LocalDate.parse(v)); } catch (Exception e) { clear(); }
+    }
+    @Override public void setInvalid(boolean inv) {
+        this.invalid = inv;
+        setBorder(inv ? BorderFactory.createLineBorder(ElementTheme.DANGER, 1) : null);
+        repaint();
+    }
 
     public void setPlaceholder(String s) {
         if (s == null) throw new IllegalArgumentException("placeholder must not be null");
@@ -356,6 +376,14 @@ public class AstDatePicker extends JComponent {
             jf.dispose();
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+        // FormValueProvider 取值契约
+        AstDatePicker dpTest = new AstDatePicker();
+        assert dpTest.getFormValue().isEmpty() : "DatePicker empty when no date";
+        dpTest.setDate(LocalDate.of(2026, 8, 24));
+        assert dpTest.getFormValue().equals("2026-08-24") : "DatePicker getFormValue, got " + dpTest.getFormValue();
+        dpTest.setFormValue("");
+        assert dpTest.getFormValue().isEmpty() : "DatePicker clear";
+
         System.out.println("AstDatePicker self-check OK");
     }
     public static void main(String[] args) { selfCheck(); }
