@@ -59,12 +59,21 @@ public class AstTransfer extends JComponent {
     private JLabel leftCount, rightCount;
     private JTextField leftSearch, rightSearch;
 
+    // --- 尺寸档位（对齐 Element UI）---
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private static final int[] TIER_ROW_H = {32, 28, 24};
+    private static final float[] TIER_FONT = {13f, 13f, 12f};
+    private int tier = SIZE_DEFAULT;
+    private int rowH = 28;
+    private Font cellFont = ElementTheme.FONT.deriveFont(13f);
+
     public AstTransfer(List<Item> items) {
         if (items == null) throw new IllegalArgumentException("items must not be null");
         for (Item it : items) {
             if (it == null) throw new IllegalArgumentException("item must not be null");
             allItems.put(it.key, it);
         }
+        applyTier();
         setOpaque(false);
         setLayout(new BorderLayout(8, 0));
         add(buildLeftPanel(), BorderLayout.WEST);
@@ -282,9 +291,27 @@ public class AstTransfer extends JComponent {
         if (changeListener != null) changeListener.accept(getSelected());
     }
 
-    @Override public Dimension getPreferredSize() { return new Dimension(520, 260); }
+    @Override public Dimension getPreferredSize() {
+        int h = 260 + (rowH - 28) * 8; // 基准 260，随档位行高线性缩放
+        return new Dimension(520, h);
+    }
     @Override public Dimension getMinimumSize() { return new Dimension(420, 200); }
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
+
+    // --- 尺寸档位（对齐 Element UI）---
+    public void setSize(int tier) {
+        if (tier < SIZE_LARGE || tier > SIZE_SMALL) throw new IllegalArgumentException("tier out of range: " + tier);
+        this.tier = tier;
+        applyTier();
+        revalidate();
+    }
+
+    private void applyTier() {
+        this.rowH = TIER_ROW_H[tier];
+        this.cellFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
+        // JList 可视行数随档位调整（整体高度同步变化）
+        if (leftList != null) { leftList.setVisibleRowCount(8 - tier); rightList.setVisibleRowCount(8 - tier); }
+    }
 
     // --- CellRenderer：自绘勾选框 + label ---
     private class TransferCellRenderer implements ListCellRenderer<String> {
@@ -320,7 +347,7 @@ public class AstTransfer extends JComponent {
                     String label = it == null ? key : it.label;
                     g2.setColor(ElementTheme.TEXT_MAIN);
                     ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTransfer cell text");
-                    g2.setFont(ElementTheme.FONT.deriveFont(13f));
+                    g2.setFont(cellFont);
                     FontMetrics fm = g2.getFontMetrics();
                     int baseY = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
                     String t = label; int maxW = getWidth() - 32;
@@ -334,7 +361,7 @@ public class AstTransfer extends JComponent {
                 }
             };
             row.setOpaque(false);
-            row.setPreferredSize(new Dimension(list.getVisibleRowCount() > 0 ? 200 : 200, 28));
+            row.setPreferredSize(new Dimension(list.getVisibleRowCount() > 0 ? 200 : 200, rowH));
             return row;
         }
     }
@@ -408,6 +435,20 @@ public class AstTransfer extends JComponent {
             }});
         } catch (Throwable e) { err[0] = e; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+
+        // 尺寸档位（R1）：整体高度随档位单调缩放，非法档位抛异常
+        AstTransfer tf3 = new AstTransfer(data);
+        tf3.setSize(AstTransfer.SIZE_LARGE);
+        int hL = tf3.getPreferredSize().height;
+        tf3.setSize(AstTransfer.SIZE_DEFAULT);
+        int hD = tf3.getPreferredSize().height;
+        tf3.setSize(AstTransfer.SIZE_SMALL);
+        int hS = tf3.getPreferredSize().height;
+        assert hL > hD && hD > hS : "AstTransfer 档位高度应单调递减 L>D>S, got " + hL + "," + hD + "," + hS;
+        threw = false;
+        try { tf3.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "AstTransfer 非法档位应抛异常";
+
         System.out.println("AstTransfer self-check OK");
     }
     public static void main(String[] args) { selfCheck(); }
