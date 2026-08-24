@@ -52,6 +52,13 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
     private boolean hovering;
     private boolean invalid = false;
 
+    // --- 尺寸档位（对齐 Element UI，与 AstInput 一致）---
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private static final int[] TIER_HEIGHT = {40, 32, 28};
+    private static final float[] TIER_FONT = {14f, 13f, 12f};
+    private static final int[] TIER_CLEAR = {18, 16, 14};
+    private int tier = SIZE_DEFAULT;
+
     public AstSelect(boolean multiple, boolean filterable) {
         this.multiple = multiple;
         this.filterable = filterable;
@@ -77,6 +84,7 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
             display.setFont(ElementTheme.FONT);
             center.add(display, BorderLayout.CENTER);
         }
+        applyTier();
         add(center, BorderLayout.CENTER);
 
         // 可清空 ×（复用 AstInput 批次 1 的 east 面板配方，替代手绘 × + 坐标命中测试）
@@ -126,6 +134,33 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         display.addMouseListener(click);
         tagsPanel.addMouseListener(click);
         if (field != null) field.addMouseListener(click);
+    }
+
+    /** 尺寸档位（对齐 Element UI）：高度 40/32/28，档位联动字体与清空按钮尺寸。 */
+    public void setSize(int t) {
+        if (t < SIZE_LARGE || t > SIZE_SMALL) throw new IllegalArgumentException("invalid size tier: " + t);
+        this.tier = t;
+        applyTier();
+        revalidate();
+        repaint();
+    }
+
+    private void applyTier() {
+        if (display != null) display.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        if (field != null) field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        clearBtn.setButtonSize(TIER_CLEAR[tier]);
+        tagsPanel.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        for (Component c : tagsPanel.getComponents()) c.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        Dimension d = super.getPreferredSize();
+        // 多选带标签时自然高度已含标签行，取较大值避免裁剪；其余强制档位高度
+        int h = TIER_HEIGHT[tier];
+        if (multiple && tagsPanel.getComponentCount() > 0) h = Math.max(d.height, h);
+        else d.height = h;
+        return new Dimension(d.width, h);
     }
 
     /** Convenience constructor: single-select non-filterable with given labels (value = label). */
@@ -388,6 +423,19 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         assert "a,c".equals(ms.getFormValue()) : "AstSelect multi getFormValue, got " + ms.getFormValue();
         ms.setFormValue("");
         assert ms.getFormValue().isEmpty() : "AstSelect multi empty after setFormValue('')";
+
+        // 尺寸档位 + 清空按钮配方（R1/R2）
+        AstSelect sz = new AstSelect(false, false);
+        assert sz.clearBtn instanceof AstCloseButton : "Select clear button is AstCloseButton (R2)";
+        sz.setSize(AstSelect.SIZE_SMALL);
+        assert sz.getPreferredSize().height == 28 : "Select SMALL height 28, got " + sz.getPreferredSize().height;
+        sz.setSize(AstSelect.SIZE_LARGE);
+        assert sz.getPreferredSize().height == 40 : "Select LARGE height 40, got " + sz.getPreferredSize().height;
+        sz.setSize(AstSelect.SIZE_DEFAULT);
+        assert sz.getPreferredSize().height == 32 : "Select DEFAULT height 32, got " + sz.getPreferredSize().height;
+        boolean t2 = false;
+        try { sz.setSize(9); } catch (IllegalArgumentException e) { t2 = true; }
+        assert t2 : "Select invalid tier throws";
 
         System.out.println("AstSelect self-check OK");
     }
