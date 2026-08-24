@@ -38,7 +38,10 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
     private boolean invalid = false;
 
     private static final int BTN_W = 32;
-    private static final int HEIGHT = 32;
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private static final int[] TIER_HEIGHT = {40, 32, 28};
+    private static final float[] TIER_FONT = {14f, 13f, 12f};
+    private int tier = SIZE_DEFAULT;
 
     public AstInputNumber(double min, double max, double step, int initial) {
         this(min, max, step, (double) initial, 0);
@@ -52,7 +55,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         this.value = clamp(initial);
         this.field = new JTextField(format(value));
         this.field.setHorizontalAlignment(JTextField.CENTER);
-        this.field.setFont(ElementTheme.FONT.deriveFont(14f));
+        this.field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
         this.field.setBorder(new EmptyBorder(0, 4, 0, 4));
         this.minusBtn = new StepButton("-", false);
         this.plusBtn = new StepButton("+", true);
@@ -65,6 +68,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         add(field, BorderLayout.CENTER);
         add(plusBtn, BorderLayout.EAST);
         setOpaque(false);
+        applyTier();
         // 输入框校验：失焦/回车时解析
         field.addActionListener(e -> commitText());
         field.addFocusListener(new FocusAdapter() {
@@ -78,6 +82,21 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
                 else if (e.getKeyCode() == KeyEvent.VK_DOWN) { doStep(false); e.consume(); }
             }
         });
+    }
+
+    /** 尺寸档位（对齐 Element UI）：高度 40/32/28，档位联动字体与步进按钮尺寸。 */
+    public void setSize(int t) {
+        if (t < SIZE_LARGE || t > SIZE_SMALL) throw new IllegalArgumentException("invalid size tier: " + t);
+        this.tier = t;
+        applyTier();
+        revalidate();
+        repaint();
+    }
+
+    private void applyTier() {
+        field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        minusBtn.setPreferredSize(new Dimension(BTN_W, TIER_HEIGHT[tier]));
+        plusBtn.setPreferredSize(new Dimension(BTN_W, TIER_HEIGHT[tier]));
     }
 
     public double getValue() { return value; }
@@ -148,7 +167,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         return String.format("%." + precision + "f", v);
     }
 
-    @Override public Dimension getPreferredSize() { return new Dimension(140, HEIGHT); }
+    @Override public Dimension getPreferredSize() { return new Dimension(140, TIER_HEIGHT[tier]); }
     @Override public Dimension getMinimumSize() { return getPreferredSize(); }
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
@@ -161,7 +180,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
 
         StepButton(String label, boolean plus) {
             this.plus = plus;
-            setPreferredSize(new Dimension(BTN_W, HEIGHT));
+            setPreferredSize(new Dimension(BTN_W, TIER_HEIGHT[tier]));
             setOpaque(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
@@ -280,6 +299,17 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         assert fn2.getFormValue().equals("75") : "AstInputNumber.setFormValue";
         fn2.setFormValue("");
         assert fn2.getFormValue().equals("0") : "AstInputNumber empty->0";
+
+        // 尺寸档位（R1）：高度 40/32/28
+        AstInputNumber sz = new AstInputNumber(0, 100, 1, 50);
+        assert sz.getPreferredSize().height == 32 : "InputNumber DEFAULT height 32, got " + sz.getPreferredSize().height;
+        sz.setSize(AstInputNumber.SIZE_SMALL);
+        assert sz.getPreferredSize().height == 28 : "InputNumber SMALL height 28, got " + sz.getPreferredSize().height;
+        sz.setSize(AstInputNumber.SIZE_LARGE);
+        assert sz.getPreferredSize().height == 40 : "InputNumber LARGE height 40, got " + sz.getPreferredSize().height;
+        boolean t4 = false;
+        try { sz.setSize(9); } catch (IllegalArgumentException e) { t4 = true; }
+        assert t4 : "InputNumber invalid tier throws";
 
         System.out.println("AstInputNumber self-check OK");
     }
