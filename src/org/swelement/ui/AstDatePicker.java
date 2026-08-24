@@ -30,6 +30,10 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
     private boolean open;
     private boolean invalid = false;
 
+    // --- 尺寸档位（对齐 Element UI，与 AstInput 一致）---
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private int tier = SIZE_DEFAULT;
+
     private static final String[] WEEKDAYS = {"日", "一", "二", "三", "四", "五", "六"};
     private static final int CELL_W = 36;
     private static final int CELL_H = 32;
@@ -55,6 +59,7 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
         setLayout(new BorderLayout());
         add(invoker, BorderLayout.CENTER);
         setOpaque(false);
+        applyTier();
     }
 
     public void setDate(LocalDate date) {
@@ -84,6 +89,19 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
         this.invalid = inv;
         setBorder(inv ? BorderFactory.createLineBorder(ElementTheme.DANGER, 1) : null);
         repaint();
+    }
+
+    /** 尺寸档位（对齐 Element UI）：触发框高度由 invoker(AstButton) 档位驱动，避免裁剪。 */
+    public void setSize(int t) {
+        if (t < SIZE_LARGE || t > SIZE_SMALL) throw new IllegalArgumentException("invalid size tier: " + t);
+        this.tier = t;
+        applyTier();
+        revalidate();
+        repaint();
+    }
+
+    private void applyTier() {
+        invoker.setSize(tier);
     }
 
     public void setPlaceholder(String s) {
@@ -386,6 +404,18 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
         assert dpTest.getFormValue().equals("2026-08-24") : "DatePicker getFormValue, got " + dpTest.getFormValue();
         dpTest.setFormValue("");
         assert dpTest.getFormValue().isEmpty() : "DatePicker clear";
+
+        // 尺寸档位（R1）：触发框高度随档位单调变化（由 invoker AstButton 档位驱动）
+        AstDatePicker dpSz = new AstDatePicker(LocalDate.of(2026, 8, 24));
+        int hDef = dpSz.getPreferredSize().height;
+        dpSz.setSize(AstDatePicker.SIZE_LARGE);
+        int hL = dpSz.getPreferredSize().height;
+        dpSz.setSize(AstDatePicker.SIZE_SMALL);
+        int hS = dpSz.getPreferredSize().height;
+        assert hL > hDef && hDef > hS : "DatePicker tier height monotonic LARGE>DEFAULT>SMALL, got " + hL + "/" + hDef + "/" + hS;
+        boolean tD = false;
+        try { dpSz.setSize(9); } catch (IllegalArgumentException e) { tD = true; }
+        assert tD : "DatePicker invalid tier throws";
 
         System.out.println("AstDatePicker self-check OK");
     }
