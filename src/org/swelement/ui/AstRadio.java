@@ -9,17 +9,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Path2D;
-import java.awt.geom.Rectangle2D;
-import java.awt.geom.RoundRectangle2D;
 
-public class Checkbox extends JCheckBox {
-    private final Animator fillAnim = new Animator(200, Easing::easeInOut, v -> { fill = v; repaint(); });
-    private final Animator checkAnim = new Animator(200, Easing::easeOut, v -> { check = v; repaint(); });
+public class AstRadio extends JRadioButton {
+    private final Animator dotAnim = new Animator(200, Easing::easeOut, v -> { dot = v; repaint(); });
+    private final Animator borderAnim = new Animator(200, Easing::easeInOut, v -> { border = v; repaint(); });
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
-    private float fill, check, hover;
+    private float dot, border, hover;
 
-    public Checkbox(String text) {
+    public AstRadio(String text) {
         super(text);
         setModel(new StickyToggleModel()); // 快速点击时指针移出边界仍能完成翻转
         setOpaque(false);
@@ -32,8 +29,8 @@ public class Checkbox extends JCheckBox {
             public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); }
         });
         addItemListener(e -> {
-            fillAnim.go(fill, isSelected() ? 1f : 0f);
-            checkAnim.go(check, isSelected() ? 1f : 0f);
+            borderAnim.go(border, isSelected() ? 1f : 0f);
+            dotAnim.go(dot, isSelected() ? 1f : 0f);
         });
     }
 
@@ -42,31 +39,20 @@ public class Checkbox extends JCheckBox {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         int y = (getHeight() - 16) / 2;
-        Color border = isEnabled()
-            ? ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, Math.max(fill, hover))
+        int cx = 8, cy = y + 8;
+
+        Color borderColor = isEnabled()
+            ? ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, Math.max(border, hover))
             : new Color(0xC0C4CC);
-        Color bg = ElementTheme.lerp(ElementTheme.FILL_BLANK, ElementTheme.PRIMARY, fill);
-        if (!isEnabled()) bg = ElementTheme.lerp(ElementTheme.FILL_BLANK, new Color(0xC0C4CC), fill);
-
-        Shape box = new RoundRectangle2D.Float(0, y, 16, 16, 4, 4);
-        g2.setColor(bg);
-        g2.fill(box);
-        g2.setColor(border);
+        g2.setColor(ElementTheme.FILL_BLANK);
+        g2.fillOval(cx - 8, cy - 8, 16, 16);
+        g2.setColor(borderColor);
         g2.setStroke(new BasicStroke(1f));
-        g2.draw(box);
+        g2.drawOval(cx - 8, cy - 8, 16, 16);
 
-        if (check > 0) {  // 勾号描边动画：裁剪窗口从左到右揭示
-            Shape old = g2.getClip();
-            g2.clip(new Rectangle2D.Float(0, y - 2, 12 * check + 1, 20));
-            g2.setColor(Color.WHITE);
-            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            Path2D p = new Path2D.Float();
-            p.moveTo(4, y + 9);
-            p.lineTo(7, y + 12);
-            p.lineTo(12, y + 5);
-            g2.draw(p);
-            g2.setClip(old);
-        }
+        float r = 4f * (float) Math.sqrt(dot);
+        g2.setColor(isEnabled() ? ElementTheme.PRIMARY : new Color(0xC0C4CC));
+        g2.fillOval((int) (cx - r), (int) (cy - r), (int) (2 * r), (int) (2 * r));
 
         g2.setColor(isEnabled() ? ElementTheme.TEXT_REGULAR : new Color(0xC0C4CC));
         FontMetrics fm = g2.getFontMetrics();

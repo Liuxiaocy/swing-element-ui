@@ -12,7 +12,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
-public class Slider extends JComponent {
+public class AstSlider extends JComponent {
     private final Animator thumbAnim = new Animator(200, Easing::easeOut, v -> { thumbX = v; repaint(); });
     private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
     private float thumbX = -1f, hover;   // thumbX 为像素位置，-1 表示未初始化
@@ -20,7 +20,7 @@ public class Slider extends JComponent {
     private int min, max, value;
     private boolean dragging;
 
-    public Slider(int min, int max, int value) {
+    public AstSlider(int min, int max, int value) {
         this.min = min; this.max = max; this.value = value;
         setOpaque(false);
         MouseAdapter m = new MouseAdapter() {

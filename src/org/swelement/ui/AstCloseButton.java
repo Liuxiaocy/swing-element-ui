@@ -16,12 +16,12 @@ import java.util.List;
 
 /**
  * 公共可点击关闭按钮：矢量 × 符号 + hover 圆形底色淡入。
- * 所有可关闭组件（Tag/Alert/Input/AstDialog 等）统一使用，替代"自绘 × + 坐标命中测试"。
+ * 所有可关闭组件（AstTag/AstAlert/AstInput/AstDialog 等）统一使用，替代"自绘 × + 坐标命中测试"。
  * 对比度：默认色 0x606266 对白底 ≈6.1:1（≥4.5:1，WCAG AA 达标且有余量），hover 色 0x1d6fb5 为 primary 深变体（>= 4.5:1）。
  * 禁用态：× 渲染为 ElementTheme.TEXT_PLACEHOLDER（0xC0C4CC，Element 禁用灰），不响应点击、不拦截父组件事件。
  *        禁用灰对比度低于 AA，但属于 WCAG 1.4.3 明确豁免的"disabled UI"场景，符合规范。
  */
-public class CloseButton extends JComponent {
+public class AstCloseButton extends JComponent {
     private int size;
     private Color color = new Color(0x606266);
     private Color hoverColor = new Color(0x1d6fb5);
@@ -31,9 +31,9 @@ public class CloseButton extends JComponent {
     private final List<ActionListener> listeners = new ArrayList<ActionListener>();
     private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
 
-    public CloseButton() { this(24); }
+    public AstCloseButton() { this(24); }
 
-    public CloseButton(int size) {
+    public AstCloseButton(int size) {
         this.size = size;
         setOpaque(false);
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -55,7 +55,7 @@ public class CloseButton extends JComponent {
     /** 当前注册的全部关闭监听（Swing 惯例，便于自检）。 */
     public ActionListener[] getActionListeners() { return listeners.toArray(new ActionListener[0]); }
 
-    /** 设定唯一关闭回调：清空既有监听后注册一个（批次 2 的 Tabs/Select 清空按钮常用）。 */
+    /** 设定唯一关闭回调：清空既有监听后注册一个（批次 2 的 AstTabs/AstSelect 清空按钮常用）。 */
     public void setOnClose(Runnable r) {
         removeAllActionListeners();
         if (r != null) addActionListener(e -> r.run());
@@ -141,10 +141,10 @@ public class CloseButton extends JComponent {
     }
 
     static void selfCheck() {
-        CloseButton cb = new CloseButton();
+        AstCloseButton cb = new AstCloseButton();
         Dimension pd = cb.getPreferredSize();
         assert pd.width == 24 && pd.height == 24 : "default 24x24, got " + pd;
-        CloseButton cb2 = new CloseButton(18);
+        AstCloseButton cb2 = new AstCloseButton(18);
         assert cb2.getPreferredSize().width == 18 : "custom size 18";
 
         // 点击触发监听
@@ -170,16 +170,16 @@ public class CloseButton extends JComponent {
         cb.setAlpha(-1f);
 
         // 对比度：默认色与 hover 色对白底（浅色场景）达标
-        ElementTheme.assertContrast(new Color(0x606266), Color.WHITE, "CloseButton default on white");
-        ElementTheme.assertContrast(new Color(0x1d6fb5), Color.WHITE, "CloseButton hover on white");
+        ElementTheme.assertContrast(new Color(0x606266), Color.WHITE, "AstCloseButton default on white");
+        ElementTheme.assertContrast(new Color(0x1d6fb5), Color.WHITE, "AstCloseButton hover on white");
 
         // --- 新增：setButtonSize / 移除监听 / setOnClose / 禁用灰化 ---
-        CloseButton sz = new CloseButton(24);
+        AstCloseButton sz = new AstCloseButton(24);
         sz.setButtonSize(18);
         assert sz.getPreferredSize().width == 18 : "setButtonSize(18) updates preferred size";
 
         final int[] f2 = {0};
-        CloseButton rl = new CloseButton();
+        AstCloseButton rl = new AstCloseButton();
         rl.setSize(24, 24);
         ActionListener a1 = e -> f2[0]++;
         ActionListener a2 = e -> f2[0]++;
@@ -199,7 +199,7 @@ public class CloseButton extends JComponent {
 
         // 禁用灰化：contains false + 点击不触发 + 中心像素为禁用灰
         final int[] f4 = {0};
-        CloseButton dis = new CloseButton();
+        AstCloseButton dis = new AstCloseButton();
         dis.setSize(24, 24);
         dis.addActionListener(e -> f4[0]++);
         dis.setEnabled(false);
@@ -221,13 +221,13 @@ public class CloseButton extends JComponent {
                 : "disabled × should be gray ~0xC0C4CC, got rgb=" + r + "," + gg + "," + bb;
 
         // 拉伸渲染（布局解耦）不抛异常
-        CloseButton stretch = new CloseButton(16);
+        AstCloseButton stretch = new AstCloseButton(16);
         stretch.setSize(40, 40);
         Graphics2D sg = bi.createGraphics();
         stretch.paint(sg);
         sg.dispose();
 
-        System.out.println("CloseButton self-check OK");
+        System.out.println("AstCloseButton self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }

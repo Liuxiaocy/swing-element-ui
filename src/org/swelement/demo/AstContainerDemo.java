@@ -1,8 +1,8 @@
 package org.swelement.demo;
 
+import org.swelement.ui.AstButton;
 import org.swelement.ui.AstContainer;
-import org.swelement.ui.Button;
-import org.swelement.ui.Tabs;
+import org.swelement.ui.AstTabs;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -31,7 +31,7 @@ public class AstContainerDemo {
                 "HORIZONTAL (Aside 左 + Main 右)",
                 "VERTICAL (Aside 上 + Main 下)"
         });
-        Button apply = new Button("应用布局", 0 /* DEFAULT */, false);
+        AstButton apply = new AstButton("应用布局", 0 /* DEFAULT */, false);
         ctrl.add(dir); ctrl.add(hdr); ctrl.add(asd); ctrl.add(ftr); ctrl.add(apply);
 
         final JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -48,8 +48,8 @@ public class AstContainerDemo {
                 title.setForeground(new Color(0x303133));
                 headerBox.add(title, BorderLayout.WEST);
                 JPanel hdrRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 12));
-                hdrRight.add(new Button("🔔 通知", Button.DEFAULT, false));
-                hdrRight.add(new Button("👤 管理员", Button.PRIMARY, false));
+                hdrRight.add(new AstButton("🔔 通知", AstButton.DEFAULT, false));
+                hdrRight.add(new AstButton("👤 管理员", AstButton.PRIMARY, false));
                 headerBox.add(hdrRight, BorderLayout.EAST);
                 if (hdr.isSelected()) ac.setHeader(headerBox);
 
@@ -63,7 +63,7 @@ public class AstContainerDemo {
                 asideBox.setBackground(new Color(0xFAFAFA));
                 if (asd.isSelected()) ac.setAside(asideBox);
 
-                Tabs mainTabs = new Tabs(new String[]{"基本信息", "权限配置", "安全日志"}, 0);
+                AstTabs mainTabs = new AstTabs(new String[]{"基本信息", "权限配置", "安全日志"}, 0);
                 JLabel mainBody = new JLabel("<html><body style='color:#606266;font-size:12px;padding:16px 24px'>" +
                         "Main 主内容区：可放置表单、表格、卡片。AstContainer 默认 Main 四周 padding 16/20/16/20 像素。<br><br>" +
                         "✅ Header 64px，底部 1px BORDER_BASE 分割线<br>" +

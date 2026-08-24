@@ -142,7 +142,7 @@ Run:
 ```
 cd /d "D:\Program Files\code\swing-element-ui"
 build.bat
-java -ea -cp out org.swelement.ui.Button
+java -ea -cp out org.swelement.ui.AstButton
 ```
 Expected: `Button self-check OK`，且 build.bat 中的其他自检也通过
 
@@ -244,7 +244,7 @@ Expected: BUILD FAILED，`cannot find symbol method setCircle(boolean)` / `setRo
 Run:
 ```
 build.bat
-java -ea -cp out org.swelement.ui.Button
+java -ea -cp out org.swelement.ui.AstButton
 ```
 Expected: `Button self-check OK`
 
@@ -374,7 +374,7 @@ Expected: BUILD FAILED，`cannot find symbol method setIcon(String)` / `setIconP
 Run:
 ```
 build.bat
-java -ea -cp out org.swelement.ui.Button
+java -ea -cp out org.swelement.ui.AstButton
 ```
 Expected: `Button self-check OK`
 
@@ -567,7 +567,7 @@ Expected: BUILD FAILED，`cannot find symbol method setLoading(boolean)` / `setL
 Run:
 ```
 build.bat
-java -ea -cp out org.swelement.ui.Button
+java -ea -cp out org.swelement.ui.AstButton
 ```
 Expected: `Button self-check OK`
 
@@ -703,7 +703,7 @@ Expected: BUILD FAILED，`cannot find symbol method setTextButton(boolean)`
 Run:
 ```
 build.bat
-java -ea -cp out org.swelement.ui.Button
+java -ea -cp out org.swelement.ui.AstButton
 ```
 Expected: `Button self-check OK`
 
@@ -731,6 +731,7 @@ git commit -m "feat(button): add text button mode (primary only, hover backgroun
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstButton;
 import org.swelement.ui.Button;
 
 import javax.swing.*;
@@ -751,20 +752,22 @@ public class ButtonDemo {
             // ========== 尺寸 ==========
             JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p1.setBorder(new TitledBorder("尺寸 Size"));
-            Button bl = new Button("Large 大按钮", Button.PRIMARY, false);
-            bl.setSize(Button.SIZE_LARGE);
-            Button bd = new Button("Default 默认", Button.PRIMARY, false);
-            Button bs = new Button("Small 小按钮", Button.PRIMARY, false);
-            bs.setSize(Button.SIZE_SMALL);
-            p1.add(bl); p1.add(bd); p1.add(bs);
+            AstButton bl = new AstButton("Large 大按钮", AstButton.PRIMARY, false);
+            bl.setSize(AstButton.SIZE_LARGE);
+            AstButton bd = new AstButton("Default 默认", AstButton.PRIMARY, false);
+            AstButton bs = new AstButton("Small 小按钮", AstButton.PRIMARY, false);
+            bs.setSize(AstButton.SIZE_SMALL);
+            p1.add(bl);
+            p1.add(bd);
+            p1.add(bs);
 
             // ========== round 圆角 ==========
             JPanel p2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p2.setBorder(new TitledBorder("圆角 Round"));
-            int[] types = {Button.DEFAULT, Button.PRIMARY, Button.SUCCESS, Button.WARNING, Button.DANGER, Button.INFO};
+            int[] types = {AstButton.DEFAULT, AstButton.PRIMARY, AstButton.SUCCESS, AstButton.WARNING, AstButton.DANGER, AstButton.INFO};
             String[] labels = {"默认", "主要", "成功", "警告", "危险", "信息"};
             for (int i = 0; i < types.length; i++) {
-                Button b = new Button(labels[i], types[i], false);
+                AstButton b = new AstButton(labels[i], types[i], false);
                 b.setRound(true);
                 p2.add(b);
             }
@@ -773,9 +776,9 @@ public class ButtonDemo {
             JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p3.setBorder(new TitledBorder("圆形 Circle（图标按钮）"));
             String[] icons = {"\u2713", "\u2717", "\u2605", "\u2699", "\u21bb", "\u2764"};
-            int[] ctypes = {Button.SUCCESS, Button.DANGER, Button.WARNING, Button.INFO, Button.PRIMARY, Button.DANGER};
+            int[] ctypes = {AstButton.SUCCESS, AstButton.DANGER, AstButton.WARNING, AstButton.INFO, AstButton.PRIMARY, AstButton.DANGER};
             for (int i = 0; i < icons.length; i++) {
-                Button b = new Button("", ctypes[i], false);
+                AstButton b = new AstButton("", ctypes[i], false);
                 b.setIcon(icons[i]);
                 b.setCircle(true);
                 p3.add(b);
@@ -784,24 +787,25 @@ public class ButtonDemo {
             // ========== 图标位置 ==========
             JPanel p4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p4.setBorder(new TitledBorder("图标 Icon（左/右）"));
-            Button il = new Button("图标在左", Button.PRIMARY, false);
+            AstButton il = new AstButton("图标在左", AstButton.PRIMARY, false);
             il.setIcon("\u2713");
-            Button ir = new Button("图标在右", Button.PRIMARY, false);
+            AstButton ir = new AstButton("图标在右", AstButton.PRIMARY, false);
             ir.setIcon("\u2192");
-            ir.setIconPosition(Button.ICON_RIGHT);
-            p4.add(il); p4.add(ir);
+            ir.setIconPosition(AstButton.ICON_RIGHT);
+            p4.add(il);
+            p4.add(ir);
 
             // ========== loading ==========
             JPanel p5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p5.setBorder(new TitledBorder("加载中 Loading（点击触发，2秒后恢复）"));
-            Button loadBtn = new Button("点击加载", Button.PRIMARY, false);
+            AstButton loadBtn = new AstButton("点击加载", AstButton.PRIMARY, false);
             loadBtn.addActionListener(e -> {
                 loadBtn.setLoading(true);
                 Timer t = new Timer(2000, ev -> loadBtn.setLoading(false));
                 t.setRepeats(false);
                 t.start();
             });
-            Button loadBtn2 = new Button("保存", Button.SUCCESS, false);
+            AstButton loadBtn2 = new AstButton("保存", AstButton.SUCCESS, false);
             loadBtn2.setLoadingText("保存中...");
             loadBtn2.addActionListener(e -> {
                 loadBtn2.setLoading(true);
@@ -809,31 +813,34 @@ public class ButtonDemo {
                 t.setRepeats(false);
                 t.start();
             });
-            p5.add(loadBtn); p5.add(loadBtn2);
+            p5.add(loadBtn);
+            p5.add(loadBtn2);
 
             // ========== text 文本按钮 ==========
             JPanel p6 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p6.setBorder(new TitledBorder("文本按钮 Text"));
-            Button tb1 = new Button("文本按钮", Button.PRIMARY, false);
+            AstButton tb1 = new AstButton("文本按钮", AstButton.PRIMARY, false);
             tb1.setTextButton(true);
-            Button tb2 = new Button("禁用文本", Button.PRIMARY, false);
+            AstButton tb2 = new AstButton("禁用文本", AstButton.PRIMARY, false);
             tb2.setTextButton(true);
             tb2.setEnabled(false);
-            Button tb3 = new Button("圆角文本", Button.PRIMARY, false);
+            AstButton tb3 = new AstButton("圆角文本", AstButton.PRIMARY, false);
             tb3.setTextButton(true);
             tb3.setRound(true);
-            p6.add(tb1); p6.add(tb2); p6.add(tb3);
+            p6.add(tb1);
+            p6.add(tb2);
+            p6.add(tb3);
 
             // ========== 原有：6种类型 ==========
             JPanel p7 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p7.setBorder(new TitledBorder("按钮类型（原有）"));
-            for (int i = 0; i < types.length; i++) p7.add(new Button(labels[i], types[i], false));
+            for (int i = 0; i < types.length; i++) p7.add(new AstButton(labels[i], types[i], false));
 
             // ========== 原有：朴素 + 禁用 ==========
             JPanel p8 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p8.setBorder(new TitledBorder("朴素 Plain + 禁用 Disabled（原有）"));
-            p8.add(new Button("朴素主要", Button.PRIMARY, true));
-            Button dis = new Button("禁用-主要", Button.PRIMARY, false);
+            p8.add(new AstButton("朴素主要", AstButton.PRIMARY, true));
+            AstButton dis = new AstButton("禁用-主要", AstButton.PRIMARY, false);
             dis.setEnabled(false);
             p8.add(dis);
 

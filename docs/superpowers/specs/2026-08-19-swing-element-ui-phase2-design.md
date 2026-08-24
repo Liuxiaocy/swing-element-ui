@@ -95,8 +95,8 @@ src/org/swelement/
 
 - 8 个组件各配 `*Demo`（main 起 JFrame），逐个目视验收
 - 非平凡逻辑 assert 自检 main：
-  - `Select`：过滤匹配、选中/清除状态
-  - `Pagination`：页码钳制、省略号窗口计算
+  - `AstSelect`：过滤匹配、选中/清除状态
+  - `AstPagination`：页码钳制、省略号窗口计算
 - 全量回归：`build.bat` + 3 个 core 自检 + 全部 14 个 Demo 可启动（Phase 1 的 6 个不回归损坏）
 
 ## 明确省略（后续阶段补充）

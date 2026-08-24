@@ -9,22 +9,23 @@
 ![基本用法](../screenshots/tag-default.png)
 
 ```java
+import org.swelement.ui.AstTag;
 import org.swelement.ui.Tag;
 
 // 主要标记
-Tag primaryTag = new Tag("标签一", Tag.PRIMARY, false);
+AstTag primaryTag = new AstTag("标签一", AstTag.PRIMARY, false);
 
-// 成功标记
-Tag successTag = new Tag("标签二", Tag.SUCCESS, false);
+        // 成功标记
+        AstTag successTag = new AstTag("标签二", AstTag.SUCCESS, false);
 
-// 警告标记
-Tag warningTag = new Tag("标签三", Tag.WARNING, false);
+        // 警告标记
+        AstTag warningTag = new AstTag("标签三", AstTag.WARNING, false);
 
-// 危险标记
-Tag dangerTag = new Tag("标签四", Tag.DANGER, false);
+        // 危险标记
+        AstTag dangerTag = new AstTag("标签四", AstTag.DANGER, false);
 
-// 信息标记
-Tag infoTag = new Tag("标签五", Tag.INFO, false);
+        // 信息标记
+        AstTag infoTag = new AstTag("标签五", AstTag.INFO, false);
 ```
 
 ## 可关闭标记

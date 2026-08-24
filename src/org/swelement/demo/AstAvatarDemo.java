@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
 import org.swelement.ui.AstAvatar;
-import org.swelement.ui.Button;
+import org.swelement.ui.AstButton;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -74,13 +74,13 @@ public class AstAvatarDemo {
         final JLabel echo = new JLabel("当前 U 角标 = 3");
         echo.setFont(echo.getFont().deriveFont(Font.BOLD));
         echo.setForeground(new Color(0x303133));
-        Button plus = new Button("用户 U 角标 +1", Button.PRIMARY, false);
-        Button minus = new Button("用户 U 角标 -1", Button.DEFAULT, false);
-        Button reset = new Button("重置为 3", Button.DEFAULT, false);
+        AstButton plus = new AstButton("用户 U 角标 +1", AstButton.PRIMARY, false);
+        AstButton minus = new AstButton("用户 U 角标 -1", AstButton.DEFAULT, false);
+        AstButton reset = new AstButton("重置为 3", AstButton.DEFAULT, false);
         final boolean[] dotOn = {true};
-        Button dotSwitch = new Button("切换 OK 的红点", Button.WARNING, false);
+        AstButton dotSwitch = new AstButton("切换 OK 的红点", AstButton.WARNING, false);
         final boolean[] showBig = {true};
-        Button bigToggle = new Button("切换 P 的大角标 99+ / 0", Button.DANGER, false);
+        AstButton bigToggle = new AstButton("切换 P 的大角标 99+ / 0", AstButton.DANGER, false);
 
         ActionListener updater = new ActionListener() { public void actionPerformed(ActionEvent e) {
             int cur = badge.get();

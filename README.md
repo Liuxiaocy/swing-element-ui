@@ -33,8 +33,8 @@ java -cp out org.swelement.demo.AlertDemo
 java -ea -cp out org.swelement.core.Easing
 java -ea -cp out org.swelement.core.ElementTheme
 java -ea -cp out org.swelement.core.Animator
-java -ea -cp out org.swelement.ui.Select
-java -ea -cp out org.swelement.ui.Pagination
+java -ea -cp out org.swelement.ui.AstSelect
+java -ea -cp out org.swelement.ui.AstPagination
 ```
 
 ## 设计

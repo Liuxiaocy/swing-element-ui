@@ -8,7 +8,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class Badge extends JComponent {
+public class AstBadge extends JComponent {
     private final Animator popAnim = new Animator(200, Easing::easeOut, v -> { scale = v; repaint(); });
     private float scale = 1f;
     private int count;
@@ -34,7 +34,7 @@ public class Badge extends JComponent {
         }
     };
 
-    public Badge() {
+    public AstBadge() {
         setOpaque(false);
         setLayout(new FillLayout());
         setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 12f));
@@ -114,7 +114,7 @@ public class Badge extends JComponent {
         return getPreferredSize();
     }
 
-    /** 自定义布局：content 填充 insets 内区域，overlay 填充整个 Badge（含 padding）以绘制角标。 */
+    /** 自定义布局：content 填充 insets 内区域，overlay 填充整个 AstBadge（含 padding）以绘制角标。 */
     private class FillLayout implements LayoutManager {
         public void addLayoutComponent(String name, Component comp) {}
         public void removeLayoutComponent(Component comp) {}

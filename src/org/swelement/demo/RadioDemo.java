@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Button;
-import org.swelement.ui.Radio;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstRadio;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,7 +11,7 @@ import java.awt.*;
 public class RadioDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Radio Demo - 单选圆点缩放动画、禁用状态");
+            JFrame f = new JFrame("AstRadio Demo - 单选圆点缩放动画、禁用状态");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -22,10 +22,10 @@ public class RadioDemo {
             JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 30, 8));
             p1.setBorder(new TitledBorder("支付方式（单选 - 观察内点缩放出现动画）"));
             ButtonGroup pay = new ButtonGroup();
-            Radio a = new Radio("💳 信用卡");
-            Radio b = new Radio("🧧 支付宝");
-            Radio c = new Radio("💚 微信支付");
-            Radio d = new Radio("🚫 禁用选项");
+            AstRadio a = new AstRadio("💳 信用卡");
+            AstRadio b = new AstRadio("🧧 支付宝");
+            AstRadio c = new AstRadio("💚 微信支付");
+            AstRadio d = new AstRadio("🚫 禁用选项");
             d.setEnabled(false);
             pay.add(a); pay.add(b); pay.add(c); pay.add(d);
             b.setSelected(true);
@@ -44,9 +44,9 @@ public class RadioDemo {
                     {"📮 普通快递（2-3天）", "¥ 5.00"},
                     {"🎁 到店自提", "免费"}
             };
-            Radio[] radios = new Radio[opts.length];
+            AstRadio[] radios = new AstRadio[opts.length];
             for (int i = 0; i < opts.length; i++) {
-                radios[i] = new Radio(opts[i][0]);
+                radios[i] = new AstRadio(opts[i][0]);
                 ship.add(radios[i]);
                 gbc.gridx = 0; gbc.gridy = i;
                 p2.add(radios[i], gbc);
@@ -64,14 +64,14 @@ public class RadioDemo {
             JLabel payRes = new JLabel("（点击「提交选择」查看结果）");
             payRes.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
             payRes.setForeground(new Color(0x606266));
-            Button submit = new Button("提交选择", Button.PRIMARY, false);
+            AstButton submit = new AstButton("提交选择", AstButton.PRIMARY, false);
             submit.addActionListener(e -> {
                 String payText = a.isSelected() ? a.getText() : b.isSelected() ? b.getText() : c.isSelected() ? c.getText() : "未选";
                 String shipText = "未选";
                 for (int i = 0; i < radios.length; i++) if (radios[i].isSelected()) shipText = opts[i][0];
                 payRes.setText("<html>✅ 支付：" + payText + " ｜ 🚚 配送：" + shipText + "</html>");
             });
-            Button reset = new Button("重置", Button.DEFAULT, true);
+            AstButton reset = new AstButton("重置", AstButton.DEFAULT, true);
             reset.addActionListener(e -> {
                 pay.clearSelection();
                 ship.clearSelection();

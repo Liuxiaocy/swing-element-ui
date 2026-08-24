@@ -9,12 +9,17 @@
 ![基本用法](../screenshots/badge-default.png)
 
 ```java
+import org.swelement.ui.AstBadge;
 import org.swelement.ui.Badge;
 
 // 创建角标
-Badge badge = new Badge();
-badge.setContent(new JButton("消息"));
-badge.setCount(12);
+AstBadge badge = new AstBadge();
+badge.
+
+        setContent(new JButton("消息"));
+        badge.
+
+        setCount(12);
 ```
 
 ## 点状角标

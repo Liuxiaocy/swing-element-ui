@@ -137,7 +137,7 @@ public class AstDropdown extends JComponent {
 ```
 
 Implementation notes:
-- Layout: a single `Button` (use existing org.swelement.ui.Button PRIMARY style with chevron `▾` suffix appended) as invoker. On click toggles AnimatedPopup containing items list. Items list: vertical `BoxLayout(Y)` with `ItemRow` components. Each ItemRow: 36px height, padding left=14px, paint full-width BORDER_BASE divider between rows; hover highlights background with `new Color(PRIMARY.r, PRIMARY.g, PRIMARY.b, 18 alpha)` and text set to PRIMARY (use float hover state + Animator 150ms easeInOut). Mouse click: actionPerformed on ItemRow row fires item.action + hideDropdown().
+- Layout: a single `AstButton` (use existing org.swelement.ui.AstButton PRIMARY style with chevron `▾` suffix appended) as invoker. On click toggles AnimatedPopup containing items list. Items list: vertical `BoxLayout(Y)` with `ItemRow` components. Each ItemRow: 36px height, padding left=14px, paint full-width BORDER_BASE divider between rows; hover highlights background with `new Color(PRIMARY.r, PRIMARY.g, PRIMARY.b, 18 alpha)` and text set to PRIMARY (use float hover state + Animator 150ms easeInOut). Mouse click: actionPerformed on ItemRow row fires item.action + hideDropdown().
 - Popup minimum width = invoker width (min 140px), max width = 360px. Per row: 36px; up to 8 rows visible; 9+ rows add scroll via JScrollPane.
 - Add `AnimatedPopup.registerGlobal(popup, PopupLayer.POPUP)` for z-order.
 - paintComponent for ItemRow: draw bg rounded inside 0-radius rect (flat card → no round per row; outer popup has round). assertContrast TEXT_MAIN vs WHITE (idle) vs hover-bg (PRIMARY tint).

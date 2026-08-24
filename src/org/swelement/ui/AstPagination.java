@@ -15,14 +15,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
 
-public class Pagination extends JComponent {
+public class AstPagination extends JComponent {
     private int total, pageSize = 10, current = 1;
     private final List<IntConsumer> listeners = new ArrayList<>();
     private final javax.swing.event.EventListenerList swingListeners = new javax.swing.event.EventListenerList();
     private final JPanel row = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
     private final JTextField jumper = new JTextField(3);
 
-    public Pagination() {
+    public AstPagination() {
         setOpaque(false);
         setLayout(new BorderLayout());
         row.setOpaque(false);
@@ -32,7 +32,7 @@ public class Pagination extends JComponent {
         jumper.addActionListener(this::onJump);
     }
 
-    public Pagination(int totalCount, int pageSize, int initialPage) {
+    public AstPagination(int totalCount, int pageSize, int initialPage) {
         this();
         this.total = Math.max(0, totalCount);
         this.pageSize = Math.max(1, pageSize);
@@ -159,7 +159,7 @@ public class Pagination extends JComponent {
         assert pageWindow(9, 10).equals(java.util.Arrays.asList(1, -1, 7, 8, 9, 10));
         assert pageWindow(1, 1).equals(java.util.Arrays.asList(1));
         assert pageWindow(1, 3).equals(java.util.Arrays.asList(1, 2, 3));
-        System.out.println("Pagination self-check OK");
+        System.out.println("AstPagination self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }

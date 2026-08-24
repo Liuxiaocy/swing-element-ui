@@ -15,7 +15,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
-public class Input extends JPanel {
+public class AstInput extends JPanel {
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     private static final int[] TIER_HEIGHT = {40, 32, 28};
     private static final float[] TIER_FONT = {14f, 13f, 12f};
@@ -37,7 +37,7 @@ public class Input extends JPanel {
     private AstIcon prefixIcon, suffixIcon;
 
     private final JTextField field;
-    private final CloseButton clearBtn = new CloseButton(16);
+    private final AstCloseButton clearBtn = new AstCloseButton(16);
     private final Animator focusAnim = new Animator(200, Easing::easeInOut, v -> { focus = v; repaint(); });
     private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
     private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
@@ -45,9 +45,9 @@ public class Input extends JPanel {
     private boolean hasText, hovering, focused;
     private final String placeholder;
 
-    public Input(String placeholder) { this(placeholder, TEXT); }
+    public AstInput(String placeholder) { this(placeholder, TEXT); }
 
-    public Input(String placeholder, int type) {
+    public AstInput(String placeholder, int type) {
         this.placeholder = placeholder;
         this.password = (type == PASSWORD);
         setOpaque(false);
@@ -234,20 +234,20 @@ public class Input extends JPanel {
     }
 
     static void selfCheck() {
-        Input df = new Input("默认");
+        AstInput df = new AstInput("默认");
         assert df.getPreferredSize().height == 32 : "DEFAULT height 32, got " + df.getPreferredSize().height;
-        Input lg = new Input("大");
-        lg.setSize(Input.SIZE_LARGE);
+        AstInput lg = new AstInput("大");
+        lg.setSize(AstInput.SIZE_LARGE);
         assert lg.getPreferredSize().height == 40 : "LARGE height 40, got " + lg.getPreferredSize().height;
-        Input sm = new Input("小");
-        sm.setSize(Input.SIZE_SMALL);
+        AstInput sm = new AstInput("小");
+        sm.setSize(AstInput.SIZE_SMALL);
         assert sm.getPreferredSize().height == 28 : "SMALL height 28, got " + sm.getPreferredSize().height;
         boolean threw = false;
         try { sm.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "invalid tier must throw";
 
         // 密码模式：默认掩码，眼睛切换明文/掩码
-        Input pw = new Input("请输入密码", Input.PASSWORD);
+        AstInput pw = new AstInput("请输入密码", AstInput.PASSWORD);
         pw.setText("secret123");
         assert "secret123".equals(pw.getText()) : "password getText";
         final JPasswordField pf = (JPasswordField) findTextComponent(pw);
@@ -261,7 +261,7 @@ public class Input extends JPanel {
         } catch (Throwable t) { pwErr[0] = t; }
         if (pwErr[0] != null) throw new RuntimeException(pwErr[0]);
 
-        Input in = new Input("占位符");
+        AstInput in = new AstInput("占位符");
         assert in.getText().isEmpty() : "initial text empty";
         in.setText("hello");
         assert "hello".equals(in.getText()) : "setText works";
@@ -282,25 +282,25 @@ public class Input extends JPanel {
         assert in.getText().isEmpty() : "clear button click should clear text, got: " + in.getText();
 
         // 前后缀图标
-        Input pi = new Input("搜索");
+        AstInput pi = new AstInput("搜索");
         pi.setPrefixIcon(AstIcon.SEARCH);
         assert countAstIcons(pi) == 1 : "prefix icon added, count=" + countAstIcons(pi);
-        Input si = new Input("");
+        AstInput si = new AstInput("");
         si.setText("x");
         si.setSuffixIcon(AstIcon.SETTING);
         assert countAstIcons(si) == 1 : "suffix icon added, count=" + countAstIcons(si);
         // 重复设置不叠加
         pi.setPrefixIcon(AstIcon.USER);
         assert countAstIcons(pi) == 1 : "prefix icon replaced, count=" + countAstIcons(pi);
-        System.out.println("Input self-check OK");
+        System.out.println("AstInput self-check OK");
     }
 
-    /** 测试辅助：向 Input 内的 CloseButton 派发点击事件（同包访问私有字段）。 */
-    private static void clearBtnClickForTest(Input in) {
+    /** 测试辅助：向 AstInput 内的 AstCloseButton 派发点击事件（同包访问私有字段）。 */
+    private static void clearBtnClickForTest(AstInput in) {
         for (Component c : in.getComponents()) {
             if (c instanceof JPanel) {
                 for (Component cc : ((JPanel) c).getComponents()) {
-                    if (cc instanceof CloseButton) {
+                    if (cc instanceof AstCloseButton) {
                         cc.dispatchEvent(new java.awt.event.MouseEvent(cc, java.awt.event.MouseEvent.MOUSE_PRESSED,
                                 System.currentTimeMillis(), 0, 10, 10, 1, false));
                         return;
@@ -308,18 +308,18 @@ public class Input extends JPanel {
                 }
             }
         }
-        throw new AssertionError("CloseButton not found in Input");
+        throw new AssertionError("AstCloseButton not found in AstInput");
     }
 
-    /** 测试辅助：找到 Input 内的文本组件（JTextField 或 JPasswordField）。 */
-    private static JTextComponent findTextComponent(Input in) {
+    /** 测试辅助：找到 AstInput 内的文本组件（JTextField 或 JPasswordField）。 */
+    private static JTextComponent findTextComponent(AstInput in) {
         for (Component c : in.getComponents())
             if (c instanceof JTextComponent) return (JTextComponent) c;
-        throw new AssertionError("text component not found in Input");
+        throw new AssertionError("text component not found in AstInput");
     }
 
     /** 测试辅助：向密码框的眼睛按钮派发按下事件。 */
-    private static void eyeClickForTest(Input in) {
+    private static void eyeClickForTest(AstInput in) {
         for (Component c : in.getComponents()) {
             if (c instanceof JPanel) {
                 for (Component cc : ((JPanel) c).getComponents()) {
@@ -335,10 +335,10 @@ public class Input extends JPanel {
                 }
             }
         }
-        throw new AssertionError("eye button not found in Input");
+        throw new AssertionError("eye button not found in AstInput");
     }
 
-    /** 测试辅助：统计 Input 子树中的 AstIcon 数量。 */
+    /** 测试辅助：统计 AstInput 子树中的 AstIcon 数量。 */
     private static int countAstIcons(Container c) {
         int n = 0;
         for (Component cc : c.getComponents()) {

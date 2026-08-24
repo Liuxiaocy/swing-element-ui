@@ -9,19 +9,19 @@
 ![基本用法](../screenshots/alert-default.png)
 
 ```java
-import org.swelement.ui.Alert;
+import org.swelement.ui.AstAlert;
 
 // 成功提示
-Alert successAlert = new Alert(Alert.SUCCESS, "成功提示", null, false);
+AstAlert successAlert = new AstAlert(AstAlert.SUCCESS, "成功提示", null, false);
 
-// 警告提示
-Alert warningAlert = new Alert(Alert.WARNING, "警告提示", null, false);
+        // 警告提示
+        AstAlert warningAlert = new AstAlert(AstAlert.WARNING, "警告提示", null, false);
 
-// 信息提示
-Alert infoAlert = new Alert(Alert.INFO, "信息提示", null, false);
+        // 信息提示
+        AstAlert infoAlert = new AstAlert(AstAlert.INFO, "信息提示", null, false);
 
-// 错误提示
-Alert errorAlert = new Alert(Alert.ERROR, "错误提示", null, false);
+        // 错误提示
+        AstAlert errorAlert = new AstAlert(AstAlert.ERROR, "错误提示", null, false);
 ```
 
 ## 带描述信息

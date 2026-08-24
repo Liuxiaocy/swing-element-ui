@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Button;
-import org.swelement.ui.Pagination;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstPagination;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,7 +11,7 @@ import java.awt.*;
 public class PaginationDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Pagination Demo - 页码跳转、hover/active 高亮、首末页淡入");
+            JFrame f = new JFrame("AstPagination Demo - 页码跳转、hover/active 高亮、首末页淡入");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -28,7 +28,7 @@ public class PaginationDemo {
             info.setForeground(new Color(0x606266));
             info.setBorder(new EmptyBorder(4, 16, 8, 16));
 
-            Pagination pg = new Pagination(100, 8, 1);
+            AstPagination pg = new AstPagination(100, 8, 1);
             JPanel pgWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             pgWrap.setBorder(new EmptyBorder(6, 16, 10, 16));
             pgWrap.add(pg);
@@ -77,7 +77,7 @@ public class PaginationDemo {
             JLabel toLbl = new JLabel("跳转到第");
             JSpinner spPage = new JSpinner(new SpinnerNumberModel(1, 1, pg.getTotalPages(), 1));
             spPage.setPreferredSize(new Dimension(70, 30));
-            Button go = new Button("跳转", Button.PRIMARY, false);
+            AstButton go = new AstButton("跳转", AstButton.PRIMARY, false);
             go.addActionListener(e -> pg.setCurrentPage((Integer) spPage.getValue()));
 
             JLabel szLbl = new JLabel("每页条数:");
@@ -91,10 +91,10 @@ public class PaginationDemo {
                 spPage.setModel(new SpinnerNumberModel(1, 1, pg.getTotalPages(), 1));
             });
 
-            Button firstB = new Button("⏮ 首页", Button.DEFAULT, true);
-            Button lastB = new Button("末页 ⏭", Button.DEFAULT, true);
-            Button prevB = new Button("◀ 上一页", Button.WARNING, true);
-            Button nextB = new Button("下一页 ▶", Button.SUCCESS, true);
+            AstButton firstB = new AstButton("⏮ 首页", AstButton.DEFAULT, true);
+            AstButton lastB = new AstButton("末页 ⏭", AstButton.DEFAULT, true);
+            AstButton prevB = new AstButton("◀ 上一页", AstButton.WARNING, true);
+            AstButton nextB = new AstButton("下一页 ▶", AstButton.SUCCESS, true);
             firstB.addActionListener(e -> pg.setCurrentPage(1));
             lastB.addActionListener(e -> pg.setCurrentPage(pg.getTotalPages()));
             prevB.addActionListener(e -> { int c = pg.getCurrentPage(); if (c > 1) pg.setCurrentPage(c - 1); });
@@ -110,7 +110,7 @@ public class PaginationDemo {
             JPanel small = new JPanel();
             small.setLayout(new BoxLayout(small, BoxLayout.Y_AXIS));
             small.setBorder(new TitledBorder("小数据分页（共 12 条 / 每页 3 条 → 共 4 页，展示前后箭头禁用态）"));
-            Pagination spg = new Pagination(12, 3, 1);
+            AstPagination spg = new AstPagination(12, 3, 1);
             JLabel sgLbl = new JLabel();
             sgLbl.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
             sgLbl.setForeground(new Color(0x606266));

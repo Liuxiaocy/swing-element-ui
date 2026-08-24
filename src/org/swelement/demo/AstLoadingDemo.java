@@ -1,9 +1,6 @@
 package org.swelement.demo;
 
-import org.swelement.ui.AstCard;
-import org.swelement.ui.AstLoading;
-import org.swelement.ui.Button;
-import org.swelement.ui.Progress;
+import org.swelement.ui.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -46,12 +43,12 @@ public class AstLoadingDemo {
             row.setFont(row.getFont().deriveFont(13f));
             body1.add(row); body1.add(Box.createVerticalStrut(4));
         }
-        Progress perf = new Progress(66); perf.setBorder(new EmptyBorder(8, 0, 0, 0));
+        AstProgress perf = new AstProgress(66); perf.setBorder(new EmptyBorder(8, 0, 0, 0));
         body1.add(new JLabel("本月服务可用性")); body1.add(perf);
         profileCard.setContent(body1);
         final AstLoading wrap1 = new AstLoading(AstLoading.Mode.WRAP, profileCard);
-        Button showWrap1 = new Button("显示加载中（WRAP）", Button.PRIMARY, false);
-        Button hideWrap1 = new Button("隐藏加载", Button.DEFAULT, false);
+        AstButton showWrap1 = new AstButton("显示加载中（WRAP）", AstButton.PRIMARY, false);
+        AstButton hideWrap1 = new AstButton("隐藏加载", AstButton.DEFAULT, false);
         final JTextField wrapText1 = new JTextField("数据同步中，请稍候…", 26);
         JButton schedule = new JButton("⏱ 1.8 秒后自动关闭");
         // 控制按钮必须放在 wrap 之外：loading 遮罩会覆盖被包裹的整个卡片，
@@ -73,8 +70,8 @@ public class AstLoadingDemo {
         AstCard dataCard = new AstCard("商品库存数据");
         dataCard.setContent(dataBody);
         final AstLoading wrap2 = new AstLoading(AstLoading.Mode.WRAP, dataCard);
-        Button showWrap2 = new Button("刷新数据", Button.PRIMARY, false);
-        Button hideWrap2 = new Button("停止加载", Button.DEFAULT, false);
+        AstButton showWrap2 = new AstButton("刷新数据", AstButton.PRIMARY, false);
+        AstButton hideWrap2 = new AstButton("停止加载", AstButton.DEFAULT, false);
         final JLabel timeStampLbl = new JLabel("最近刷新：未刷新", JLabel.LEFT);
         timeStampLbl.setFont(timeStampLbl.getFont().deriveFont(12f));
         timeStampLbl.setForeground(new Color(0x909399));
@@ -158,10 +155,10 @@ public class AstLoadingDemo {
         fsPanel.add(openFs); fsPanel.add(openFsCustom); fsPanel.add(new JLabel("自定义全屏文案："));
         fsPanel.add(fsText); fsPanel.add(cancelFs);
 
-        // ========= Demo Section D: Progress panel with loading =========
+        // ========= Demo Section D: AstProgress panel with loading =========
         JPanel progPanel = new JPanel(new BorderLayout(8, 8));
-        progPanel.setBorder(new TitledBorder("综合：WRAP Loading + Progress 进度（启动后逐步推进到 100%）"));
-        final Progress masterProg = new Progress(0);
+        progPanel.setBorder(new TitledBorder("综合：WRAP Loading + AstProgress 进度（启动后逐步推进到 100%）"));
+        final AstProgress masterProg = new AstProgress(0);
         final JButton startProg = new JButton("▶ 开始模拟上传任务");
         final JButton cancelProg = new JButton("■ 取消任务"); cancelProg.setEnabled(false);
         final JLabel progressEcho = new JLabel("任务状态：待开始", JLabel.LEFT);

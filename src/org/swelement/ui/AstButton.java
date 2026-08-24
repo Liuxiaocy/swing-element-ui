@@ -10,7 +10,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
-public class Button extends JButton {
+public class AstButton extends JButton {
     public static final int DEFAULT = 0, PRIMARY = 1, SUCCESS = 2, WARNING = 3, DANGER = 4, INFO = 5;
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     public static final int ICON_LEFT = 0, ICON_RIGHT = 1;
@@ -74,9 +74,9 @@ public class Button extends JButton {
     private final int type;
     private final boolean plain;
 
-    public Button(String text) { this(text, DEFAULT, false); }
+    public AstButton(String text) { this(text, DEFAULT, false); }
 
-    public Button(String text, int type, boolean plain) {
+    public AstButton(String text, int type, boolean plain) {
         super(text);
         this.type = type;
         this.plain = plain;
@@ -276,33 +276,33 @@ public class Button extends JButton {
     }
 
     static void selfCheck() {
-        Button b = new Button("测试");
-        b.setSize(Button.SIZE_LARGE);
-        assert b.getPreferredSize().height > new Button("测试").getPreferredSize().height
+        AstButton b = new AstButton("测试");
+        b.setSize(AstButton.SIZE_LARGE);
+        assert b.getPreferredSize().height > new AstButton("测试").getPreferredSize().height
                 : "SIZE_LARGE should be taller than SIZE_DEFAULT";
-        b.setSize(Button.SIZE_SMALL);
-        assert b.getPreferredSize().height < new Button("测试").getPreferredSize().height
+        b.setSize(AstButton.SIZE_SMALL);
+        assert b.getPreferredSize().height < new AstButton("测试").getPreferredSize().height
                 : "SIZE_SMALL should be shorter than SIZE_DEFAULT";
 
-        Button rc = new Button("圆");
+        AstButton rc = new AstButton("圆");
         rc.setCircle(true);
         Dimension pd = rc.getPreferredSize();
         assert pd.width == pd.height : "circle button preferredSize must be square, got " + pd.width + "x" + pd.height;
         rc.setRound(true);
         assert pd.width == pd.height : "round+circle still square";
 
-        Button ib = new Button("");
+        AstButton ib = new AstButton("");
         ib.setIcon("\u2713");
         assert ib.getPreferredSize().width > 0 : "icon-only button should have positive width";
-        Button ib2 = new Button("确定");
+        AstButton ib2 = new AstButton("确定");
         ib2.setIcon("\u2713");
-        assert ib2.getPreferredSize().width > new Button("确定").getPreferredSize().width
+        assert ib2.getPreferredSize().width > new AstButton("确定").getPreferredSize().width
                 : "button with icon should be wider than text-only";
-        ib2.setIconPosition(Button.ICON_RIGHT);
-        assert ib2.getPreferredSize().width > new Button("确定").getPreferredSize().width
+        ib2.setIconPosition(AstButton.ICON_RIGHT);
+        assert ib2.getPreferredSize().width > new AstButton("确定").getPreferredSize().width
                 : "icon-right button should also be wider";
 
-        Button lb = new Button("提交", Button.PRIMARY, false);
+        AstButton lb = new AstButton("提交", AstButton.PRIMARY, false);
         assert lb.isEnabled() : "button should be enabled initially";
         lb.setLoading(true);
         assert !lb.isEnabled() : "loading button should be disabled";
@@ -310,13 +310,13 @@ public class Button extends JButton {
         lb.setLoading(false);
         assert lb.isEnabled() : "button should restore enabled after loading";
         assert "提交".equals(lb.getText()) : "button should restore original text after loading, got " + lb.getText();
-        Button lb2 = new Button("保存");
+        AstButton lb2 = new AstButton("保存");
         lb2.setLoadingText("保存中...");
         lb2.setLoading(true);
         assert "保存中...".equals(lb2.getText()) : "custom loading text should be used, got " + lb2.getText();
         lb2.setLoading(false);
 
-        Button tb = new Button("文本按钮");
+        AstButton tb = new AstButton("文本按钮");
         tb.setTextButton(true);
         assert tb.getPreferredSize().width > 0 : "text button should have positive width";
 

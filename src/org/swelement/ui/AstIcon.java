@@ -9,30 +9,30 @@ import java.awt.geom.*;
 /**
  * 图标组件 — Element UI Icon 风格的自绘图标库（无图片文件依赖）。
  * 所有图标用 Graphics2D 路径/线条绘制，可指定颜色和尺寸。
- *
+ * <p>
  * 用法：
- *   AstIcon check = new AstIcon(AstIcon.CHECK, ElementTheme.SUCCESS, 16);
- *   AstIcon close = new AstIcon(AstIcon.CLOSE, ElementTheme.DANGER, 16);
- *   AstIcon arrow = new AstIcon(AstIcon.ARROW_DOWN, ElementTheme.TEXT_REGULAR, 14);
- *
+ * AstIcon check = new AstIcon(AstIcon.CHECK, ElementTheme.SUCCESS, 16);
+ * AstIcon close = new AstIcon(AstIcon.CLOSE, ElementTheme.DANGER, 16);
+ * AstIcon arrow = new AstIcon(AstIcon.ARROW_DOWN, ElementTheme.TEXT_REGULAR, 14);
+ * <p>
  * 图标清单：CHECK, CLOSE, ARROW_UP/DOWN/LEFT/RIGHT, PLUS, MINUS, SEARCH,
  * INFO, SUCCESS, WARNING, ERROR, SETTING, USER, EYE, EYE_OFF, REFRESH, EDIT, DELETE。
  * 全部按 16/20px 网格设计，stroke 线宽 2px，端点圆角。
  */
 public class AstIcon extends JComponent {
     // --- Icon type constants ---
-    public static final int CHECK = 0;
-    public static final int CLOSE = 1;
-    public static final int ARROW_UP = 2;
-    public static final int ARROW_DOWN = 3;
-    public static final int ARROW_LEFT = 4;
-    public static final int ARROW_RIGHT = 5;
-    public static final int PLUS = 6;
-    public static final int MINUS = 7;
-    public static final int SEARCH = 8;
-    public static final int INFO = 9;
-    public static final int SUCCESS = 10;
-    public static final int WARNING = 11;
+    public static final int CHECK = 0;//√
+    public static final int CLOSE = 1;//×
+    public static final int ARROW_UP = 2;//⬆
+    public static final int ARROW_DOWN = 3;//⬇
+    public static final int ARROW_LEFT = 4;//⬅
+    public static final int ARROW_RIGHT = 5;//➡
+    public static final int PLUS = 6;//＋
+    public static final int MINUS = 7;//-
+    public static final int SEARCH = 8;//搜索
+    public static final int INFO = 9;//信息
+    public static final int SUCCESS = 10;//成功
+    public static final int WARNING = 11;//
     public static final int ERROR = 12;
     public static final int SETTING = 13;
     public static final int USER = 14;
@@ -47,7 +47,9 @@ public class AstIcon extends JComponent {
     private Color color;
     private int size;
 
-    public AstIcon(int type) { this(type, ElementTheme.TEXT_REGULAR, 16); }
+    public AstIcon(int type) {
+        this(type, ElementTheme.TEXT_REGULAR, 16);
+    }
 
     public AstIcon(int type, Color color, int size) {
         if (type < 0 || type >= ICON_COUNT)
@@ -60,53 +62,120 @@ public class AstIcon extends JComponent {
         setOpaque(false);
     }
 
-    public int getType() { return type; }
-    public Color getColor() { return color; }
-    public int getSizeValue() { return size; }
+    public int getType() {
+        return type;
+    }
+
+    public Color getColor() {
+        return color;
+    }
+
+    public int getSizeValue() {
+        return size;
+    }
+
     public void setType(int t) {
         if (t < 0 || t >= ICON_COUNT) throw new IllegalArgumentException("invalid icon type: " + t);
-        this.type = t; repaint();
+        this.type = t;
+        repaint();
     }
+
     public void setColor(Color c) {
         if (c == null) throw new IllegalArgumentException("color must not be null");
-        this.color = c; repaint();
+        this.color = c;
+        repaint();
     }
+
     public void setSizeValue(int s) {
         if (s < 8 || s > 64) throw new IllegalArgumentException("size must be in [8,64]");
-        this.size = s; revalidate(); repaint();
+        this.size = s;
+        revalidate();
+        repaint();
     }
 
-    @Override public Dimension getPreferredSize() { return new Dimension(size, size); }
-    @Override public Dimension getMinimumSize() { return getPreferredSize(); }
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(size, size);
+    }
 
-    @Override protected void paintComponent(Graphics g) {
+    @Override
+    public Dimension getMinimumSize() {
+        return getPreferredSize();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
         g2.setColor(color);
         float s = (float) size;
         switch (type) {
-            case CHECK: drawCheck(g2, s); break;
-            case CLOSE: drawClose(g2, s); break;
-            case ARROW_UP: drawArrow(g2, s, 0); break;
-            case ARROW_DOWN: drawArrow(g2, s, 1); break;
-            case ARROW_LEFT: drawArrow(g2, s, 2); break;
-            case ARROW_RIGHT: drawArrow(g2, s, 3); break;
-            case PLUS: drawPlusMinus(g2, s, true); break;
-            case MINUS: drawPlusMinus(g2, s, false); break;
-            case SEARCH: drawSearch(g2, s); break;
-            case INFO: drawInfoCircle(g2, s, ElementTheme.PRIMARY); break;
-            case SUCCESS: drawInfoCircle(g2, s, ElementTheme.SUCCESS); drawCheckWhite(g2, s); break;
-            case WARNING: drawTriangle(g2, s, ElementTheme.WARNING); break;
-            case ERROR: drawInfoCircle(g2, s, ElementTheme.DANGER); drawXWhite(g2, s); break;
-            case SETTING: drawSetting(g2, s); break;
-            case USER: drawUser(g2, s); break;
-            case EYE: drawEye(g2, s); break;
-            case REFRESH: drawRefresh(g2, s); break;
-            case EDIT: drawEdit(g2, s); break;
-            case DELETE: drawDelete(g2, s); break;
-            case EYE_OFF: drawEyeOff(g2, s); break;
-            default: break;
+            case CHECK:
+                drawCheck(g2, s);
+                break;
+            case CLOSE:
+                drawClose(g2, s);
+                break;
+            case ARROW_UP:
+                drawArrow(g2, s, 0);
+                break;
+            case ARROW_DOWN:
+                drawArrow(g2, s, 1);
+                break;
+            case ARROW_LEFT:
+                drawArrow(g2, s, 2);
+                break;
+            case ARROW_RIGHT:
+                drawArrow(g2, s, 3);
+                break;
+            case PLUS:
+                drawPlusMinus(g2, s, true);
+                break;
+            case MINUS:
+                drawPlusMinus(g2, s, false);
+                break;
+            case SEARCH:
+                drawSearch(g2, s);
+                break;
+            case INFO:
+                drawInfoCircle(g2, s, ElementTheme.PRIMARY);
+                drawInfo(g2, s);
+                break;
+            case SUCCESS:
+                drawInfoCircle(g2, s, ElementTheme.SUCCESS);
+                drawCheckWhite(g2, s);
+                break;
+            case WARNING:
+                drawTriangle(g2, s, ElementTheme.WARNING);
+                break;
+            case ERROR:
+                drawInfoCircle(g2, s, ElementTheme.DANGER);
+                drawXWhite(g2, s);
+                break;
+            case SETTING:
+                drawSetting(g2, s);
+                break;
+            case USER:
+                drawUser(g2, s);
+                break;
+            case EYE:
+                drawEye(g2, s);
+                break;
+            case REFRESH:
+                drawRefresh(g2, s);
+                break;
+            case EDIT:
+                drawEdit(g2, s);
+                break;
+            case DELETE:
+                drawDelete(g2, s);
+                break;
+            case EYE_OFF:
+                drawEyeOff(g2, s);
+                break;
+            default:
+                break;
         }
         g2.dispose();
     }
@@ -136,14 +205,35 @@ public class AstIcon extends JComponent {
         Path2D p = new Path2D.Float();
         // dir: 0=up,1=down,2=left,3=right
         float cx = s * 0.5f;
-        if (dir == 0) { p.moveTo(cx, s * 0.2f); p.lineTo(s * 0.2f, s * 0.55f); p.lineTo(s * 0.8f, s * 0.55f); g2.draw(p);
-            g2.draw(new Line2D.Float(cx, s * 0.2f, cx, s * 0.8f)); }
-        else if (dir == 1) { p.moveTo(cx, s * 0.8f); p.lineTo(s * 0.2f, s * 0.45f); p.lineTo(s * 0.8f, s * 0.45f); g2.draw(p);
-            g2.draw(new Line2D.Float(cx, s * 0.2f, cx, s * 0.8f)); }
-        else if (dir == 2) { p.moveTo(s * 0.2f, cx); p.lineTo(s * 0.55f, s * 0.2f); p.lineTo(s * 0.55f, s * 0.8f); g2.draw(p);
-            g2.draw(new Line2D.Float(s * 0.2f, cx, s * 0.8f, cx)); }
-        else { p.moveTo(s * 0.8f, cx); p.lineTo(s * 0.45f, s * 0.2f); p.lineTo(s * 0.45f, s * 0.8f); g2.draw(p);
-            g2.draw(new Line2D.Float(s * 0.2f, cx, s * 0.8f, cx)); }
+        if (dir == 0) {
+            p.moveTo(cx, s * 0.2f);
+            p.lineTo(s * 0.2f, s * 0.55f);
+            p.moveTo(cx, s * 0.2f);
+            p.lineTo(s * 0.8f, s * 0.55f);
+            g2.draw(p);
+            g2.draw(new Line2D.Float(cx, s * 0.2f, cx, s * 0.8f));
+        } else if (dir == 1) {
+            p.moveTo(cx, s * 0.8f);
+            p.lineTo(s * 0.2f, s * 0.45f);
+            p.moveTo(cx, s * 0.8f);
+            p.lineTo(s * 0.8f, s * 0.45f);
+            g2.draw(p);
+            g2.draw(new Line2D.Float(cx, s * 0.2f, cx, s * 0.8f));
+        } else if (dir == 2) {
+            p.moveTo(s * 0.2f, cx);
+            p.lineTo(s * 0.55f, s * 0.2f);
+            p.moveTo(s * 0.2f, cx);
+            p.lineTo(s * 0.55f, s * 0.8f);
+            g2.draw(p);
+            g2.draw(new Line2D.Float(s * 0.2f, cx, s * 0.8f, cx));
+        } else {
+            p.moveTo(s * 0.8f, cx);
+            p.lineTo(s * 0.45f, s * 0.2f);
+            p.moveTo(s * 0.8f, cx);
+            p.lineTo(s * 0.45f, s * 0.8f);
+            g2.draw(p);
+            g2.draw(new Line2D.Float(s * 0.2f, cx, s * 0.8f, cx));
+        }
     }
 
     private static void drawPlusMinus(Graphics2D g2, float s, boolean plus) {
@@ -152,7 +242,10 @@ public class AstIcon extends JComponent {
         g2.draw(new Line2D.Float(m, cy, mx, cy));
         if (plus) g2.draw(new Line2D.Float(cx(s), m, cx(s), mx));
     }
-    private static float cx(float s) { return s * 0.5f; }
+
+    private static float cx(float s) {
+        return s * 0.5f;
+    }
 
     private static void drawSearch(Graphics2D g2, float s) {
         stroke(g2, s * 0.1f);
@@ -162,16 +255,19 @@ public class AstIcon extends JComponent {
         g2.draw(new Line2D.Float(cx + r * 0.7f, cy + r * 0.7f, s * 0.82f, s * 0.82f));
     }
 
-    private static void drawInfoCircle(Graphics2D g2, float s, Color bg) {
+    private static void drawInfo(Graphics2D g2, float s) {
         Color save = g2.getColor();
-        g2.setColor(bg);
-        g2.fill(new Ellipse2D.Float(s * 0.06f, s * 0.06f, s * 0.88f, s * 0.88f));
-        g2.setColor(Color.WHITE);
         // "i" dot + stem
+        g2.setColor(Color.WHITE);
         float w = s * 0.1f;
         g2.fill(new RoundRectangle2D.Float(cx(s) - w / 2, s * 0.24f, w, s * 0.18f, w, w));
         g2.fill(new RoundRectangle2D.Float(cx(s) - w / 2, s * 0.5f, w, s * 0.26f, w, w));
         g2.setColor(save);
+    }
+
+    private static void drawInfoCircle(Graphics2D g2, float s, Color bg) {
+        g2.setColor(bg);
+        g2.fill(new Ellipse2D.Float(s * 0.06f, s * 0.06f, s * 0.88f, s * 0.88f));
     }
 
     private static void drawCheckWhite(Graphics2D g2, float s) {
@@ -217,7 +313,8 @@ public class AstIcon extends JComponent {
             float r = (i % 2 == 0) ? rOut : rOut * 0.78f;
             float x = cx + (float) Math.cos(ang) * r;
             float y = cy + (float) Math.sin(ang) * r;
-            if (i == 0) p.moveTo(x, y); else p.lineTo(x, y);
+            if (i == 0) p.moveTo(x, y);
+            else p.lineTo(x, y);
         }
         p.closePath();
         g2.draw(p);
@@ -266,26 +363,30 @@ public class AstIcon extends JComponent {
         float cx = cx(s), cy = cx(s);
         double r = s * 0.32f;
         // arc 270°
-        Arc2D arc = new Arc2D.Float(cx - (float)r, cy - (float)r, (float)(2*r), (float)(2*r), 30, 270, Arc2D.OPEN);
+        Arc2D arc = new Arc2D.Float(cx - (float) r, cy - (float) r, (float) (2 * r), (float) (2 * r), 30, 270, Arc2D.OPEN);
         g2.draw(arc);
         // arrow head at end
         Path2D ah = new Path2D.Float();
-        float ex = cx + (float)(r * Math.cos(Math.toRadians(30 + 270)));
-        float ey = cy + (float)(r * Math.sin(Math.toRadians(30 + 270)));
+        float ex = cx + (float) (r * Math.cos(Math.toRadians(60+270)));
+        float ey = cy + (float) (r * Math.sin(Math.toRadians(60+270)));
         ah.moveTo(ex, ey);
-        ah.lineTo(ex - s * 0.12f, ey - s * 0.04f);
+        ah.lineTo(ex - s * 0.02f, ey - s * 0.44f);
         ah.moveTo(ex, ey);
-        ah.lineTo(ex + s * 0.04f, ey + s * 0.12f);
+        ah.lineTo(ex - s * 0.24f, ey + s * 0.12f);
         g2.draw(ah);
     }
 
     private static void drawEdit(Graphics2D g2, float s) {
         stroke(g2, s * 0.09f);
         // pencil: diagonal
-        g2.draw(new Line2D.Float(s * 0.2f, s * 0.8f, s * 0.66f, s * 0.34f));
-        g2.draw(new Line2D.Float(s * 0.66f, s * 0.34f, s * 0.78f, s * 0.22f));
-        g2.draw(new Line2D.Float(s * 0.2f, s * 0.8f, s * 0.08f, s * 0.92f));
-        g2.draw(new Line2D.Float(s * 0.64f, s * 0.36f, s * 0.76f, s * 0.24f));
+        g2.draw(new Line2D.Float(s * 0.18f, s * 0.86f, s * 0.16f, s * 0.66f));
+        g2.draw(new Line2D.Float(s * 0.16f, s * 0.66f, s * 0.49f, s * 0.14f));
+        g2.draw(new Line2D.Float(s * 0.49f, s * 0.14f, s * 0.72f, s * 0.27f));
+        g2.draw(new Line2D.Float(s * 0.72f, s * 0.27f, s * 0.38f, s * 0.78f));
+        g2.draw(new Line2D.Float(s * 0.38f, s * 0.78f, s * 0.18f, s * 0.86f));
+
+        g2.draw(new Line2D.Float(s * 0.41f, s * 0.26f, s * 0.63f, s * 0.39f));
+        g2.draw(new Line2D.Float(s * 0.48f, s * 0.87f, s * 0.89f, s * 0.87f));
     }
 
     private static void drawDelete(Graphics2D g2, float s) {
@@ -309,54 +410,118 @@ public class AstIcon extends JComponent {
     // --- Self-check ---
     static void selfCheck() {
         boolean threw = false;
-        try { new AstIcon(-1); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "bad type"; threw = false;
-        try { new AstIcon(ICON_COUNT); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "type out of range"; threw = false;
-        try { new AstIcon(CHECK, null, 16); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "null color"; threw = false;
-        try { new AstIcon(CHECK, Color.BLACK, 4); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "size too small"; threw = false;
-        try { new AstIcon(CHECK, Color.BLACK, 99); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "size too large"; threw = false;
-        try { new AstIcon(CHECK).setType(99); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "setType bad"; threw = false;
-        try { new AstIcon(CHECK).setColor(null); } catch (IllegalArgumentException e) { threw = true; }
-        assert threw : "setColor null"; threw = false;
-        try { new AstIcon(CHECK).setSizeValue(4); } catch (IllegalArgumentException e) { threw = true; }
+        try {
+            new AstIcon(-1);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assert threw : "bad type";
+        threw = false;
+        try {
+            new AstIcon(ICON_COUNT);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assert threw : "type out of range";
+        threw = false;
+        try {
+            new AstIcon(CHECK, null, 16);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assert threw : "null color";
+        threw = false;
+        try {
+            new AstIcon(CHECK, Color.BLACK, 4);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assert threw : "size too small";
+        threw = false;
+        try {
+            new AstIcon(CHECK, Color.BLACK, 99);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assert threw : "size too large";
+        threw = false;
+        try {
+            new AstIcon(CHECK).setType(99);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assert threw : "setType bad";
+        threw = false;
+        try {
+            new AstIcon(CHECK).setColor(null);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
+        assert threw : "setColor null";
+        threw = false;
+        try {
+            new AstIcon(CHECK).setSizeValue(4);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+        }
         assert threw : "setSizeValue too small";
 
         // Paint every icon type to catch draw exceptions
         final Throwable[] err = {null};
-        try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
-            for (int t = 0; t < ICON_COUNT; t++) {
-                AstIcon ic = new AstIcon(t, ElementTheme.PRIMARY, 20);
-                ic.setBounds(0, 0, 20, 20);
-                java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-                Graphics2D gg = img.createGraphics();
-                gg.setColor(Color.WHITE); gg.fillRect(0, 0, 20, 20);
-                try { ic.paint(gg); } finally { gg.dispose(); }
-            }
-        }}); } catch (Throwable t) { err[0] = t; }
+        try {
+            SwingUtilities.invokeAndWait(new Runnable() {
+                public void run() {
+                    for (int t = 0; t < ICON_COUNT; t++) {
+                        AstIcon ic = new AstIcon(t, ElementTheme.PRIMARY, 20);
+                        ic.setBounds(0, 0, 20, 20);
+                        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                        Graphics2D gg = img.createGraphics();
+                        gg.setColor(Color.WHITE);
+                        gg.fillRect(0, 0, 20, 20);
+                        try {
+                            ic.paint(gg);
+                        } finally {
+                            gg.dispose();
+                        }
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            err[0] = t;
+        }
         if (err[0] != null) throw new RuntimeException(err[0]);
 
         // EYE_OFF 绘制不抛异常且像素非空（密码切换依赖）
-        try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
-            AstIcon eo = new AstIcon(EYE_OFF, ElementTheme.PRIMARY, 20);
-            eo.setBounds(0, 0, 20, 20);
-            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-            Graphics2D gg = img.createGraphics();
-            gg.setColor(Color.WHITE); gg.fillRect(0, 0, 20, 20);
-            try { eo.paint(gg); } finally { gg.dispose(); }
-            int nonWhite = 0;
-            for (int x = 0; x < 20; x++) for (int y = 0; y < 20; y++) {
-                int p = img.getRGB(x, y);
-                if (((p >> 16) & 0xFF) < 200 || ((p >> 8) & 0xFF) < 200 || (p & 0xFF) < 200) nonWhite++;
-            }
-            assert nonWhite > 5 : "EYE_OFF should draw visible strokes, nonWhite=" + nonWhite;
-        }}); } catch (Throwable t) { throw new RuntimeException(t); }
+        try {
+            SwingUtilities.invokeAndWait(new Runnable() {
+                public void run() {
+                    AstIcon eo = new AstIcon(EYE_OFF, ElementTheme.PRIMARY, 20);
+                    eo.setBounds(0, 0, 20, 20);
+                    java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                    Graphics2D gg = img.createGraphics();
+                    gg.setColor(Color.WHITE);
+                    gg.fillRect(0, 0, 20, 20);
+                    try {
+                        eo.paint(gg);
+                    } finally {
+                        gg.dispose();
+                    }
+                    int nonWhite = 0;
+                    for (int x = 0; x < 20; x++)
+                        for (int y = 0; y < 20; y++) {
+                            int p = img.getRGB(x, y);
+                            if (((p >> 16) & 0xFF) < 200 || ((p >> 8) & 0xFF) < 200 || (p & 0xFF) < 200) nonWhite++;
+                        }
+                    assert nonWhite > 5 : "EYE_OFF should draw visible strokes, nonWhite=" + nonWhite;
+                }
+            });
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
         System.out.println("AstIcon self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        selfCheck();
+    }
 }

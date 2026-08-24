@@ -14,7 +14,7 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Tabs extends JComponent {
+public class AstTabs extends JComponent {
     private static final int HEADER_H = 40;
 
     private final List<String> titles = new ArrayList<>();
@@ -33,7 +33,7 @@ public class Tabs extends JComponent {
         }
     };
 
-    public Tabs() {
+    public AstTabs() {
         setOpaque(false);
         setLayout(new BorderLayout());
         cardPanel.setBackground(Color.WHITE);
@@ -56,7 +56,7 @@ public class Tabs extends JComponent {
     }
 
     /** Convenience constructor: build tabs with titles + empty content panels. */
-    public Tabs(String[] tabTitles, int initialIndex) {
+    public AstTabs(String[] tabTitles, int initialIndex) {
         this();
         for (String t : tabTitles) {
             JPanel p = new JPanel(new BorderLayout());

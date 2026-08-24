@@ -12,8 +12,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -29,7 +27,7 @@ import java.util.function.Consumer;
  *   AstTimePicker tp2 = new AstTimePicker(false);
  *
  * 设计：
- *  - 触发框：自绘 Input 风格，显示 HH:mm:ss（关闭秒列显示 HH:mm），右侧时钟图标。
+ *  - 触发框：自绘 AstInput 风格，显示 HH:mm:ss（关闭秒列显示 HH:mm），右侧时钟图标。
  *  - 弹出面板：AnimatedPopup BELOW，白底圆角，三列（或两列）JList，每列 8 行可见，当前值高亮 PRIMARY。
  *  - 选择：点击某值立即更新并高亮；面板底部"确定"按钮关闭面板。
  *  - 键盘：上下箭头调整当前聚焦列的值。
@@ -178,7 +176,7 @@ public class AstTimePicker extends JComponent {
             // 底部"确定"按钮
             JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
             footer.setOpaque(false);
-            Button confirm = new Button("确定", Button.PRIMARY, false);
+            AstButton confirm = new AstButton("确定", AstButton.PRIMARY, false);
             confirm.setPreferredSize(new Dimension(64, 30));
             confirm.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { cb.onConfirm(); }});
             footer.add(confirm);
@@ -341,7 +339,7 @@ public class AstTimePicker extends JComponent {
             for (int i = 0; i < cur.getComponentCount(); i++) {
                 Component ch = cur.getComponent(i);
                 if (ch instanceof JList) listCount++;
-                if (ch instanceof Button) btnCount++;
+                if (ch instanceof AstButton) btnCount++;
                 if (ch instanceof Container) q2.add((Container) ch);
             }
         }

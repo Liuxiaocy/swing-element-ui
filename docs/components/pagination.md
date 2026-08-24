@@ -9,14 +9,19 @@
 ![基本用法](../screenshots/pagination-default.png)
 
 ```java
+import org.swelement.ui.AstPagination;
 import org.swelement.ui.Pagination;
 
 // 创建分页组件（总数据量100，每页10条，初始第1页）
-Pagination pagination = new Pagination(100, 10, 1);
+AstPagination pagination = new AstPagination(100, 10, 1);
 
 // 监听页码变化
-pagination.addPageChangeListener(page -> {
-    System.out.println("当前页: " + page);
+pagination.
+
+        addPageChangeListener(page ->{
+        System.out.
+
+        println("当前页: "+page);
 });
 ```
 

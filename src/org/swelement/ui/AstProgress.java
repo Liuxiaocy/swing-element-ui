@@ -10,19 +10,19 @@ import java.awt.*;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.EventListenerList;
 
-public class Progress extends JComponent {
+public class AstProgress extends JComponent {
     private final Animator fillAnim = new Animator(300, Easing::easeOut, v -> { shown = v; repaint(); });
     private final EventListenerList listenerList = new EventListenerList();
     private float shown;
     private int value;
     private boolean showText = true;
 
-    public Progress() {
+    public AstProgress() {
         setOpaque(false);
         setPreferredSize(new Dimension(320, 20));
     }
 
-    public Progress(int initialValue) {
+    public AstProgress(int initialValue) {
         this();
         setValue(initialValue);
     }

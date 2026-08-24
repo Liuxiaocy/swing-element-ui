@@ -95,7 +95,7 @@
 
 3. **插值过渡**：颜色、尺寸、位置等视觉属性的变化不直接切换，而是通过 `ElementTheme.lerp()` 系列方法在动画帧间线性插值。
 
-4. **弹层复用**：`AnimatedPopup` 作为通用弹层容器，被 `Select`、`Menu` 等需要下拉弹出的组件复用。
+4. **弹层复用**：`AnimatedPopup` 作为通用弹层容器，被 `AstSelect`、`AstMenu` 等需要下拉弹出的组件复用。
 
 ---
 
@@ -311,7 +311,7 @@ mouseExited:  hoverAnim.go(hover, 0f);
 - 半透明圆角白底的 Element UI 风格外观
 - 淡入 + 下滑入场动画（200ms easeOut）
 - 点击弹层/触发源外部区域自动关闭
-- 被 `Select`、`Menu` 等组件复用
+- 被 `AstSelect`、`AstMenu` 等组件复用
 
 #### 4.4.2 继承关系
 
@@ -965,8 +965,8 @@ java -cp out org.swelement.demo.AlertDemo
 java -ea -cp out org.swelement.core.Easing          # 验证缓动函数值域/单调性
 java -ea -cp out org.swelement.core.ElementTheme    # 验证插值正确性
 java -ea -cp out org.swelement.core.Animator        # 验证动画启停与重定向
-java -ea -cp out org.swelement.ui.Select            # 验证过滤匹配逻辑
-java -ea -cp out org.swelement.ui.Pagination        # 验证分页窗口算法
+java -ea -cp out org.swelement.ui.AstSelect            # 验证过滤匹配逻辑
+java -ea -cp out org.swelement.ui.AstPagination        # 验证分页窗口算法
 ```
 
 全部通过时应输出 `xxx self-check OK`。

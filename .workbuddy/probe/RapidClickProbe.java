@@ -1,5 +1,5 @@
-import org.swelement.ui.Checkbox;
-import org.swelement.ui.Menu;
+import org.swelement.ui.AstCheckbox;
+import org.swelement.ui.AstMenu;
 
 import javax.swing.*;
 import java.awt.*;
@@ -7,7 +7,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 
 /**
- * 探针：验证「快速点击失效」在 Checkbox 与 Menu 上是否为同一机制。
+ * 探针：验证「快速点击失效」在 AstCheckbox 与 AstMenu 上是否为同一机制。
  * 不依赖真实鼠标，直接派发 AWT 事件序列，观察状态是否变更。
  */
 public class RapidClickProbe {
@@ -22,9 +22,9 @@ public class RapidClickProbe {
         SwingUtilities.invokeAndWait(() -> {
             JFrame f = new JFrame();
             JPanel p = new JPanel(new FlowLayout());
-            Checkbox c1 = new Checkbox("A");
-            Checkbox c2 = new Checkbox("B");
-            Checkbox c3 = new Checkbox("C");
+            AstCheckbox c1 = new AstCheckbox("A");
+            AstCheckbox c2 = new AstCheckbox("B");
+            AstCheckbox c3 = new AstCheckbox("C");
             p.add(c1);
             p.add(c2);
             p.add(c3);
@@ -57,7 +57,7 @@ public class RapidClickProbe {
             System.out.println("=== MENU ===");
 
             final boolean[] fired = {false, false};
-            Menu m = new Menu();
+            AstMenu m = new AstMenu();
             m.addMenuItem("首页", () -> fired[0] = true);
             m.addMenuItem("产品", () -> fired[1] = true);
             JFrame f2 = new JFrame();

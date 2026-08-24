@@ -158,7 +158,7 @@ public class AstMessage {
             Color accentA = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), a);
             g2.setColor(accentA);
             g2.fillRect(0, 0, 4, getHeight());
-            // Badge icon 24x24, left=16, vertical center
+            // AstBadge icon 24x24, left=16, vertical center
             int iconX = 20, iconY = (getHeight() - 24) / 2;
             Color iconBg = accentA;
             Color fg = ElementTheme.pickTextColorForBg(accent);

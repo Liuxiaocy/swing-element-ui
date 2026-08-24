@@ -85,7 +85,7 @@ public class AstAvatar extends JComponent {
     public AstAvatar(char c, int size, int shape);
     public AstAvatar(ImageIcon icon, int size, int shape);
     public AstAvatar(Color bg, String text, int size, int shape);
-    public void setBadgeCount(int n);         // 内部包装现有 Badge 组件
+    public void setBadgeCount(int n);         // 内部包装现有 AstBadge 组件
     public void setBadgeDot(boolean dot);
 }
 ```

@@ -9,10 +9,10 @@
 ![基本用法](../screenshots/switch-default.png)
 
 ```java
-import org.swelement.ui.Switch;
+import org.swelement.ui.AstSwitch;
 
 // 创建开关
-Switch switch1 = new Switch();
+AstSwitch switch1 = new AstSwitch();
 ```
 
 ## 禁用状态

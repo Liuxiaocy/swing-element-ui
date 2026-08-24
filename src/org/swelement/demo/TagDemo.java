@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Button;
-import org.swelement.ui.Tag;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstTag;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,7 +13,7 @@ import java.util.List;
 public class TagDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Tag Demo - effect 三种效果、尺寸、可关闭（真实可点 CloseButton）");
+            JFrame f = new JFrame("AstTag Demo - effect 三种效果、尺寸、可关闭（真实可点 AstCloseButton）");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -23,18 +23,18 @@ public class TagDemo {
             // 1. light 效果（默认，向后兼容）
             JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
             p1.setBorder(new TitledBorder("light 效果（浅底 + 深色文字，默认）"));
-            p1.add(new Tag("Primary 主要", Tag.PRIMARY, false));
-            p1.add(new Tag("Success 成功", Tag.SUCCESS, false));
-            p1.add(new Tag("Warning 警告", Tag.WARNING, false));
-            p1.add(new Tag("Danger 危险", Tag.DANGER, false));
-            p1.add(new Tag("Info 信息", Tag.INFO, false));
+            p1.add(new AstTag("Primary 主要", AstTag.PRIMARY, false));
+            p1.add(new AstTag("Success 成功", AstTag.SUCCESS, false));
+            p1.add(new AstTag("Warning 警告", AstTag.WARNING, false));
+            p1.add(new AstTag("Danger 危险", AstTag.DANGER, false));
+            p1.add(new AstTag("Info 信息", AstTag.INFO, false));
 
             // 2. dark 效果（实色底白字）
             JPanel p1b = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
             p1b.setBorder(new TitledBorder("dark 效果（实色底，Element 标准实心设计）"));
             for (int t = 0; t < 5; t++) {
-                Tag tag = new Tag("dark-" + t, t, false);
-                tag.setEffect(Tag.EFFECT_DARK);
+                AstTag tag = new AstTag("dark-" + t, t, false);
+                tag.setEffect(AstTag.EFFECT_DARK);
                 p1b.add(tag);
             }
 
@@ -42,8 +42,8 @@ public class TagDemo {
             JPanel p1c = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
             p1c.setBorder(new TitledBorder("plain 效果（白底 + 彩色边框）"));
             for (int t = 0; t < 5; t++) {
-                Tag tag = new Tag("plain-" + t, t, false);
-                tag.setEffect(Tag.EFFECT_PLAIN);
+                AstTag tag = new AstTag("plain-" + t, t, false);
+                tag.setEffect(AstTag.EFFECT_PLAIN);
                 p1c.add(tag);
             }
 
@@ -51,14 +51,14 @@ public class TagDemo {
             JPanel p1d = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
             p1d.setBorder(new TitledBorder("尺寸三档（large / default / small）"));
             String[] names = {"large 大", "default 默认", "small 小"};
-            int[] sizes = {Tag.SIZE_LARGE, Tag.SIZE_DEFAULT, Tag.SIZE_SMALL};
+            int[] sizes = {AstTag.SIZE_LARGE, AstTag.SIZE_DEFAULT, AstTag.SIZE_SMALL};
             for (int i = 0; i < 3; i++) {
-                Tag tag = new Tag(names[i], Tag.PRIMARY, true);
+                AstTag tag = new AstTag(names[i], AstTag.PRIMARY, true);
                 tag.setSize(sizes[i]);
                 p1d.add(tag);
             }
 
-            // 5. 可关闭标签区（CloseButton 点击关闭，动画后从容器移除）
+            // 5. 可关闭标签区（AstCloseButton 点击关闭，动画后从容器移除）
             JPanel p2Wrap = new JPanel(new BorderLayout());
             p2Wrap.setBorder(new TitledBorder("可关闭标签（点击 × 观察宽度收缩动画，关闭后从面板移除）"));
             final JPanel p2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
@@ -79,7 +79,7 @@ public class TagDemo {
             JTextField tf = new JTextField(16);
             tf.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
             tf.setText("新标签");
-            Button add = new Button("+ 添加可关闭标签", Button.PRIMARY, false);
+            AstButton add = new AstButton("+ 添加可关闭标签", AstButton.PRIMARY, false);
             final int[] addIdx = {0};
             add.addActionListener(ev -> {
                 String txt = tf.getText().trim();
@@ -87,13 +87,13 @@ public class TagDemo {
                 p2.add(makeClosableTag(txt, addIdx[0]++ % 5, p2));
                 p2.revalidate();
             });
-            Button clear = new Button("清空全部（带动画）", Button.WARNING, true);
+            AstButton clear = new AstButton("清空全部（带动画）", AstButton.WARNING, true);
             clear.addActionListener(ev -> {
                 List<Component> tags = new ArrayList<Component>();
-                for (Component c : p2.getComponents()) if (c instanceof Tag) tags.add(c);
+                for (Component c : p2.getComponents()) if (c instanceof AstTag) tags.add(c);
                 int delay = 0;
                 for (Component c : tags) {
-                    final Tag t = (Tag) c;
+                    final AstTag t = (AstTag) c;
                     Timer timer = new Timer(delay, e -> t.close(() -> SwingUtilities.invokeLater(() -> {
                         p2.remove(t);
                         p2.revalidate();
@@ -127,9 +127,9 @@ public class TagDemo {
         });
     }
 
-    /** 创建可关闭 Tag：× 点击即触发关闭动画并从父容器移除（组件内部 CloseButton，无坐标判断）。 */
-    private static Tag makeClosableTag(String text, int type, final JPanel parent) {
-        Tag t = new Tag(text, type, true);
+    /** 创建可关闭 AstTag：× 点击即触发关闭动画并从父容器移除（组件内部 AstCloseButton，无坐标判断）。 */
+    private static AstTag makeClosableTag(String text, int type, final JPanel parent) {
+        AstTag t = new AstTag(text, type, true);
         t.setOnClosed(() -> SwingUtilities.invokeLater(() -> {
             parent.remove(t);
             parent.revalidate();

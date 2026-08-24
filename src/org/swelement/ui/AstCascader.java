@@ -6,10 +6,8 @@ import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,7 +57,7 @@ public class AstCascader extends JComponent {
     private String placeholder = "请选择";
     private Consumer<List<String>> selectionListener;
     private final List<Option> selectedPath = new ArrayList<Option>();
-    private final Button invoker;
+    private final AstButton invoker;
     private final AnimatedPopup popup;
     private final JPanel columnsContainer;
     private final List<ColumnPanel> columns = new ArrayList<ColumnPanel>();
@@ -75,7 +73,7 @@ public class AstCascader extends JComponent {
         for (Option o : options) if (o == null) throw new IllegalArgumentException("option must not be null");
         this.rootOptions = new ArrayList<Option>(options);
         this.levels = levels;
-        this.invoker = new Button(placeholder + "  ▾", Button.DEFAULT, false);
+        this.invoker = new AstButton(placeholder + "  ▾", AstButton.DEFAULT, false);
         this.popup = new AnimatedPopup();
         popup.setDismissListener(new Runnable() { public void run() { open = false; }});
         this.columnsContainer = new JPanel();

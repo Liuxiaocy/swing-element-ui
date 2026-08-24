@@ -22,7 +22,7 @@ public class AstAvatar extends JComponent {
     private final Color bg;
     private final String text;
     private final ImageIcon icon;
-    private final Badge badge;
+    private final AstBadge badge;
     private final Animator hoverAnim = new Animator(150, new Easing() {
         public float apply(float t) { return Easing.easeInOut(t); }
     }, new Animator.Listener() {
@@ -42,7 +42,7 @@ public class AstAvatar extends JComponent {
     private AstAvatar(Color bg, String text, ImageIcon icon, int size, int shape) {
         this.bg = bg; this.text = text == null ? "" : text; this.icon = icon;
         this.size = size; this.shape = shape;
-        this.badge = new Badge();
+        this.badge = new AstBadge();
         setOpaque(false);
         setLayout(null);
         add(badge);
@@ -105,7 +105,7 @@ public class AstAvatar extends JComponent {
     @Override public Dimension getMaximumSize()   { return new Dimension(size + 2*BADGE_PAD, size + 2*BADGE_PAD); }
 
     @Override public void doLayout() {
-        // Badge 内容 insets (top=12, left=12, bottom=0, right=0)，paintBadge 圆心 = (w-12, 12)（badge 坐标系）。
+        // AstBadge 内容 insets (top=12, left=12, bottom=0, right=0)，paintBadge 圆心 = (w-12, 12)（badge 坐标系）。
         // 目标：圆心落在头像右上角内侧 (BADGE_PAD + size - 12, BADGE_PAD + 12)（组件坐标系）。
         // 由 bx + w - 12 = BADGE_PAD + size - 12 且 by + 12 = BADGE_PAD + 12 解得：
         badge.setBounds(0, BADGE_PAD, size + BADGE_PAD, size + BADGE_PAD);

@@ -9,10 +9,10 @@
 ![基本用法](../screenshots/slider-default.png)
 
 ```java
-import org.swelement.ui.Slider;
+import org.swelement.ui.AstSlider;
 
 // 创建滑块（最小值0，最大值100，初始值50）
-Slider slider = new Slider(0, 100, 50);
+AstSlider slider = new AstSlider(0, 100, 50);
 ```
 
 ## 禁用状态

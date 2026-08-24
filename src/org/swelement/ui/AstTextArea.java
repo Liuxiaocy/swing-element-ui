@@ -15,9 +15,9 @@ import java.awt.geom.RoundRectangle2D;
 
 /**
  * 多行文本输入 — Element UI textarea 移植。
- * 透明 JScrollPane 包 JTextArea（自动换行），复用 Input 的边框/聚焦光晕/占位符配方。
+ * 透明 JScrollPane 包 JTextArea（自动换行），复用 AstInput 的边框/聚焦光晕/占位符配方。
  */
-public class TextArea extends JPanel {
+public class AstTextArea extends JPanel {
     private final JTextArea area;
     private final JScrollPane scroll;
     private final Animator focusAnim = new Animator(200, Easing::easeInOut, v -> { focus = v; repaint(); });
@@ -26,7 +26,7 @@ public class TextArea extends JPanel {
     private boolean hasText;
     private final String placeholder;
 
-    public TextArea(String placeholder, int rows, int columns) {
+    public AstTextArea(String placeholder, int rows, int columns) {
         this.placeholder = placeholder;
         setOpaque(false);
         setLayout(new BorderLayout());
@@ -85,7 +85,7 @@ public class TextArea extends JPanel {
         g2.setColor(border);
         g2.setStroke(new BasicStroke(focus > 0 ? 2f : 1f));
         g2.draw(shape);
-        if (focus > 0) {  // 聚焦光晕（同 Input）
+        if (focus > 0) {  // 聚焦光晕（同 AstInput）
             g2.setColor(new Color(64, 158, 255, Math.round(50 * focus)));
             g2.setStroke(new BasicStroke(4f));
             g2.draw(shape);
@@ -103,11 +103,11 @@ public class TextArea extends JPanel {
     }
 
     static void selfCheck() {
-        TextArea ta = new TextArea("请输入内容", 3, 20);
+        AstTextArea ta = new AstTextArea("请输入内容", 3, 20);
         assert ta.getText().isEmpty() : "initial empty";
         ta.setText("hello");
         assert "hello".equals(ta.getText()) : "setText works";
-        TextArea tall = new TextArea("p", 8, 20);
+        AstTextArea tall = new AstTextArea("p", 8, 20);
         assert tall.getPreferredSize().height > ta.getPreferredSize().height
                 : "rows drive height: " + tall.getPreferredSize().height + " vs " + ta.getPreferredSize().height;
         assert ta.getPreferredSize().height >= 60
@@ -120,7 +120,7 @@ public class TextArea extends JPanel {
         // 离屏绘制不抛异常（含占位符路径）
         final Throwable[] err = {null};
         try { SwingUtilities.invokeAndWait(() -> {
-            TextArea p = new TextArea("占位", 3, 20);
+            AstTextArea p = new AstTextArea("占位", 3, 20);
             p.setBounds(0, 0, 240, 80);
             p.doLayout();
             java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(240, 80, java.awt.image.BufferedImage.TYPE_INT_ARGB);
@@ -128,7 +128,7 @@ public class TextArea extends JPanel {
             try { p.paint(gg); } finally { gg.dispose(); }
         }); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
-        System.out.println("TextArea self-check OK");
+        System.out.println("AstTextArea self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }

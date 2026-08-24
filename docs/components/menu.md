@@ -9,22 +9,32 @@
 ![基本用法](../screenshots/menu-default.png)
 
 ```java
-import org.swelement.ui.Menu;
+import org.swelement.ui.AstMenu;
 
 // 创建导航菜单
-Menu menu = new Menu();
+AstMenu menu = new AstMenu();
 
 // 添加菜单项
-menu.addMenuItem("首页", () -> {
-    System.out.println("点击首页");
+menu.
+
+        addMenuItem("首页",() ->{
+        System.out.
+
+        println("点击首页");
 });
 
-menu.addMenuItem("新闻", () -> {
-    System.out.println("点击新闻");
+        menu.
+
+        addMenuItem("新闻",() ->{
+        System.out.
+
+        println("点击新闻");
 });
 
 // 设置当前激活项
-menu.setActive(0);
+        menu.
+
+        setActive(0);
 ```
 
 ## 子菜单

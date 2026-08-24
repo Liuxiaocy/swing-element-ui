@@ -187,7 +187,7 @@ Expected: `Input self-check OK`（原有清空断言仍通过——clearBtn 尺�
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/org/swelement/ui/Input.java
+git add src/org/swelement/ui/AstInput.java
 git commit -m "feat(Input): 尺寸档位 large/default/small（高度 40/32/28，联动字体/内边距/清空按钮）"
 ```
 
@@ -225,11 +225,11 @@ git commit -m "feat(Input): 尺寸档位 large/default/small（高度 40/32/28�
 并在 `selfCheck()` 之外加两个测试辅助（`clearBtnClickForTest` 之后）：
 
 ```java
-    /** 测试辅助：找到 Input 内的文本组件（JTextField 或 JPasswordField）。 */
+    /** 测试辅助：找到 AstInput 内的文本组件（JTextField 或 JPasswordField）。 */
     private static JTextComponent findTextComponent(Input in) {
         for (Component c : in.getComponents())
             if (c instanceof JTextComponent) return (JTextComponent) c;
-        throw new AssertionError("text component not found in Input");
+        throw new AssertionError("text component not found in AstInput");
     }
 
     /** 测试辅助：向密码框的眼睛按钮派发按下事件。 */
@@ -249,7 +249,7 @@ git commit -m "feat(Input): 尺寸档位 large/default/small（高度 40/32/28�
                 }
             }
         }
-        throw new AssertionError("eye button not found in Input");
+        throw new AssertionError("eye button not found in AstInput");
     }
 ```
 
@@ -367,7 +367,7 @@ Expected: `Input self-check OK`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/org/swelement/ui/Input.java
+git add src/org/swelement/ui/AstInput.java
 git commit -m "feat(Input): 密码模式（JPasswordField + 眼睛切换明文/掩码，EYE/EYE_OFF）"
 ```
 
@@ -402,7 +402,7 @@ git commit -m "feat(Input): 密码模式（JPasswordField + 眼睛切换明文/�
 辅助方法（`eyeClickForTest` 之后）：
 
 ```java
-    /** 测试辅助：统计 Input 子树中的 AstIcon 数量。 */
+    /** 测试辅助：统计 AstInput 子树中的 AstIcon 数量。 */
     private static int countAstIcons(Container c) {
         int n = 0;
         for (Component cc : c.getComponents()) {
@@ -466,7 +466,7 @@ Expected: `Input self-check OK`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/org/swelement/ui/Input.java
+git add src/org/swelement/ui/AstInput.java
 git commit -m "feat(Input): 前后缀图标 setPrefixIcon/setSuffixIcon（复用 AstIcon，0x606266 达标对比度）"
 ```
 
@@ -504,7 +504,7 @@ import java.awt.geom.RoundRectangle2D;
 
 /**
  * 多行文本输入 — Element UI textarea 移植。
- * 透明 JScrollPane 包 JTextArea（自动换行），复用 Input 的边框/聚焦光晕/占位符配方。
+ * 透明 JScrollPane 包 JTextArea（自动换行），复用 AstInput 的边框/聚焦光晕/占位符配方。
  */
 public class TextArea extends JPanel {
     private final JTextArea area;
@@ -615,7 +615,7 @@ public class TextArea extends JPanel {
             try { p.paint(gg); } finally { gg.dispose(); }
         }); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
-        System.out.println("TextArea self-check OK");
+        System.out.println("AstTextArea self-check OK");
     }
 
     private static boolean JTextArea_enabled(TextArea ta) { return ta.area.isEnabled(); }
@@ -641,14 +641,14 @@ src\org\swelement\ui\TextArea.java ^
 
 ```bat
 echo --- TextArea self-check ---
-java -ea -cp out org.swelement.ui.TextArea
+java -ea -cp out org.swelement.ui.AstTextArea
 if %ERRORLEVEL% NEQ 0 ( echo TextArea self-check FAILED & exit /b 1 )
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/org/swelement/ui/TextArea.java build.bat
+git add src/org/swelement/ui/AstTextArea.java build.bat
 git commit -m "feat(TextArea): 多行文本输入组件（复用 Input 边框/光晕/占位符配方，lineWrap）"
 ```
 
@@ -660,7 +660,7 @@ git commit -m "feat(TextArea): 多行文本输入组件（复用 Input 边框/�
 - Modify: `src/org/swelement/ui/Select.java`
 
 **Interfaces:**
-- Consumes: `CloseButton`（setAlpha/setInteractive/setOnClose/setButtonSize）。
+- Consumes: `AstCloseButton`（setAlpha/setInteractive/setOnClose/setButtonSize）。
 - Produces: Select 单选有值且 hover 时 × 淡入并替换箭头，点击清空。行为 API 不变。
 
 - [ ] **Step 1: 写失败断言（RED）**
@@ -668,7 +668,7 @@ git commit -m "feat(TextArea): 多行文本输入组件（复用 Input 边框/�
 `Select.selfCheck()` 的 matches 断言之后追加：
 
 ```java
-        // 可清空：hover 淡入 ×，点击清空选择（复用 Input 的测试配方）
+        // 可清空：hover 淡入 ×，点击清空选择（复用 AstInput 的测试配方）
         final Select sel = new Select(new String[]{"北京", "上海", "广州"});
         sel.setSelectedIndex(1);
         assert "上海".equals(sel.getSelectedValue());
@@ -691,7 +691,7 @@ git commit -m "feat(TextArea): 多行文本输入组件（复用 Input 边框/�
 辅助（selfCheck 之外）：
 
 ```java
-    /** 测试辅助：向 Select 内的 CloseButton 派发按下事件。 */
+    /** 测试辅助：向 AstSelect 内的 AstCloseButton 派发按下事件。 */
     private static void clearBtnClickForTest(Select sel) {
         for (Component c : sel.getComponents()) {
             if (c instanceof JPanel) {
@@ -704,7 +704,7 @@ git commit -m "feat(TextArea): 多行文本输入组件（复用 Input 边框/�
                 }
             }
         }
-        throw new AssertionError("CloseButton not found in Select");
+        throw new AssertionError("AstCloseButton not found in AstSelect");
     }
 ```
 
@@ -727,7 +727,7 @@ Expected: `AssertionError: CloseButton not found in Select`（当前是手绘 ×
 (b) 构造器 `add(center, BorderLayout.CENTER);` 之后加：
 
 ```java
-        // 可清空 ×（复用 Input 批次 1 的 east 面板配方，替代手绘 × + 坐标命中）
+        // 可清空 ×（复用 AstInput 批次 1 的 east 面板配方，替代手绘 × + 坐标命中）
         clearBtn.setAlpha(0f);
         clearBtn.setInteractive(false);
         clearBtn.setOnClose(() -> {
@@ -804,7 +804,7 @@ Expected: `Select self-check OK`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/org/swelement/ui/Select.java
+git add src/org/swelement/ui/AstSelect.java
 git commit -m "refactor(Select): 可清空 × 重写为 CloseButton 配方（消灭手绘 × + 坐标命中测试残留）"
 ```
 
@@ -826,27 +826,71 @@ git commit -m "refactor(Select): 可清空 × 重写为 CloseButton 配方（消
 - 新增三个分区（放在 p2 之后、`root.add(p1)` 之前构建）：
 
 ```java
-            // 尺寸档位
-            JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
-            p3.setBorder(new TitledBorder("尺寸档位（large 40 / default 32 / small 28）"));
-            Input iL = new Input("大型输入框"); iL.setSize(Input.SIZE_LARGE); iL.setColumns(12);
-            Input iD = new Input("默认输入框"); iD.setColumns(12);
-            Input iS = new Input("小型输入框"); iS.setSize(Input.SIZE_SMALL); iS.setColumns(12);
-            p3.add(iL); p3.add(iD); p3.add(iS);
+            import org.swelement.ui.AstTextArea;// 尺寸档位
+JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
+            p3.
 
-            // 密码 + 图标
-            JPanel p4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
-            p4.setBorder(new TitledBorder("密码框（眼睛切换明文）与前后缀图标"));
-            Input pw = new Input("请输入密码", Input.PASSWORD); pw.setColumns(14);
-            Input pfx = new Input("搜索关键词"); pfx.setPrefixIcon(org.swelement.ui.AstIcon.SEARCH); pfx.setColumns(14);
-            Input sfx = new Input("带后缀图标"); sfx.setSuffixIcon(org.swelement.ui.AstIcon.SETTING); sfx.setColumns(14);
-            p4.add(pw); p4.add(pfx); p4.add(sfx);
+setBorder(new TitledBorder("尺寸档位（large 40 / default 32 / small 28）"));
+Input iL = new Input("大型输入框"); iL.
 
-            // 文本域
-            JPanel p5 = new JPanel(new BorderLayout(8, 8));
-            p5.setBorder(new TitledBorder("文本域 TextArea（自动换行，纵向滚动按需出现）"));
-            org.swelement.ui.TextArea ta = new org.swelement.ui.TextArea("请输入多行备注内容…", 4, 32);
-            p5.add(ta, BorderLayout.CENTER);
+setSize(Input.SIZE_LARGE); iL.
+
+setColumns(12);
+
+Input iD = new Input("默认输入框"); iD.
+
+setColumns(12);
+
+Input iS = new Input("小型输入框"); iS.
+
+setSize(Input.SIZE_SMALL); iS.
+
+setColumns(12);
+            p3.
+
+add(iL); p3.
+
+add(iD); p3.
+
+add(iS);
+
+// 密码 + 图标
+JPanel p4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
+            p4.
+
+setBorder(new TitledBorder("密码框（眼睛切换明文）与前后缀图标"));
+Input pw = new Input("请输入密码", Input.PASSWORD); pw.
+
+setColumns(14);
+
+Input pfx = new Input("搜索关键词"); pfx.
+
+setPrefixIcon(org.swelement.ui.AstIcon.SEARCH); pfx.
+
+setColumns(14);
+
+Input sfx = new Input("带后缀图标"); sfx.
+
+setSuffixIcon(org.swelement.ui.AstIcon.SETTING); sfx.
+
+setColumns(14);
+            p4.
+
+add(pw); p4.
+
+add(pfx); p4.
+
+add(sfx);
+
+// 文本域
+JPanel p5 = new JPanel(new BorderLayout(8, 8));
+            p5.
+
+setBorder(new TitledBorder("文本域 TextArea（自动换行，纵向滚动按需出现）"));
+org.swelement.ui.AstTextArea ta = new org.swelement.ui.AstTextArea("请输入多行备注内容…", 4, 32);
+            p5.
+
+add(ta, BorderLayout.CENTER);
 ```
 
 组装段相应改为 `root.add(p1); root.add(Box.createVerticalStrut(8)); root.add(p2); root.add(Box.createVerticalStrut(8)); root.add(p3); root.add(Box.createVerticalStrut(8)); root.add(p4); root.add(Box.createVerticalStrut(8)); root.add(p5);`，窗口标题改为 `"Input Demo - 档位、密码、图标、文本域、清空、禁用"`。
@@ -882,7 +926,7 @@ p4 之后新增 p5 并加入组装（`root.add(p4);` 之后 `root.add(Box.create
 Run（bash）:
 
 ```bash
-cd "D:/Program Files/code/swing-element-ui" && javac -nowarn -encoding UTF-8 -d .workbuddy/probe/out $(find src -name '*.java') && for c in org.swelement.ui.AstIcon org.swelement.ui.Input org.swelement.ui.TextArea org.swelement.ui.Select org.swelement.ui.CloseButton org.swelement.ui.Tag org.swelement.ui.Alert; do echo "== $c"; java -ea -Djava.awt.headless=false -cp .workbuddy/probe/out $c 2>&1 | tail -1; done
+cd "D:/Program Files/code/swing-element-ui" && javac -nowarn -encoding UTF-8 -d .workbuddy/probe/out $(find src -name '*.java') && for c in org.swelement.ui.AstIcon org.swelement.ui.AstInputput org.swelement.ui.AstTextArearea org.swelement.ui.AstSelectect org.swelement.ui.AstCloseButtonton org.swelement.ui.AstTagTag org.swelement.ui.AstAlertert; do echo "== $c"; java -ea -Djava.awt.headless=false -cp .workbuddy/probe/out $c 2>&1 | tail -1; done
 ```
 
 再跑其余全部自检（build.bat 里的 31 个清单逐一 `java -ea -cp .workbuddy/probe/out <类>`）。

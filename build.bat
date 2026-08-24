@@ -87,23 +87,23 @@ if errorlevel 1 (echo BUILD FAILED & exit /b 1)
 echo BUILD OK
 
 echo --- CloseButton self-check ---
-java -ea -cp out org.swelement.ui.CloseButton
+java -ea -cp out org.swelement.ui.AstCloseButton
 if %ERRORLEVEL% NEQ 0 ( echo CloseButton self-check FAILED & exit /b 1 )
 
 echo --- Tag self-check ---
-java -ea -cp out org.swelement.ui.Tag
+java -ea -cp out org.swelement.ui.AstTag
 if %ERRORLEVEL% NEQ 0 ( echo Tag self-check FAILED & exit /b 1 )
 
 echo --- Alert self-check ---
-java -ea -cp out org.swelement.ui.Alert
+java -ea -cp out org.swelement.ui.AstAlert
 if %ERRORLEVEL% NEQ 0 ( echo Alert self-check FAILED & exit /b 1 )
 
 echo --- Input self-check ---
-java -ea -cp out org.swelement.ui.Input
+java -ea -cp out org.swelement.ui.AstInput
 if %ERRORLEVEL% NEQ 0 ( echo Input self-check FAILED & exit /b 1 )
 
 echo --- TextArea self-check ---
-java -ea -cp out org.swelement.ui.TextArea
+java -ea -cp out org.swelement.ui.AstTextArea
 if %ERRORLEVEL% NEQ 0 ( echo TextArea self-check FAILED & exit /b 1 )
 
 echo --- AstContainer self-check ---

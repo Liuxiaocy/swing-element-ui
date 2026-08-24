@@ -12,7 +12,7 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Menu extends JComponent {
+public class AstMenu extends JComponent {
     private static final int HEADER_H = 40;
 
     private class Entry {
@@ -43,7 +43,7 @@ public class Menu extends JComponent {
     private final AnimatedPopup subPopup = new AnimatedPopup();
     private final JPanel subList = new JPanel();
 
-    public Menu() {
+    public AstMenu() {
         setOpaque(false);
         setPreferredSize(new Dimension(520, HEADER_H));
         subList.setOpaque(false);

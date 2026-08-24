@@ -405,6 +405,7 @@ public class Button extends JButton {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstButton;
 import org.swelement.ui.Button;
 
 import javax.swing.*;
@@ -415,11 +416,11 @@ public class ButtonDemo {
         SwingUtilities.invokeLater(() -> {
             JFrame f = new JFrame("Button Demo");
             JPanel p = new JPanel(new FlowLayout(20, 20, 20));
-            int[] types = {Button.DEFAULT, Button.PRIMARY, Button.SUCCESS, Button.WARNING, Button.DANGER, Button.INFO};
+            int[] types = {AstButton.DEFAULT, AstButton.PRIMARY, AstButton.SUCCESS, AstButton.WARNING, AstButton.DANGER, AstButton.INFO};
             String[] labels = {"默认按钮", "主要按钮", "成功按钮", "警告按钮", "危险按钮", "信息按钮"};
-            for (int i = 0; i < types.length; i++) p.add(new Button(labels[i], types[i], false));
-            p.add(new Button("朴素按钮", Button.PRIMARY, true));
-            Button disabled = new Button("禁用按钮", Button.PRIMARY, false);
+            for (int i = 0; i < types.length; i++) p.add(new AstButton(labels[i], types[i], false));
+            p.add(new AstButton("朴素按钮", AstButton.PRIMARY, true));
+            AstButton disabled = new AstButton("禁用按钮", AstButton.PRIMARY, false);
             disabled.setEnabled(false);
             p.add(disabled);
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -582,6 +583,7 @@ public class Input extends JPanel {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstInput;
 import org.swelement.ui.Input;
 
 import javax.swing.*;
@@ -590,11 +592,11 @@ import java.awt.*;
 public class InputDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Input Demo");
+            JFrame f = new JFrame("AstInput Demo");
             JPanel p = new JPanel(new FlowLayout(30, 30, 30));
-            Input a = new Input("请输入内容");
+            AstInput a = new AstInput("请输入内容");
             a.setPreferredSize(new Dimension(220, 40));
-            Input b = new Input("disabled");
+            AstInput b = new AstInput("disabled");
             b.setPreferredSize(new Dimension(220, 40));
             b.setEnabled(false);
             p.add(a);
@@ -617,7 +619,7 @@ Expected: 输入框 hover 边框变蓝、聚焦边框加深并带光晕、输入
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Input.java src/org/swelement/demo/InputDemo.java
+git add src/org/swelement/ui/AstInput.java src/org/swelement/demo/InputDemo.java
 git commit -m "feat: Input with focus glow and clear button + demo"
 ```
 
@@ -728,7 +730,7 @@ public class Checkbox extends JCheckBox {
 ```java
 package org.swelement.demo;
 
-import org.swelement.ui.Checkbox;
+import org.swelement.ui.AstCheckbox;
 
 import javax.swing.*;
 import java.awt.*;
@@ -736,17 +738,17 @@ import java.awt.*;
 public class CheckboxDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Checkbox Demo");
+            JFrame f = new JFrame("AstCheckbox Demo");
             JPanel p = new JPanel(new FlowLayout(30, 30, 30));
-            p.add(new Checkbox("默认"));
-            p.add(new Checkbox("已选"));
-            Checkbox c = new Checkbox("已选");
+            p.add(new AstCheckbox("默认"));
+            p.add(new AstCheckbox("已选"));
+            AstCheckbox c = new AstCheckbox("已选");
             c.setSelected(true);
             p.add(c);
-            Checkbox d = new Checkbox("禁用");
+            AstCheckbox d = new AstCheckbox("禁用");
             d.setEnabled(false);
             p.add(d);
-            Checkbox e = new Checkbox("选中禁用");
+            AstCheckbox e = new AstCheckbox("选中禁用");
             e.setEnabled(false);
             e.setSelected(true);
             p.add(e);
@@ -768,7 +770,7 @@ Expected: 点击时边框渐蓝、背景填充渐变、勾号由短到长描画�
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Checkbox.java src/org/swelement/demo/CheckboxDemo.java
+git add src/org/swelement/ui/AstCheckbox.java src/org/swelement/demo/CheckboxDemo.java
 git commit -m "feat: Checkbox with animated checkmark + demo"
 ```
 
@@ -865,6 +867,7 @@ public class Radio extends JRadioButton {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstRadio;
 import org.swelement.ui.Radio;
 
 import javax.swing.*;
@@ -873,15 +876,19 @@ import java.awt.*;
 public class RadioDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Radio Demo");
+            JFrame f = new JFrame("AstRadio Demo");
             JPanel p = new JPanel(new FlowLayout(30, 30, 30));
             ButtonGroup group = new ButtonGroup();
-            Radio a = new Radio("选项 A");
-            Radio b = new Radio("选项 B");
-            Radio c = new Radio("选项 C");
-            group.add(a); group.add(b); group.add(c);
-            p.add(a); p.add(b); p.add(c);
-            Radio d = new Radio("禁用");
+            AstRadio a = new AstRadio("选项 A");
+            AstRadio b = new AstRadio("选项 B");
+            AstRadio c = new AstRadio("选项 C");
+            group.add(a);
+            group.add(b);
+            group.add(c);
+            p.add(a);
+            p.add(b);
+            p.add(c);
+            AstRadio d = new AstRadio("禁用");
             d.setEnabled(false);
             p.add(d);
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -902,7 +909,7 @@ Expected: 单选圆圈边框渐蓝、选中时内点从小到大弹出；组内�
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Radio.java src/org/swelement/demo/RadioDemo.java
+git add src/org/swelement/ui/AstRadio.java src/org/swelement/demo/RadioDemo.java
 git commit -m "feat: Radio with animated dot + demo"
 ```
 
@@ -977,6 +984,7 @@ public class Switch extends JToggleButton {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstSwitch;
 import org.swelement.ui.Switch;
 
 import javax.swing.*;
@@ -985,13 +993,13 @@ import java.awt.*;
 public class SwitchDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Switch Demo");
+            JFrame f = new JFrame("AstSwitch Demo");
             JPanel p = new JPanel(new FlowLayout(30, 30, 30));
-            p.add(new Switch());
-            Switch on = new Switch();
+            p.add(new AstSwitch());
+            AstSwitch on = new AstSwitch();
             on.setSelected(true);
             p.add(on);
-            Switch d = new Switch();
+            AstSwitch d = new AstSwitch();
             d.setEnabled(false);
             p.add(d);
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -1012,7 +1020,7 @@ Expected: 点击后 knob 平滑滑动、轨道底色从灰渐变到蓝；禁用�
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Switch.java src/org/swelement/demo/SwitchDemo.java
+git add src/org/swelement/ui/AstSwitch.java src/org/swelement/demo/SwitchDemo.java
 git commit -m "feat: Switch with sliding knob animation + demo"
 ```
 
@@ -1138,6 +1146,7 @@ public class Slider extends JComponent {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstSlider;
 import org.swelement.ui.Slider;
 
 import javax.swing.*;
@@ -1146,15 +1155,15 @@ import java.awt.*;
 public class SliderDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Slider Demo");
+            JFrame f = new JFrame("AstSlider Demo");
             JPanel p = new JPanel(new FlowLayout(30, 30, 30));
-            Slider s = new Slider(0, 100, 40);
+            AstSlider s = new AstSlider(0, 100, 40);
             JLabel label = new JLabel("40");
             label.setPreferredSize(new Dimension(40, 24));
             s.addChangeListener(e -> label.setText(String.valueOf(s.getValue())));
             p.add(s);
             p.add(label);
-            Slider d = new Slider(0, 100, 30);
+            AstSlider d = new AstSlider(0, 100, 30);
             d.setEnabled(false);
             p.add(d);
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -1175,7 +1184,7 @@ Expected: 拖拽 thumb 跟手、已选轨道填充、松开后 thumb 归位动�
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Slider.java src/org/swelement/demo/SliderDemo.java
+git add src/org/swelement/ui/AstSlider.java src/org/swelement/demo/SliderDemo.java
 git commit -m "feat: Slider with thumb animation + demo"
 ```
 

@@ -9,13 +9,15 @@
 ![基本用法](../screenshots/progress-default.png)
 
 ```java
-import org.swelement.ui.Progress;
+import org.swelement.ui.AstProgress;
 
 // 创建进度条
-Progress progress = new Progress(50);
+AstProgress progress = new AstProgress(50);
 
 // 动态更新进度
-progress.setValue(75);
+progress.
+
+        setValue(75);
 ```
 
 ## 显示文字

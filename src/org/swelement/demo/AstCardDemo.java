@@ -1,9 +1,6 @@
 package org.swelement.demo;
 
-import org.swelement.ui.AstAvatar;
-import org.swelement.ui.AstCard;
-import org.swelement.ui.Button;
-import org.swelement.ui.Progress;
+import org.swelement.ui.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -57,23 +54,23 @@ public class AstCardDemo {
         bc1.gridy = 1; bc1.gridx = 1; body1.add(newFieldLabel("邮箱："), bc1); bc1.gridx = 2; body1.add(new JLabel("zhangsan@example.com"), bc1);
         bc1.gridy = 2; bc1.gridx = 1; body1.add(newFieldLabel("部门："), bc1); bc1.gridx = 2; body1.add(new JLabel("平台研发部"), bc1);
         c1.setContent(body1);
-        Button editBtn = new Button("编辑", Button.DEFAULT, false);
-        Button delBtn = new Button("删除", Button.DANGER, false);
+        AstButton editBtn = new AstButton("编辑", AstButton.DEFAULT, false);
+        AstButton delBtn = new AstButton("删除", AstButton.DANGER, false);
         final ActionListener echoAction = new ActionListener() { public void actionPerformed(ActionEvent e) {
             Object s = e.getSource();
             if (s == editBtn) echo.setText("执行：编辑用户信息");
             else if (s == delBtn) echo.setText("执行：删除用户");
-            else if (s instanceof Button) echo.setText("执行：" + ((Button)s).getText());
+            else if (s instanceof AstButton) echo.setText("执行：" + ((AstButton)s).getText());
         }};
         editBtn.addActionListener(echoAction); delBtn.addActionListener(echoAction);
         c1.addHeaderAction(delBtn); c1.addHeaderAction(editBtn);
         gbc.gridx = 0;
         row.add(wrap(c1), gbc);
 
-        // Card 2: Progress stats
+        // Card 2: AstProgress stats
         AstCard c2 = new AstCard("项目进度", true, hoverOn.isSelected());
         JPanel body2 = new JPanel(); body2.setLayout(new BoxLayout(body2, BoxLayout.Y_AXIS));
-        Progress p1 = new Progress(75); Progress p2 = new Progress(42); Progress p3 = new Progress(88);
+        AstProgress p1 = new AstProgress(75); AstProgress p2 = new AstProgress(42); AstProgress p3 = new AstProgress(88);
         for (Object[] pair : new Object[][]{ {"需求开发", p1}, {"接口联调", p2}, {"上线部署", p3} }) {
             JPanel line = new JPanel(new BorderLayout(12, 4));
             JLabel lbl = new JLabel((String) pair[0]);
@@ -85,7 +82,7 @@ public class AstCardDemo {
             body2.add(line); body2.add(Box.createVerticalStrut(10));
         }
         c2.setContent(body2);
-        Button more2 = new Button("查看详情", Button.DEFAULT, false); more2.addActionListener(echoAction);
+        AstButton more2 = new AstButton("查看详情", AstButton.DEFAULT, false); more2.addActionListener(echoAction);
         c2.addHeaderAction(more2);
         gbc.gridx = 1;
         row.add(wrap(c2), gbc);
@@ -105,7 +102,7 @@ public class AstCardDemo {
         ta.setOpaque(false);
         ta.setForeground(new Color(0x606266));
         c3.setContent(ta);
-        Button apply3 = new Button("应用", Button.PRIMARY, false); apply3.addActionListener(echoAction);
+        AstButton apply3 = new AstButton("应用", AstButton.PRIMARY, false); apply3.addActionListener(echoAction);
         c3.addHeaderAction(apply3);
         gbc.gridx = 2;
         row.add(wrap(c3), gbc);
@@ -138,10 +135,10 @@ public class AstCardDemo {
                 JLabel tip = new JLabel("  这是第 " + (seq-1) + " 张新增的卡片。鼠标悬停可观察 hover 边框高亮动画。", SwingConstants.LEFT);
                 tip.setForeground(new Color(0x909399)); tip.setFont(tip.getFont().deriveFont(12f));
                 inner.add(tip, BorderLayout.CENTER);
-                Progress prog = new Progress((int)(Math.random() * 80) + 20);
+                AstProgress prog = new AstProgress((int)(Math.random() * 80) + 20);
                 inner.add(prog, BorderLayout.SOUTH);
                 card.setContent(inner);
-                Button close = new Button("关闭卡片", Button.WARNING, false);
+                AstButton close = new AstButton("关闭卡片", AstButton.WARNING, false);
                 close.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent ev) {
                     dynamicRow.remove(card.getParent() == null ? card : card.getParent());
                     dynamicRow.revalidate(); dynamicRow.repaint();

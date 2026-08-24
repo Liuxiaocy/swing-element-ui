@@ -9,13 +9,14 @@
 ![基本用法](../screenshots/select-default.png)
 
 ```java
+import org.swelement.ui.AstSelect;
 import org.swelement.ui.Select;
 
 // 创建单选下拉框
-Select select = new Select(new String[]{"黄金糕", "双皮奶", "蚵仔煎", "龙须面"});
+AstSelect select = new AstSelect(new String[]{"黄金糕", "双皮奶", "蚵仔煎", "龙须面"});
 
-// 获取选中值
-Object value = select.getSelectedValue();
+        // 获取选中值
+        Object value = select.getSelectedValue();
 ```
 
 ## 多选模式

@@ -157,7 +157,7 @@ public class AstForm extends JPanel {
             lbl.setForeground(ElementTheme.TEXT_REGULAR);
             ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstForm label");
             add(lbl, BorderLayout.WEST);
-            // Input: CENTER
+            // AstInput: CENTER
             add(input, BorderLayout.CENTER);
             // Error label: SOUTH, hidden initially
             errorLabel = new JLabel(" ");

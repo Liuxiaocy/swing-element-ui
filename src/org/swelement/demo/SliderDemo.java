@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Button;
-import org.swelement.ui.Slider;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstSlider;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,7 +11,7 @@ import java.awt.*;
 public class SliderDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Slider Demo - 拖拽、值变化平滑过渡、hover 放大手柄");
+            JFrame f = new JFrame("AstSlider Demo - 拖拽、值变化平滑过渡、hover 放大手柄");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -27,7 +27,7 @@ public class SliderDemo {
 
             gbc.gridx = 0; gbc.gridy = 0;
             p1.add(new JLabel("🔊 音量"), gbc);
-            Slider vol = new Slider(0, 100, 40);
+            AstSlider vol = new AstSlider(0, 100, 40);
             vol.setPreferredSize(new Dimension(380, 32));
             JLabel volLbl = new JLabel("40 %");
             volLbl.setFont(new Font("Microsoft YaHei", Font.BOLD, 14));
@@ -38,7 +38,7 @@ public class SliderDemo {
 
             gbc.gridx = 0; gbc.gridy = 1;
             p1.add(new JLabel("🌞 亮度"), gbc);
-            Slider bright = new Slider(0, 100, 75);
+            AstSlider bright = new AstSlider(0, 100, 75);
             bright.setPreferredSize(new Dimension(380, 32));
             JLabel brLbl = new JLabel("75 %");
             brLbl.setFont(new Font("Microsoft YaHei", Font.BOLD, 14));
@@ -49,7 +49,7 @@ public class SliderDemo {
 
             gbc.gridx = 0; gbc.gridy = 2;
             p1.add(new JLabel("💾 进度"), gbc);
-            Slider dis = new Slider(0, 100, 30);
+            AstSlider dis = new AstSlider(0, 100, 30);
             dis.setPreferredSize(new Dimension(380, 32));
             dis.setEnabled(false);
             gbc.gridx = 1; p1.add(dis, gbc);
@@ -65,7 +65,7 @@ public class SliderDemo {
             gbc.anchor = GridBagConstraints.WEST;
             gbc.gridx = 0; gbc.gridy = 0;
             p2.add(new JLabel("🌡  空调温度"), gbc);
-            Slider temp = new Slider(-20, 40, 25);
+            AstSlider temp = new AstSlider(-20, 40, 25);
             temp.setPreferredSize(new Dimension(440, 32));
             JLabel tempLbl = new JLabel("25 ℃");
             tempLbl.setFont(new Font("Microsoft YaHei", Font.BOLD, 14));
@@ -78,13 +78,13 @@ public class SliderDemo {
             gbc.gridx = 2; p2.add(tempLbl, gbc);
 
             JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-            Button randTemp = new Button("随机温度", Button.WARNING, false);
+            AstButton randTemp = new AstButton("随机温度", AstButton.WARNING, false);
             randTemp.addActionListener(e -> temp.setValue(-20 + (int) (Math.random() * 61)));
-            Button cold = new Button("制冷 18℃", Button.PRIMARY, true);
+            AstButton cold = new AstButton("制冷 18℃", AstButton.PRIMARY, true);
             cold.addActionListener(e -> temp.setValue(18));
-            Button warm = new Button("制热 28℃", Button.DANGER, true);
+            AstButton warm = new AstButton("制热 28℃", AstButton.DANGER, true);
             warm.addActionListener(e -> temp.setValue(28));
-            Button volMax = new Button("音量 max", Button.SUCCESS, true);
+            AstButton volMax = new AstButton("音量 max", AstButton.SUCCESS, true);
             volMax.addActionListener(e -> vol.setValue(100));
             btnRow.add(randTemp);
             btnRow.add(cold);
@@ -95,7 +95,7 @@ public class SliderDemo {
             // 自动动画演示：进度条循环 0→100→0
             final int[] dir = {1};
             final int[] cur = {0};
-            final Slider demoSlider = new Slider(0, 100, 0);
+            final AstSlider demoSlider = new AstSlider(0, 100, 0);
             demoSlider.setPreferredSize(new Dimension(420, 32));
             JLabel demoLbl = new JLabel("0 %");
             demoLbl.setFont(new Font("Microsoft YaHei", Font.BOLD, 14));

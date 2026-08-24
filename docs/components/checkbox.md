@@ -9,12 +9,13 @@
 ![基本用法](../screenshots/checkbox-default.png)
 
 ```java
+import org.swelement.ui.AstCheckbox;
 import org.swelement.ui.Checkbox;
 
 // 创建多选框
-Checkbox checkbox1 = new Checkbox("选项A");
-Checkbox checkbox2 = new Checkbox("选项B");
-Checkbox checkbox3 = new Checkbox("选项C");
+AstCheckbox checkbox1 = new AstCheckbox("选项A");
+        AstCheckbox checkbox2 = new AstCheckbox("选项B");
+        AstCheckbox checkbox3 = new AstCheckbox("选项C");
 ```
 
 ## 禁用状态

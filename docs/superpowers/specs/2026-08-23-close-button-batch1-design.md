@@ -5,7 +5,7 @@
 
 ## 目标
 
-1. 新建公共可点击关闭按钮组件 `CloseButton`，替代所有「自绘 × + 点击坐标命中测试」的关闭实现
+1. 新建公共可点击关闭按钮组件 `AstCloseButton`，替代所有「自绘 × + 点击坐标命中测试」的关闭实现
 2. 重写四个组件的关闭逻辑：Tag、Alert、Input（清空）、AstDialog（新增 × 关闭）
 3. Tag 补齐 Element UI 展现方式：effect（dark/light/plain）、尺寸档位
 4. 三个无 selfCheck 的组件（Tag/Alert/Input）补齐自检，含 WCAG 对比度断言
@@ -103,7 +103,7 @@ light/plain 各 type：文字深色变体 vs 对应背景 ≥ 4.5:1；× 符号�
 ## 三、Alert 关闭重写
 
 - 删除 `mouseClicked` 中 `e.getX() > getWidth() - 28` 的坐标判断和 `paintComponent` 中的 × 绘制
-- `Alert` 增加 CloseButton 子组件（`setLayout(null)`，`doLayout` 定位右上角：x = 宽-16-按钮宽，y = 垂直居中于标题行）
+- `AstAlert` 增加 CloseButton 子组件（`setLayout(null)`，`doLayout` 定位右上角：x = 宽-16-按钮宽，y = 垂直居中于标题行）
 - **alpha 联动**：`inAnim`/`outAnim` 回调中同步 `closeButton.setAlpha(inP * (1 - outP))`，alpha < 0.5 时 `setInteractive(false)`，否则 true
 - 其余绘制逻辑不变
 

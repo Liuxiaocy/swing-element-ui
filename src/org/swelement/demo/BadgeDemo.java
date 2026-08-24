@@ -1,8 +1,8 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Badge;
-import org.swelement.ui.Button;
-import org.swelement.ui.Input;
+import org.swelement.ui.AstBadge;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstInput;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,7 +12,7 @@ import java.awt.*;
 public class BadgeDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Badge Demo - 徽标角标、红点、多组件类型");
+            JFrame f = new JFrame("AstBadge Demo - 徽标角标、红点、多组件类型");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -20,24 +20,24 @@ public class BadgeDemo {
             root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
             // ========== 第一组：Button 上角标 ==========
-            Badge b1 = new Badge();
-            b1.setContent(new Button("消息", Button.DEFAULT, false));
+            AstBadge b1 = new AstBadge();
+            b1.setContent(new AstButton("消息", AstButton.DEFAULT, false));
             b1.setCount(8);
 
-            Badge b2 = new Badge();
-            b2.setContent(new Button("评论", Button.DEFAULT, false));
+            AstBadge b2 = new AstBadge();
+            b2.setContent(new AstButton("评论", AstButton.DEFAULT, false));
             b2.setCount(100);
 
-            Badge b3 = new Badge();
-            b3.setContent(new Button("通知", Button.PRIMARY, false));
+            AstBadge b3 = new AstBadge();
+            b3.setContent(new AstButton("通知", AstButton.PRIMARY, false));
             b3.setDot(true);
 
-            Badge b4 = new Badge();
-            b4.setContent(new Button("待办", Button.WARNING, false));
+            AstBadge b4 = new AstBadge();
+            b4.setContent(new AstButton("待办", AstButton.WARNING, false));
             b4.setCount(3);
 
-            Badge b5 = new Badge();
-            b5.setContent(new Button("用户中心", Button.SUCCESS, false));
+            AstBadge b5 = new AstBadge();
+            b5.setContent(new AstButton("用户中心", AstButton.SUCCESS, false));
             b5.setCount(999);
 
             JPanel show1 = new JPanel(new FlowLayout(FlowLayout.CENTER, 40, 10));
@@ -49,15 +49,15 @@ public class BadgeDemo {
             show1.add(wrapBadgeWithLabel(b5, "三位 999"));
 
             // ========== 第二组：其他类型组件角标 ==========
-            // Input 输入框角标
-            Badge onInput = new Badge();
-            Input input = new Input("搜索关键词...");
+            // AstInput 输入框角标
+            AstBadge onInput = new AstBadge();
+            AstInput input = new AstInput("搜索关键词...");
             input.setColumns(14);
             onInput.setContent(input);
             onInput.setCount(5);
 
             // JLabel（头像/图标）角标
-            Badge onAvatar = new Badge();
+            AstBadge onAvatar = new AstBadge();
             JLabel avatar = new JLabel() {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -77,7 +77,7 @@ public class BadgeDemo {
             onAvatar.setDot(true);
 
             // JPanel（色块图标）角标
-            Badge onIcon = new Badge();
+            AstBadge onIcon = new AstBadge();
             JPanel iconBox = new JPanel() {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -97,8 +97,8 @@ public class BadgeDemo {
             onIcon.setContent(iconBox);
             onIcon.setCount(12);
 
-            // Checkbox 角标（带勾选状态指示）
-            Badge onCheckbox = new Badge();
+            // AstCheckbox 角标（带勾选状态指示）
+            AstBadge onCheckbox = new AstBadge();
             JCheckBox cb = new JCheckBox("新功能上线");
             cb.setFont(new Font("Microsoft YaHei", Font.PLAIN, 14));
             cb.setPreferredSize(new Dimension(140, 28));
@@ -106,7 +106,7 @@ public class BadgeDemo {
             onCheckbox.setDot(true);
 
             // JLabel（纯文字标签）角标
-            Badge onLabel = new Badge();
+            AstBadge onLabel = new AstBadge();
             JLabel textLabel = new JLabel("📋 待审文件") {
                 @Override
                 public void paintComponent(Graphics g) {
@@ -123,10 +123,10 @@ public class BadgeDemo {
 
             JPanel show2 = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 14));
             show2.setBorder(new TitledBorder("不同组件类型角标（角标均显示在组件右上角外部，不遮挡内容）"));
-            show2.add(wrapBadgeWithLabel(onInput, "Input 输入框"));
+            show2.add(wrapBadgeWithLabel(onInput, "AstInput 输入框"));
             show2.add(wrapBadgeWithLabel(onAvatar, "JLabel 头像 dot"));
             show2.add(wrapBadgeWithLabel(onIcon, "JPanel 图标"));
-            show2.add(wrapBadgeWithLabel(onCheckbox, "Checkbox 复选框"));
+            show2.add(wrapBadgeWithLabel(onCheckbox, "AstCheckbox 复选框"));
             show2.add(wrapBadgeWithLabel(onLabel, "JLabel 文字标签"));
 
             // ========== 交互控制区 ==========
@@ -186,7 +186,7 @@ public class BadgeDemo {
 
             // 批量 +1 按钮
             gbc.gridx = 0; gbc.gridy = 8; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
-            Button plusBtn = new Button("全部 count +1 (看弹出动画)", Button.PRIMARY, false);
+            AstButton plusBtn = new AstButton("全部 count +1 (看弹出动画)", AstButton.PRIMARY, false);
             plusBtn.addActionListener(e -> {
                 sp1.setValue((int) sp1.getValue() + 1);
                 sp2.setValue((int) sp2.getValue() + 1);
@@ -219,7 +219,7 @@ public class BadgeDemo {
         });
     }
 
-    private static JComponent wrapBadgeWithLabel(Badge b, String desc) {
+    private static JComponent wrapBadgeWithLabel(AstBadge b, String desc) {
         JPanel wrap = new JPanel();
         wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
         wrap.add(b);

@@ -56,7 +56,7 @@ import java.util.List;
 
 /**
  * 公共可点击关闭按钮：矢量 × 符号 + hover 圆形底色淡入。
- * 所有可关闭组件（Tag/Alert/Input/AstDialog 等）统一使用，替代"自绘 × + 坐标命中测试"。
+ * 所有可关闭组件（AstTag/AstAlert/AstInput/AstDialog 等）统一使用，替代"自绘 × + 坐标命中测试"。
  * 对比度：默认色 0x606266 对白底 >= 7:1（WCAG AA），hover 色 0x1d6fb5 为 primary 深变体（>= 4.5:1）。
  */
 public class CloseButton extends JComponent {
@@ -172,10 +172,10 @@ public class CloseButton extends JComponent {
         cb.setAlpha(-1f);
 
         // 对比度：默认色与 hover 色对白底（浅色场景）达标
-        ElementTheme.assertContrast(new Color(0x606266), Color.WHITE, "CloseButton default on white");
-        ElementTheme.assertContrast(new Color(0x1d6fb5), Color.WHITE, "CloseButton hover on white");
+        ElementTheme.assertContrast(new Color(0x606266), Color.WHITE, "AstCloseButton default on white");
+        ElementTheme.assertContrast(new Color(0x1d6fb5), Color.WHITE, "AstCloseButton hover on white");
 
-        System.out.println("CloseButton self-check OK");
+        System.out.println("AstCloseButton self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }
@@ -200,7 +200,7 @@ Expected: `CloseButton self-check OK`
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/org/swelement/ui/CloseButton.java build.bat
+git add src/org/swelement/ui/AstCloseButton.java build.bat
 git commit -m "feat: add CloseButton shared clickable close component with hover animation and WCAG-compliant colors"
 ```
 
@@ -231,206 +231,223 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Tag extends JComponent {
-    public static final int PRIMARY = 0, SUCCESS = 1, WARNING = 2, DANGER = 3, INFO = 4;
-    public static final int EFFECT_DARK = 0, EFFECT_LIGHT = 1, EFFECT_PLAIN = 2;
-    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+   public static final int PRIMARY = 0, SUCCESS = 1, WARNING = 2, DANGER = 3, INFO = 4;
+   public static final int EFFECT_DARK = 0, EFFECT_LIGHT = 1, EFFECT_PLAIN = 2;
+   public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
 
-    private static final float[] SIZE_FONT = {14f, 12f, 12f};
-    private static final int[] SIZE_VPAD = {8, 4, 2};
-    private static final int[] SIZE_HPAD = {16, 10, 8};
-    private static final int[] CLOSE_SIZE = {20, 18, 16};
-    private static final int CLOSE_GAP = 4;
-    private static final int CLOSE_RIGHT = 6;
+   private static final float[] SIZE_FONT = {14f, 12f, 12f};
+   private static final int[] SIZE_VPAD = {8, 4, 2};
+   private static final int[] SIZE_HPAD = {16, 10, 8};
+   private static final int[] CLOSE_SIZE = {20, 18, 16};
+   private static final int CLOSE_GAP = 4;
+   private static final int CLOSE_RIGHT = 6;
 
-    private static final Color[] LIGHT_BG = {new Color(0xECF5FF), new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xFEF0F0), new Color(0xF4F4F5)};
-    private static final Color[] LIGHT_BORDER = {new Color(0xD9ECFF), new Color(0xE1F3D8), new Color(0xFAECD8), new Color(0xFDE2E2), new Color(0xE9E9EB)};
-    private static final Color[] DARK_BG = {ElementTheme.PRIMARY, ElementTheme.SUCCESS, ElementTheme.WARNING, ElementTheme.DANGER, ElementTheme.INFO};
-    // 深色文字变体，浅色/白底上对比度 >= 4.5:1（取值同 Button PLAIN_FG）
-    private static final Color[] DEEP_FG = {new Color(0x1d6fb5), new Color(0x2d6b18), new Color(0x955d12), new Color(0xb83232), new Color(0x606266)};
+   private static final Color[] LIGHT_BG = {new Color(0xECF5FF), new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xFEF0F0), new Color(0xF4F4F5)};
+   private static final Color[] LIGHT_BORDER = {new Color(0xD9ECFF), new Color(0xE1F3D8), new Color(0xFAECD8), new Color(0xFDE2E2), new Color(0xE9E9EB)};
+   private static final Color[] DARK_BG = {ElementTheme.PRIMARY, ElementTheme.SUCCESS, ElementTheme.WARNING, ElementTheme.DANGER, ElementTheme.INFO};
+   // 深色文字变体，浅色/白底上对比度 >= 4.5:1（取值同 Button PLAIN_FG）
+   private static final Color[] DEEP_FG = {new Color(0x1d6fb5), new Color(0x2d6b18), new Color(0x955d12), new Color(0xb83232), new Color(0x606266)};
 
-    private Runnable onClosed;
-    private int origW, origH;
-    private int effect = EFFECT_LIGHT;
-    private int size = SIZE_DEFAULT;
-    private CloseButton closeBtn;
+   private Runnable onClosed;
+   private int origW, origH;
+   private int effect = EFFECT_LIGHT;
+   private int size = SIZE_DEFAULT;
+   private AstCloseButton closeBtn;
 
-    private final Animator closeAnim = new Animator(200, Easing::easeInOut, v -> {
-        float w = origW * (1 - v);
-        setPreferredSize(new Dimension(Math.max(1, Math.round(w)), origH));
-        revalidate();
-        if (v >= 1f && onClosed != null) {
-            Runnable r = onClosed;
-            onClosed = null;
-            r.run();
-        }
-        repaint();
-    });
-    private final int type;
-    private final boolean closable;
-    private String text;
+   private final Animator closeAnim = new Animator(200, Easing::easeInOut, v -> {
+      float w = origW * (1 - v);
+      setPreferredSize(new Dimension(Math.max(1, Math.round(w)), origH));
+      revalidate();
+      if (v >= 1f && onClosed != null) {
+         Runnable r = onClosed;
+         onClosed = null;
+         r.run();
+      }
+      repaint();
+   });
+   private final int type;
+   private final boolean closable;
+   private String text;
 
-    public Tag(String text, int type, boolean closable) {
-        this.text = text;
-        this.type = type;
-        this.closable = closable;
-        setOpaque(false);
-        setLayout(null); // CloseButton 绝对定位，doLayout 摆放
-    }
+   public Tag(String text, int type, boolean closable) {
+      this.text = text;
+      this.type = type;
+      this.closable = closable;
+      setOpaque(false);
+      setLayout(null); // AstCloseButton 绝对定位，doLayout 摆放
+   }
 
-    public void setEffect(int effect) {
-        this.effect = effect;
-        updateCloseColors();
-        repaint();
-    }
+   public void setEffect(int effect) {
+      this.effect = effect;
+      updateCloseColors();
+      repaint();
+   }
 
-    public void setSize(int size) {
-        this.size = size;
-        revalidate();
-        repaint();
-    }
+   public void setSize(int size) {
+      this.size = size;
+      revalidate();
+      repaint();
+   }
 
-    /** × 点击关闭动画完成后的回调（由 Demo 用于从容器移除）。 */
-    public void setOnClosed(Runnable r) { this.onClosed = r; }
+   /** × 点击关闭动画完成后的回调（由 Demo 用于从容器移除）。 */
+   public void setOnClosed(Runnable r) {
+      this.onClosed = r;
+   }
 
-    public void setText(String t) {
-        text = t;
-        revalidate();
-        repaint();
-    }
+   public void setText(String t) {
+      text = t;
+      revalidate();
+      repaint();
+   }
 
-    public String getText() { return text; }
+   public String getText() {
+      return text;
+   }
 
-    public void close(Runnable onClosed) {
-        this.onClosed = onClosed;
-        origW = getWidth();
-        origH = getHeight();
-        if (closeBtn != null) {
-            closeBtn.setInteractive(false);
-            closeBtn.setVisible(false);
-        }
-        closeAnim.go(0f, 1f);
-    }
+   public void close(Runnable onClosed) {
+      this.onClosed = onClosed;
+      origW = getWidth();
+      origH = getHeight();
+      if (closeBtn != null) {
+         closeBtn.setInteractive(false);
+         closeBtn.setVisible(false);
+      }
+      closeAnim.go(0f, 1f);
+   }
 
-    private void updateCloseColors() {
-        if (closeBtn == null) return;
-        if (effect == EFFECT_DARK) {
-            // 白色 × 在彩色实底上 —— Element 标准实心设计，对比度为例外（见 spec 标注）
-            closeBtn.setColor(Color.WHITE);
-            closeBtn.setHoverColor(Color.WHITE);
-        } else {
-            // light: 深色变体 × 对应浅色底；plain: 深色变体 × 白底。hover 统一 TEXT_MAIN
-            closeBtn.setColor(DEEP_FG[type]);
-            closeBtn.setHoverColor(ElementTheme.TEXT_MAIN);
-        }
-    }
+   private void updateCloseColors() {
+      if (closeBtn == null) return;
+      if (effect == EFFECT_DARK) {
+         // 白色 × 在彩色实底上 —— Element 标准实心设计，对比度为例外（见 spec 标注）
+         closeBtn.setColor(Color.WHITE);
+         closeBtn.setHoverColor(Color.WHITE);
+      } else {
+         // light: 深色变体 × 对应浅色底；plain: 深色变体 × 白底。hover 统一 TEXT_MAIN
+         closeBtn.setColor(DEEP_FG[type]);
+         closeBtn.setHoverColor(ElementTheme.TEXT_MAIN);
+      }
+   }
 
-    @Override
-    public void addNotify() {
-        super.addNotify();
-        if (closable && closeBtn == null) {
-            closeBtn = new CloseButton(CLOSE_SIZE[size]);
-            closeBtn.addActionListener(e -> close(onClosed != null ? onClosed : (Runnable) () -> {}));
-            add(closeBtn);
-            updateCloseColors();
-            revalidate();
-        }
-    }
+   @Override
+   public void addNotify() {
+      super.addNotify();
+      if (closable && closeBtn == null) {
+         closeBtn = new AstCloseButton(CLOSE_SIZE[size]);
+         closeBtn.addActionListener(e -> close(onClosed != null ? onClosed : (Runnable) () -> {
+         }));
+         add(closeBtn);
+         updateCloseColors();
+         revalidate();
+      }
+   }
 
-    @Override
-    public void doLayout() {
-        super.doLayout();
-        if (closeBtn != null && closeBtn.isVisible()) {
-            int s = CLOSE_SIZE[size];
-            closeBtn.setBounds(getWidth() - CLOSE_RIGHT - s, (getHeight() - s) / 2, s, s);
-        }
-    }
+   @Override
+   public void doLayout() {
+      super.doLayout();
+      if (closeBtn != null && closeBtn.isVisible()) {
+         int s = CLOSE_SIZE[size];
+         closeBtn.setBounds(getWidth() - CLOSE_RIGHT - s, (getHeight() - s) / 2, s, s);
+      }
+   }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        Color bg, fg, border;
-        switch (effect) {
-            case EFFECT_DARK:
-                bg = DARK_BG[type]; fg = Color.WHITE; border = DARK_BG[type]; // 白字彩底：Element 标准实心，对比度例外
-                break;
-            case EFFECT_PLAIN:
-                bg = Color.WHITE; fg = DEEP_FG[type]; border = DARK_BG[type];
-                break;
-            default: // EFFECT_LIGHT（默认，向后兼容）
-                bg = LIGHT_BG[type]; fg = DEEP_FG[type]; border = LIGHT_BORDER[type];
-                break;
-        }
-        g2.setColor(bg);
-        g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 4, 4);
-        g2.setColor(border);
-        g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 4, 4);
-        g2.setColor(fg);
-        Font f = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
-        g2.setFont(f);
-        FontMetrics fm = g2.getFontMetrics(f);
-        int rightInset = closable ? CLOSE_GAP + CLOSE_SIZE[size] + CLOSE_RIGHT : SIZE_HPAD[size];
-        Shape oldClip = g2.getClip();
-        g2.clipRect(0, 0, getWidth() - rightInset, getHeight()); // 文字不与 CloseButton 重叠
-        g2.drawString(text, SIZE_HPAD[size], (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
-        g2.setClip(oldClip);
-        g2.dispose();
-    }
+   @Override
+   protected void paintComponent(Graphics g) {
+      Graphics2D g2 = (Graphics2D) g.create();
+      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+      Color bg, fg, border;
+      switch (effect) {
+         case EFFECT_DARK:
+            bg = DARK_BG[type];
+            fg = Color.WHITE;
+            border = DARK_BG[type]; // 白字彩底：Element 标准实心，对比度例外
+            break;
+         case EFFECT_PLAIN:
+            bg = Color.WHITE;
+            fg = DEEP_FG[type];
+            border = DARK_BG[type];
+            break;
+         default: // EFFECT_LIGHT（默认，向后兼容）
+            bg = LIGHT_BG[type];
+            fg = DEEP_FG[type];
+            border = LIGHT_BORDER[type];
+            break;
+      }
+      g2.setColor(bg);
+      g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 4, 4);
+      g2.setColor(border);
+      g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 4, 4);
+      g2.setColor(fg);
+      Font f = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+      g2.setFont(f);
+      FontMetrics fm = g2.getFontMetrics(f);
+      int rightInset = closable ? CLOSE_GAP + CLOSE_SIZE[size] + CLOSE_RIGHT : SIZE_HPAD[size];
+      Shape oldClip = g2.getClip();
+      g2.clipRect(0, 0, getWidth() - rightInset, getHeight()); // 文字不与 AstCloseButton 重叠
+      g2.drawString(text, SIZE_HPAD[size], (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+      g2.setClip(oldClip);
+      g2.dispose();
+   }
 
-    @Override
-    public Dimension getPreferredSize() {
-        Font f = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
-        FontMetrics fm = getFontMetrics(f);
-        int w = SIZE_HPAD[size] + fm.stringWidth(text)
-                + (closable ? CLOSE_GAP + CLOSE_SIZE[size] + CLOSE_RIGHT : SIZE_HPAD[size]);
-        int h = Math.max(SIZE_VPAD[size] * 2 + fm.getHeight(), CLOSE_SIZE[size] + 8);
-        return new Dimension(w, h);
-    }
+   @Override
+   public Dimension getPreferredSize() {
+      Font f = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+      FontMetrics fm = getFontMetrics(f);
+      int w = SIZE_HPAD[size] + fm.stringWidth(text)
+              + (closable ? CLOSE_GAP + CLOSE_SIZE[size] + CLOSE_RIGHT : SIZE_HPAD[size]);
+      int h = Math.max(SIZE_VPAD[size] * 2 + fm.getHeight(), CLOSE_SIZE[size] + 8);
+      return new Dimension(w, h);
+   }
 
-    static void selfCheck() {
-        // 对比度：light 与 plain 各 type 深色文字变体 vs 对应背景
-        for (int t = 0; t < 5; t++) {
-            ElementTheme.assertContrast(DEEP_FG[t], LIGHT_BG[t], "tag light type=" + t);
-            ElementTheme.assertContrast(DEEP_FG[t], Color.WHITE, "tag plain type=" + t);
-        }
-        // 可关闭 Tag 更宽（为 CloseButton 预留）
-        Tag plain = new Tag("标签", Tag.PRIMARY, false);
-        Tag closable = new Tag("标签", Tag.PRIMARY, true);
-        assert closable.getPreferredSize().width > plain.getPreferredSize().width
-                : "closable tag must reserve width for close button";
-        // effect 切换不抛异常
-        closable.setEffect(Tag.EFFECT_DARK);
-        closable.setEffect(Tag.EFFECT_PLAIN);
-        closable.setEffect(Tag.EFFECT_LIGHT);
-        // 尺寸三档高度递减
-        Tag l = new Tag("尺寸", Tag.INFO, false); l.setSize(Tag.SIZE_LARGE);
-        Tag d = new Tag("尺寸", Tag.INFO, false);
-        Tag s = new Tag("尺寸", Tag.INFO, false); s.setSize(Tag.SIZE_SMALL);
-        assert l.getPreferredSize().height > d.getPreferredSize().height : "large > default height";
-        assert d.getPreferredSize().height > s.getPreferredSize().height : "default > small height";
-        // 加入窗口后 CloseButton 子组件存在且位于右侧
-        final Throwable[] err = {null};
-        try {
-            SwingUtilities.invokeAndWait(() -> {
-                JFrame f = new JFrame();
-                JPanel p = new JPanel();
-                Tag c = new Tag("可关闭", Tag.SUCCESS, true);
-                p.add(c);
-                f.add(p);
-                f.pack();
-                assert c.getComponentCount() == 1 && c.getComponent(0) instanceof CloseButton
-                        : "close button child present, count=" + c.getComponentCount();
-                Component cb = c.getComponent(0);
-                assert cb.getX() + cb.getWidth() <= c.getWidth() && cb.getX() > c.getWidth() / 2
-                        : "close button on right side, x=" + cb.getX();
-                f.dispose();
-            });
-        } catch (Throwable t) { err[0] = t; }
-        if (err[0] != null) throw new RuntimeException(err[0]);
-        System.out.println("Tag self-check OK");
-    }
+   static void selfCheck() {
+      // 对比度：light 与 plain 各 type 深色文字变体 vs 对应背景
+      for (int t = 0; t < 5; t++) {
+         ElementTheme.assertContrast(DEEP_FG[t], LIGHT_BG[t], "tag light type=" + t);
+         ElementTheme.assertContrast(DEEP_FG[t], Color.WHITE, "tag plain type=" + t);
+      }
+      // 可关闭 AstTag 更宽（为 AstCloseButton 预留）
+      Tag plain = new Tag("标签", Tag.PRIMARY, false);
+      Tag closable = new Tag("标签", Tag.PRIMARY, true);
+      assert closable.getPreferredSize().width > plain.getPreferredSize().width
+              : "closable tag must reserve width for close button";
+      // effect 切换不抛异常
+      closable.setEffect(Tag.EFFECT_DARK);
+      closable.setEffect(Tag.EFFECT_PLAIN);
+      closable.setEffect(Tag.EFFECT_LIGHT);
+      // 尺寸三档高度递减
+      Tag l = new Tag("尺寸", Tag.INFO, false);
+      l.setSize(Tag.SIZE_LARGE);
+      Tag d = new Tag("尺寸", Tag.INFO, false);
+      Tag s = new Tag("尺寸", Tag.INFO, false);
+      s.setSize(Tag.SIZE_SMALL);
+      assert l.getPreferredSize().height > d.getPreferredSize().height : "large > default height";
+      assert d.getPreferredSize().height > s.getPreferredSize().height : "default > small height";
+      // 加入窗口后 AstCloseButton 子组件存在且位于右侧
+      final Throwable[] err = {null};
+      try {
+         SwingUtilities.invokeAndWait(() -> {
+            JFrame f = new JFrame();
+            JPanel p = new JPanel();
+            Tag c = new Tag("可关闭", Tag.SUCCESS, true);
+            p.add(c);
+            f.add(p);
+            f.pack();
+            assert c.getComponentCount() == 1 && c.getComponent(0) instanceof AstCloseButton
+                    : "close button child present, count=" + c.getComponentCount();
+            Component cb = c.getComponent(0);
+            assert cb.getX() + cb.getWidth() <= c.getWidth() && cb.getX() > c.getWidth() / 2
+                    : "close button on right side, x=" + cb.getX();
+            f.dispose();
+         });
+      } catch (Throwable t) {
+         err[0] = t;
+      }
+      if (err[0] != null) throw new RuntimeException(err[0]);
+      System.out.println("AstTag self-check OK");
+   }
 
-    public static void main(String[] args) { selfCheck(); }
+   public static void main(String[] args) {
+      selfCheck();
+   }
 }
 ```
 
@@ -446,8 +463,9 @@ Expected: `BUILD OK`、`Tag self-check OK`（若 TagDemo 未同步更新会编�
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstTag;
 import org.swelement.ui.Button;
-import org.swelement.ui.Tag;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -457,132 +475,132 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TagDemo {
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Tag Demo - effect 三种效果、尺寸、可关闭（真实可点 CloseButton）");
-            f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+   public static void main(String[] args) {
+      SwingUtilities.invokeLater(() -> {
+         JFrame f = new JFrame("AstTag Demo - effect 三种效果、尺寸、可关闭（真实可点 AstCloseButton）");
+         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            JPanel root = new JPanel();
-            root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-            root.setBorder(new EmptyBorder(20, 24, 20, 24));
+         JPanel root = new JPanel();
+         root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
+         root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-            // 1. light 效果（默认，向后兼容）
-            JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
-            p1.setBorder(new TitledBorder("light 效果（浅底 + 深色文字，默认）"));
-            p1.add(new Tag("Primary 主要", Tag.PRIMARY, false));
-            p1.add(new Tag("Success 成功", Tag.SUCCESS, false));
-            p1.add(new Tag("Warning 警告", Tag.WARNING, false));
-            p1.add(new Tag("Danger 危险", Tag.DANGER, false));
-            p1.add(new Tag("Info 信息", Tag.INFO, false));
+         // 1. light 效果（默认，向后兼容）
+         JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
+         p1.setBorder(new TitledBorder("light 效果（浅底 + 深色文字，默认）"));
+         p1.add(new AstTag("Primary 主要", AstTag.PRIMARY, false));
+         p1.add(new AstTag("Success 成功", AstTag.SUCCESS, false));
+         p1.add(new AstTag("Warning 警告", AstTag.WARNING, false));
+         p1.add(new AstTag("Danger 危险", AstTag.DANGER, false));
+         p1.add(new AstTag("Info 信息", AstTag.INFO, false));
 
-            // 2. dark 效果（实色底白字）
-            JPanel p1b = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
-            p1b.setBorder(new TitledBorder("dark 效果（实色底，Element 标准实心设计）"));
-            for (int t = 0; t < 5; t++) {
-                Tag tag = new Tag("dark-" + t, t, false);
-                tag.setEffect(Tag.EFFECT_DARK);
-                p1b.add(tag);
+         // 2. dark 效果（实色底白字）
+         JPanel p1b = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
+         p1b.setBorder(new TitledBorder("dark 效果（实色底，Element 标准实心设计）"));
+         for (int t = 0; t < 5; t++) {
+            AstTag tag = new AstTag("dark-" + t, t, false);
+            tag.setEffect(AstTag.EFFECT_DARK);
+            p1b.add(tag);
+         }
+
+         // 3. plain 效果（白底彩边）
+         JPanel p1c = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
+         p1c.setBorder(new TitledBorder("plain 效果（白底 + 彩色边框）"));
+         for (int t = 0; t < 5; t++) {
+            AstTag tag = new AstTag("plain-" + t, t, false);
+            tag.setEffect(AstTag.EFFECT_PLAIN);
+            p1c.add(tag);
+         }
+
+         // 4. 尺寸三档
+         JPanel p1d = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
+         p1d.setBorder(new TitledBorder("尺寸三档（large / default / small）"));
+         String[] names = {"large 大", "default 默认", "small 小"};
+         int[] sizes = {AstTag.SIZE_LARGE, AstTag.SIZE_DEFAULT, AstTag.SIZE_SMALL};
+         for (int i = 0; i < 3; i++) {
+            AstTag tag = new AstTag(names[i], AstTag.PRIMARY, true);
+            tag.setSize(sizes[i]);
+            p1d.add(tag);
+         }
+
+         // 5. 可关闭标签区（AstCloseButton 点击关闭，动画后从容器移除）
+         JPanel p2Wrap = new JPanel(new BorderLayout());
+         p2Wrap.setBorder(new TitledBorder("可关闭标签（点击 × 观察宽度收缩动画，关闭后从面板移除）"));
+         final JPanel p2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
+         p2.setOpaque(true);
+         p2.setBackground(Color.WHITE);
+         List<String> initTags = java.util.Arrays.asList(
+                 "🚀 Java", "⚛ React", "🎨 设计", "📊 数据可视化",
+                 "🔧 DevOps", "🧪 测试", "☁️ 云计算", "🤖 AI/ML", "📱 移动端", "🌐 网络"
+         );
+         for (String s : initTags) {
+            p2.add(makeClosableTag(s, p2.getComponentCount() % 5, p2));
+         }
+         p2Wrap.add(p2, BorderLayout.CENTER);
+
+         // 6. 动态添加区
+         JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+         p3.setBorder(new TitledBorder("动态添加标签（点击按钮添加，类型循环）"));
+         JTextField tf = new JTextField(16);
+         tf.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
+         tf.setText("新标签");
+         AstButton add = new AstButton("+ 添加可关闭标签", AstButton.PRIMARY, false);
+         final int[] addIdx = {0};
+         add.addActionListener(ev -> {
+            String txt = tf.getText().trim();
+            if (txt.isEmpty()) return;
+            p2.add(makeClosableTag(txt, addIdx[0]++ % 5, p2));
+            p2.revalidate();
+         });
+         AstButton clear = new AstButton("清空全部（带动画）", AstButton.WARNING, true);
+         clear.addActionListener(ev -> {
+            List<Component> tags = new ArrayList<Component>();
+            for (Component c : p2.getComponents()) if (c instanceof AstTag) tags.add(c);
+            int delay = 0;
+            for (Component c : tags) {
+               final AstTag t = (AstTag) c;
+               Timer timer = new Timer(delay, e -> t.close(() -> SwingUtilities.invokeLater(() -> {
+                  p2.remove(t);
+                  p2.revalidate();
+                  p2.repaint();
+               })));
+               timer.setRepeats(false);
+               timer.start();
+               delay += 60;
             }
+         });
+         p3.add(new JLabel("标签文字:"));
+         p3.add(tf);
+         p3.add(add);
+         p3.add(Box.createHorizontalStrut(20));
+         p3.add(clear);
 
-            // 3. plain 效果（白底彩边）
-            JPanel p1c = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
-            p1c.setBorder(new TitledBorder("plain 效果（白底 + 彩色边框）"));
-            for (int t = 0; t < 5; t++) {
-                Tag tag = new Tag("plain-" + t, t, false);
-                tag.setEffect(Tag.EFFECT_PLAIN);
-                p1c.add(tag);
-            }
+         root.add(p1);
+         root.add(p1b);
+         root.add(p1c);
+         root.add(p1d);
+         root.add(Box.createVerticalStrut(8));
+         root.add(p2Wrap);
+         root.add(Box.createVerticalStrut(8));
+         root.add(p3);
 
-            // 4. 尺寸三档
-            JPanel p1d = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 8));
-            p1d.setBorder(new TitledBorder("尺寸三档（large / default / small）"));
-            String[] names = {"large 大", "default 默认", "small 小"};
-            int[] sizes = {Tag.SIZE_LARGE, Tag.SIZE_DEFAULT, Tag.SIZE_SMALL};
-            for (int i = 0; i < 3; i++) {
-                Tag tag = new Tag(names[i], Tag.PRIMARY, true);
-                tag.setSize(sizes[i]);
-                p1d.add(tag);
-            }
+         f.setContentPane(root);
+         f.pack();
+         f.setSize(Math.max(f.getWidth(), 860), f.getHeight());
+         f.setLocationRelativeTo(null);
+         f.setVisible(true);
+      });
+   }
 
-            // 5. 可关闭标签区（CloseButton 点击关闭，动画后从容器移除）
-            JPanel p2Wrap = new JPanel(new BorderLayout());
-            p2Wrap.setBorder(new TitledBorder("可关闭标签（点击 × 观察宽度收缩动画，关闭后从面板移除）"));
-            final JPanel p2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
-            p2.setOpaque(true);
-            p2.setBackground(Color.WHITE);
-            List<String> initTags = java.util.Arrays.asList(
-                    "🚀 Java", "⚛ React", "🎨 设计", "📊 数据可视化",
-                    "🔧 DevOps", "🧪 测试", "☁️ 云计算", "🤖 AI/ML", "📱 移动端", "🌐 网络"
-            );
-            for (String s : initTags) {
-                p2.add(makeClosableTag(s, p2.getComponentCount() % 5, p2));
-            }
-            p2Wrap.add(p2, BorderLayout.CENTER);
-
-            // 6. 动态添加区
-            JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-            p3.setBorder(new TitledBorder("动态添加标签（点击按钮添加，类型循环）"));
-            JTextField tf = new JTextField(16);
-            tf.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
-            tf.setText("新标签");
-            Button add = new Button("+ 添加可关闭标签", Button.PRIMARY, false);
-            final int[] addIdx = {0};
-            add.addActionListener(ev -> {
-                String txt = tf.getText().trim();
-                if (txt.isEmpty()) return;
-                p2.add(makeClosableTag(txt, addIdx[0]++ % 5, p2));
-                p2.revalidate();
-            });
-            Button clear = new Button("清空全部（带动画）", Button.WARNING, true);
-            clear.addActionListener(ev -> {
-                List<Component> tags = new ArrayList<Component>();
-                for (Component c : p2.getComponents()) if (c instanceof Tag) tags.add(c);
-                int delay = 0;
-                for (Component c : tags) {
-                    final Tag t = (Tag) c;
-                    Timer timer = new Timer(delay, e -> t.close(() -> SwingUtilities.invokeLater(() -> {
-                        p2.remove(t);
-                        p2.revalidate();
-                        p2.repaint();
-                    })));
-                    timer.setRepeats(false);
-                    timer.start();
-                    delay += 60;
-                }
-            });
-            p3.add(new JLabel("标签文字:"));
-            p3.add(tf);
-            p3.add(add);
-            p3.add(Box.createHorizontalStrut(20));
-            p3.add(clear);
-
-            root.add(p1);
-            root.add(p1b);
-            root.add(p1c);
-            root.add(p1d);
-            root.add(Box.createVerticalStrut(8));
-            root.add(p2Wrap);
-            root.add(Box.createVerticalStrut(8));
-            root.add(p3);
-
-            f.setContentPane(root);
-            f.pack();
-            f.setSize(Math.max(f.getWidth(), 860), f.getHeight());
-            f.setLocationRelativeTo(null);
-            f.setVisible(true);
-        });
-    }
-
-    /** 创建可关闭 Tag：× 点击即触发关闭动画并从父容器移除（组件内部 CloseButton，无坐标判断）。 */
-    private static Tag makeClosableTag(String text, int type, final JPanel parent) {
-        Tag t = new Tag(text, type, true);
-        t.setOnClosed(() -> SwingUtilities.invokeLater(() -> {
-            parent.remove(t);
-            parent.revalidate();
-            parent.repaint();
-        }));
-        return t;
-    }
+   /** 创建可关闭 AstTag：× 点击即触发关闭动画并从父容器移除（组件内部 AstCloseButton，无坐标判断）。 */
+   private static AstTag makeClosableTag(String text, int type, final JPanel parent) {
+      AstTag t = new AstTag(text, type, true);
+      t.setOnClosed(() -> SwingUtilities.invokeLater(() -> {
+         parent.remove(t);
+         parent.revalidate();
+         parent.repaint();
+      }));
+      return t;
+   }
 }
 ```
 
@@ -595,7 +613,7 @@ Run: `java -cp out org.swelement.demo.TagDemo`（人工确认窗口展示 effect
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/org/swelement/ui/Tag.java src/org/swelement/demo/TagDemo.java
+git add src/org/swelement/ui/AstTag.java src/org/swelement/demo/TagDemo.java
 git commit -m "feat: Tag closable via CloseButton child component + effect (dark/light/plain) + size variants, removes coordinate hit-testing"
 ```
 
@@ -617,7 +635,7 @@ git commit -m "feat: Tag closable via CloseButton child component + effect (dark
 1. 删除构造函数中的 `setCursor(...)` + `addMouseListener(...)` 坐标命中块，替换为：
 
 ```java
-        setLayout(null); // CloseButton 绝对定位
+        setLayout(null); // AstCloseButton 绝对定位
         if (closable) {
             closeBtn = new CloseButton(24);
             closeBtn.addActionListener(e -> close(() -> {}));
@@ -644,7 +662,7 @@ git commit -m "feat: Tag closable via CloseButton child component + effect (dark
 3. 两个 Animator 回调末尾加 `syncClose();`（inAnim 与 outAnim 的 listener update 内），并新增方法：
 
 ```java
-    /** 淡入淡出动画驱动 CloseButton 的 alpha 与可交互性。 */
+    /** 淡入淡出动画驱动 AstCloseButton 的 alpha 与可交互性。 */
     private void syncClose() {
         if (closeBtn == null) return;
         float a = inP * (1 - outP);
@@ -661,7 +679,7 @@ git commit -m "feat: Tag closable via CloseButton child component + effect (dark
     static void selfCheck() {
         Alert a = new Alert(Alert.INFO, "标题", "描述文字", true);
         assert a.getComponentCount() == 1 && a.getComponent(0) instanceof CloseButton
-                : "closable alert has CloseButton child, count=" + a.getComponentCount();
+                : "closable alert has AstCloseButton child, count=" + a.getComponentCount();
         Alert b = new Alert(Alert.INFO, "标题", null, false);
         assert b.getComponentCount() == 0 : "non-closable alert has no child";
         // close() 动画完成后回调触发（Animator 走 EDT）
@@ -676,7 +694,7 @@ git commit -m "feat: Tag closable via CloseButton child component + effect (dark
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         assert closed[0] : "onClosed callback should fire after close animation";
-        System.out.println("Alert self-check OK");
+        System.out.println("AstAlert self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }
@@ -695,7 +713,7 @@ AlertDemo 代码本身不改——原坐标判断在 Alert 内部，已随组件
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/org/swelement/ui/Alert.java
+git add src/org/swelement/ui/AstAlert.java
 git commit -m "refactor: Alert close via CloseButton child with alpha-linked interactivity, removes coordinate hit-testing"
 ```
 
@@ -779,10 +797,10 @@ git commit -m "refactor: Alert close via CloseButton child with alpha-linked int
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         assert in.getText().isEmpty() : "clear button click should clear text, got: " + in.getText();
-        System.out.println("Input self-check OK");
+        System.out.println("AstInput self-check OK");
     }
 
-    /** 测试辅助：向 Input 内的 CloseButton 派发点击事件（同包访问私有字段）。 */
+    /** 测试辅助：向 AstInput 内的 AstCloseButton 派发点击事件（同包访问私有字段）。 */
     private static void clearBtnClickForTest(Input in) {
         for (Component c : in.getComponents()) {
             if (c instanceof JPanel) {
@@ -795,7 +813,7 @@ git commit -m "refactor: Alert close via CloseButton child with alpha-linked int
                 }
             }
         }
-        throw new AssertionError("CloseButton not found in Input");
+        throw new AssertionError("AstCloseButton not found in AstInput");
     }
 
     public static void main(String[] args) { selfCheck(); }
@@ -813,7 +831,7 @@ Run: `java -cp out org.swelement.demo.InputDemo`（人工确认：输入文字 +
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/org/swelement/ui/Input.java
+git add src/org/swelement/ui/AstInput.java
 git commit -m "refactor: Input clear button via CloseButton child with alpha-linked interactivity, removes coordinate hit-testing"
 ```
 
@@ -935,19 +953,19 @@ git commit -m "feat: AstDialog title bar close × via CloseButton, behaves as RE
 
 ```bat
 echo --- CloseButton self-check ---
-java -ea -cp out org.swelement.ui.CloseButton
+java -ea -cp out org.swelement.ui.AstCloseButton
 if %ERRORLEVEL% NEQ 0 ( echo CloseButton self-check FAILED & exit /b 1 )
 
 echo --- Tag self-check ---
-java -ea -cp out org.swelement.ui.Tag
+java -ea -cp out org.swelement.ui.AstTag
 if %ERRORLEVEL% NEQ 0 ( echo Tag self-check FAILED & exit /b 1 )
 
 echo --- Alert self-check ---
-java -ea -cp out org.swelement.ui.Alert
+java -ea -cp out org.swelement.ui.AstAlert
 if %ERRORLEVEL% NEQ 0 ( echo Alert self-check FAILED & exit /b 1 )
 
 echo --- Input self-check ---
-java -ea -cp out org.swelement.ui.Input
+java -ea -cp out org.swelement.ui.AstInput
 if %ERRORLEVEL% NEQ 0 ( echo Input self-check FAILED & exit /b 1 )
 ```
 

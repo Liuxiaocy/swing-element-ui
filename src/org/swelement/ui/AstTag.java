@@ -8,7 +8,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 
-public class Tag extends JComponent {
+public class AstTag extends JComponent {
     public static final int PRIMARY = 0, SUCCESS = 1, WARNING = 2, DANGER = 3, INFO = 4;
     public static final int EFFECT_DARK = 0, EFFECT_LIGHT = 1, EFFECT_PLAIN = 2;
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
@@ -30,7 +30,7 @@ public class Tag extends JComponent {
     private int origW, origH;
     private int effect = EFFECT_LIGHT;
     private int size = SIZE_DEFAULT;
-    private CloseButton closeBtn;
+    private AstCloseButton closeBtn;
 
     private final Animator closeAnim = new Animator(200, Easing::easeInOut, v -> {
         float w = origW * (1 - v);
@@ -47,12 +47,12 @@ public class Tag extends JComponent {
     private final boolean closable;
     private String text;
 
-    public Tag(String text, int type, boolean closable) {
+    public AstTag(String text, int type, boolean closable) {
         this.text = text;
         this.type = type;
         this.closable = closable;
         setOpaque(false);
-        setLayout(null); // CloseButton 绝对定位，doLayout 摆放
+        setLayout(null); // AstCloseButton 绝对定位，doLayout 摆放
     }
 
     public void setEffect(int effect) {
@@ -112,7 +112,7 @@ public class Tag extends JComponent {
     public void addNotify() {
         super.addNotify();
         if (closable && closeBtn == null) {
-            closeBtn = new CloseButton(CLOSE_SIZE[size]);
+            closeBtn = new AstCloseButton(CLOSE_SIZE[size]);
             closeBtn.addActionListener(e -> close(onClosed != null ? onClosed : (Runnable) () -> {}));
             add(closeBtn);
             updateCloseColors();
@@ -155,7 +155,7 @@ public class Tag extends JComponent {
         FontMetrics fm = g2.getFontMetrics(f);
         int rightInset = closable ? CLOSE_GAP + CLOSE_SIZE[size] + CLOSE_RIGHT : SIZE_HPAD[size];
         Shape oldClip = g2.getClip();
-        g2.clipRect(0, 0, getWidth() - rightInset, getHeight()); // 文字不与 CloseButton 重叠
+        g2.clipRect(0, 0, getWidth() - rightInset, getHeight()); // 文字不与 AstCloseButton 重叠
         g2.drawString(text, SIZE_HPAD[size], (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
         g2.setClip(oldClip);
         g2.dispose();
@@ -180,56 +180,56 @@ public class Tag extends JComponent {
             ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, LIGHT_BG[t], "tag hover-x on light type=" + t);
         }
         // 显式 setPreferredSize 必须被尊重（close 收缩动画依赖此：Animator 通过 setPreferredSize 驱动）
-        Tag shrink = new Tag("标签", Tag.PRIMARY, false);
+        AstTag shrink = new AstTag("标签", AstTag.PRIMARY, false);
         shrink.setPreferredSize(new Dimension(1, 26));
         assert shrink.getPreferredSize().equals(new Dimension(1, 26))
                 : "explicitly-set preferred size must be honored by getPreferredSize";
-        // 可关闭 Tag 更宽（为 CloseButton 预留）
-        Tag plain = new Tag("标签", Tag.PRIMARY, false);
-        Tag closable = new Tag("标签", Tag.PRIMARY, true);
+        // 可关闭 AstTag 更宽（为 AstCloseButton 预留）
+        AstTag plain = new AstTag("标签", AstTag.PRIMARY, false);
+        AstTag closable = new AstTag("标签", AstTag.PRIMARY, true);
         assert closable.getPreferredSize().width > plain.getPreferredSize().width
                 : "closable tag must reserve width for close button";
         // effect 切换不抛异常
-        closable.setEffect(Tag.EFFECT_DARK);
-        closable.setEffect(Tag.EFFECT_PLAIN);
-        closable.setEffect(Tag.EFFECT_LIGHT);
+        closable.setEffect(AstTag.EFFECT_DARK);
+        closable.setEffect(AstTag.EFFECT_PLAIN);
+        closable.setEffect(AstTag.EFFECT_LIGHT);
         // 尺寸三档高度递减
-        Tag l = new Tag("尺寸", Tag.INFO, false); l.setSize(Tag.SIZE_LARGE);
-        Tag d = new Tag("尺寸", Tag.INFO, false);
-        Tag s = new Tag("尺寸", Tag.INFO, false); s.setSize(Tag.SIZE_SMALL);
+        AstTag l = new AstTag("尺寸", AstTag.INFO, false); l.setSize(AstTag.SIZE_LARGE);
+        AstTag d = new AstTag("尺寸", AstTag.INFO, false);
+        AstTag s = new AstTag("尺寸", AstTag.INFO, false); s.setSize(AstTag.SIZE_SMALL);
         assert l.getPreferredSize().height > d.getPreferredSize().height : "large > default height";
         assert d.getPreferredSize().height > s.getPreferredSize().height : "default > small height";
-        // 加入窗口后 CloseButton 子组件存在且位于右侧
+        // 加入窗口后 AstCloseButton 子组件存在且位于右侧
         final Throwable[] err = {null};
         try {
             SwingUtilities.invokeAndWait(() -> {
                 JFrame f = new JFrame();
                 JPanel p = new JPanel();
-                Tag c = new Tag("可关闭", Tag.SUCCESS, true);
+                AstTag c = new AstTag("可关闭", AstTag.SUCCESS, true);
                 p.add(c);
                 f.add(p);
                 f.pack();
-                assert c.getComponentCount() == 1 && c.getComponent(0) instanceof CloseButton
+                assert c.getComponentCount() == 1 && c.getComponent(0) instanceof AstCloseButton
                         : "close button child present, count=" + c.getComponentCount();
                 Component cb = c.getComponent(0);
                 assert cb.getX() + cb.getWidth() <= c.getWidth() && cb.getX() > c.getWidth() / 2
                         : "close button on right side, x=" + cb.getX();
-                // 禁用 Tag → 关闭按钮灰化且不可点（setEnabled 联动）
+                // 禁用 AstTag → 关闭按钮灰化且不可点（setEnabled 联动）
                 c.setEnabled(false);
-                assert !cb.contains(cb.getWidth() / 2, cb.getHeight() / 2) : "disabled Tag → close button not clickable";
+                assert !cb.contains(cb.getWidth() / 2, cb.getHeight() / 2) : "disabled AstTag → close button not clickable";
                 c.setEnabled(true);
                 f.dispose();
             });
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
-        // 点击 CloseButton 触发关闭动画并回调 onClosed（primary close 路径）
+        // 点击 AstCloseButton 触发关闭动画并回调 onClosed（primary close 路径）
         final Throwable[] err2 = {null};
         final boolean[] closed = {false};
         try {
             SwingUtilities.invokeAndWait(() -> {
                 JFrame f = new JFrame();
                 JPanel p = new JPanel();
-                Tag c = new Tag("可关闭", Tag.SUCCESS, true);
+                AstTag c = new AstTag("可关闭", AstTag.SUCCESS, true);
                 c.setOnClosed(() -> closed[0] = true);
                 p.add(c);
                 f.add(p);
@@ -243,7 +243,7 @@ public class Tag extends JComponent {
         } catch (Throwable t) { err2[0] = t; }
         if (err2[0] != null) throw new RuntimeException(err2[0]);
         assert closed[0] : "clicking close button should fire onClosed after close animation";
-        System.out.println("Tag self-check OK");
+        System.out.println("AstTag self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }

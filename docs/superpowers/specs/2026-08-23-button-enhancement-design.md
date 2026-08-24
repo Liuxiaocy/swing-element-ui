@@ -5,7 +5,7 @@
 
 ## 目标
 
-为 `org.swelement.ui.Button` 组件补齐 Element UI 按钮的全部展现方式：尺寸、round 圆角、circle 圆形、图标按钮、loading 加载中、text 文本按钮。保持零依赖、自绘、JDK 8 兼容。
+为 `org.swelement.ui.AstButton` 组件补齐 Element UI 按钮的全部展现方式：尺寸、round 圆角、circle 圆形、图标按钮、loading 加载中、text 文本按钮。保持零依赖、自绘、JDK 8 兼容。
 
 ## 可访问性约束（全局，所有组件必须遵循）
 
@@ -172,7 +172,7 @@ public static final int ICON_LEFT = 0, ICON_RIGHT = 1;
 
 ### 自检
 
-在 `Button` 类中新增 `selfCheck()` 静态方法（`main` 入口），断言：
+在 `AstButton` 类中新增 `selfCheck()` 静态方法（`main` 入口），断言：
 - circle 模式下 `getPreferredSize()` 宽高相等
 - size 切换后字体大小正确
 - loading 切换后 enabled 状态正确恢复

@@ -1,9 +1,6 @@
 package org.swelement.demo;
 
-import org.swelement.ui.AstForm;
-import org.swelement.ui.AstTable;
-import org.swelement.ui.AstTree;
-import org.swelement.ui.Button;
+import org.swelement.ui.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,8 +8,6 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -61,8 +56,8 @@ public class AstAdvancedDemo {
         treeScroll.setPreferredSize(new Dimension(260, 360));
         treePanel.add(treeScroll, BorderLayout.CENTER);
         JPanel treeBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        Button expandAllBtn = new Button("全部展开", Button.DEFAULT, false);
-        Button collapseAllBtn = new Button("全部折叠", Button.DEFAULT, false);
+        AstButton expandAllBtn = new AstButton("全部展开", AstButton.DEFAULT, false);
+        AstButton collapseAllBtn = new AstButton("全部折叠", AstButton.DEFAULT, false);
         expandAllBtn.addActionListener(e -> { tree.expandAll(); echo.setText("树形：已全部展开"); });
         collapseAllBtn.addActionListener(e -> { tree.collapseAll(); echo.setText("树形：已全部折叠"); });
         treeBtns.add(expandAllBtn); treeBtns.add(collapseAllBtn);
@@ -89,8 +84,8 @@ public class AstAdvancedDemo {
         tableScroll.setPreferredSize(new Dimension(420, 360));
         tablePanel.add(tableScroll, BorderLayout.CENTER);
         JPanel tableBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        Button addRowBtn = new Button("➕ 添加行", Button.PRIMARY, false);
-        Button clearBtn = new Button("清空", Button.DANGER, false);
+        AstButton addRowBtn = new AstButton("➕ 添加行", AstButton.PRIMARY, false);
+        AstButton clearBtn = new AstButton("清空", AstButton.DANGER, false);
         final int[] seq = {1};
         addRowBtn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -126,9 +121,9 @@ public class AstAdvancedDemo {
         formScroll.setBorder(null);
         formPanel.add(formScroll, BorderLayout.CENTER);
         JPanel formBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        Button submitBtn = new Button("提交校验", Button.PRIMARY, false);
-        Button resetBtn = new Button("清空错误", Button.DEFAULT, false);
-        Button fillBtn = new Button("填示例", Button.DEFAULT, false);
+        AstButton submitBtn = new AstButton("提交校验", AstButton.PRIMARY, false);
+        AstButton resetBtn = new AstButton("清空错误", AstButton.DEFAULT, false);
+        AstButton fillBtn = new AstButton("填示例", AstButton.DEFAULT, false);
         submitBtn.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 boolean ok = form.validateForm();

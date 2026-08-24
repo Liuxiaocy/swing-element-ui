@@ -2,14 +2,7 @@ package org.swelement.demo;
 
 import org.swelement.core.AnimatedPopup;
 import org.swelement.core.ElementTheme;
-import org.swelement.ui.AstCalendar;
-import org.swelement.ui.AstCarousel;
-import org.swelement.ui.AstDrawer;
-import org.swelement.ui.AstPopover;
-import org.swelement.ui.AstTimePicker;
-import org.swelement.ui.AstTimeline;
-import org.swelement.ui.AstTransfer;
-import org.swelement.ui.Button;
+import org.swelement.ui.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -75,7 +68,7 @@ public class AstP2P3Demo {
         ctrl.add(popover);
         ctrl.add(Box.createHorizontalStrut(16));
         // Drawer 触发按钮
-        Button drawerBtn = new Button("打开抽屉", Button.PRIMARY, false);
+        AstButton drawerBtn = new AstButton("打开抽屉", AstButton.PRIMARY, false);
         drawerBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
             JPanel body = new JPanel(new GridLayout(0, 1, 8, 8));
             body.setBorder(new EmptyBorder(8, 8, 8, 8));
@@ -112,9 +105,9 @@ public class AstP2P3Demo {
         JPanel calPanel = new JPanel(new BorderLayout(0, 8));
         calPanel.setBorder(new TitledBorder("AstCalendar 日历（‹ › 翻月 + 选中日期）"));
         JPanel calBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        Button prevMonth = new Button("‹ 上月", Button.DEFAULT, false);
-        Button nextMonth = new Button("下月 ›", Button.DEFAULT, false);
-        Button todayBtn = new Button("回到今日", Button.PRIMARY, false);
+        AstButton prevMonth = new AstButton("‹ 上月", AstButton.DEFAULT, false);
+        AstButton nextMonth = new AstButton("下月 ›", AstButton.DEFAULT, false);
+        AstButton todayBtn = new AstButton("回到今日", AstButton.PRIMARY, false);
         prevMonth.addActionListener(e -> { cal.prevMonth(); echo.setText("日历：上一月"); });
         nextMonth.addActionListener(e -> { cal.nextMonth(); echo.setText("日历：下一月"); });
         java.util.Calendar now = java.util.Calendar.getInstance();
@@ -175,9 +168,9 @@ public class AstP2P3Demo {
         JPanel carouselPanel = new JPanel(new BorderLayout(0, 8));
         carouselPanel.setBorder(new TitledBorder("AstCarousel 走马灯（hover 暂停 + ‹ › 切换 + 指示点）"));
         JPanel carBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        Button carPrev = new Button("‹ 上一张", Button.DEFAULT, false);
-        Button carNext = new Button("下一张 ›", Button.DEFAULT, false);
-        final Button autoplayBtn = new Button("开启自动播放", Button.PRIMARY, false);
+        AstButton carPrev = new AstButton("‹ 上一张", AstButton.DEFAULT, false);
+        AstButton carNext = new AstButton("下一张 ›", AstButton.DEFAULT, false);
+        final AstButton autoplayBtn = new AstButton("开启自动播放", AstButton.PRIMARY, false);
         carPrev.addActionListener(e -> { carousel.prev(); echo.setText("走马灯：上一张，当前 " + (carousel.getCurrent() + 1) + "/" + carousel.getSlideCount()); });
         carNext.addActionListener(e -> { carousel.next(); echo.setText("走马灯：下一张，当前 " + (carousel.getCurrent() + 1) + "/" + carousel.getSlideCount()); });
         autoplayBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {

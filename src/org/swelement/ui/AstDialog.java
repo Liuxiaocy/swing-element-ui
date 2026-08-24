@@ -10,7 +10,6 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -130,7 +129,7 @@ public class AstDialog {
             setLayout(new BorderLayout());
             setBorder(new EmptyBorder(0, 0, 0, 0));
             // Title: NORTH, height 48, bold 16, separator 1px at bottom, left padding 24, right padding 24
-            final CloseButton closeX = new CloseButton(20);
+            final AstCloseButton closeX = new AstCloseButton(20);
             closeX.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_CANCEL); }});
             final JPanel titleBar = new JPanel() {
                 @Override protected void paintComponent(Graphics g) {
@@ -184,11 +183,11 @@ public class AstDialog {
             };
             footer.setLayout(new FlowLayout(FlowLayout.RIGHT, 12, 16));
             footer.setOpaque(false);
-            Button okBtn = new Button(okText, Button.PRIMARY, false);
+            AstButton okBtn = new AstButton(okText, AstButton.PRIMARY, false);
             okBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_OK); }});
             boolean hasCancel = cancelText != null && cancelText.length() > 0;
             if (hasCancel) {
-                Button cancelBtn = new Button(cancelText, Button.DEFAULT, false);
+                AstButton cancelBtn = new AstButton(cancelText, AstButton.DEFAULT, false);
                 cancelBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_CANCEL); }});
                 footer.add(cancelBtn);
             }
@@ -249,8 +248,8 @@ public class AstDialog {
                 Component ch = cur.getComponent(i);
                 if (ch instanceof JLabel) {
                     if (text.equals(((JLabel) ch).getText())) return ch;
-                } else if (ch instanceof Button) {
-                    if (text.equals(((Button) ch).getText())) return ch;
+                } else if (ch instanceof AstButton) {
+                    if (text.equals(((AstButton) ch).getText())) return ch;
                 } else if (ch instanceof AbstractButton) {
                     if (text.equals(((AbstractButton) ch).getText())) return ch;
                 }
@@ -320,7 +319,7 @@ public class AstDialog {
                 Container cur = bfs.poll();
                 for (int i = 0; i < cur.getComponentCount(); i++) {
                     Component ch = cur.getComponent(i);
-                    if (ch instanceof CloseButton) { closeX = ch; break; }
+                    if (ch instanceof AstCloseButton) { closeX = ch; break; }
                     if (ch instanceof Container) bfs.add((Container) ch);
                 }
             }
@@ -342,7 +341,7 @@ public class AstDialog {
                 Container cur = bfs2.poll();
                 for (int i = 0; i < cur.getComponentCount(); i++) {
                     Component ch = cur.getComponent(i);
-                    if (ch instanceof CloseButton) { closeX2 = ch; break; }
+                    if (ch instanceof AstCloseButton) { closeX2 = ch; break; }
                     if (ch instanceof Container) bfs2.add((Container) ch);
                 }
             }

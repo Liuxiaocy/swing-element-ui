@@ -210,14 +210,14 @@ public class AstTransfer extends JComponent {
     private JComponent buildCenterPanel() {
         JPanel p = new JPanel(); p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS)); p.setOpaque(false);
         p.add(Box.createVerticalGlue());
-        Button toRight = new Button("\u2192", Button.PRIMARY, false);
+        AstButton toRight = new AstButton("\u2192", AstButton.PRIMARY, false);
         toRight.setPreferredSize(new Dimension(48, 32));
         toRight.setMaximumSize(new Dimension(48, 32));
         toRight.setAlignmentX(Component.CENTER_ALIGNMENT);
         toRight.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { moveRight(); }});
         p.add(toRight);
         p.add(Box.createVerticalStrut(12));
-        Button toLeft = new Button("\u2190", Button.DEFAULT, false);
+        AstButton toLeft = new AstButton("\u2190", AstButton.DEFAULT, false);
         toLeft.setPreferredSize(new Dimension(48, 32));
         toLeft.setMaximumSize(new Dimension(48, 32));
         toLeft.setAlignmentX(Component.CENTER_ALIGNMENT);

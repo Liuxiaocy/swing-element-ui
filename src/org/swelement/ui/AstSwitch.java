@@ -9,11 +9,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 
-public class Switch extends JToggleButton {
+public class AstSwitch extends JToggleButton {
     private final Animator slideAnim = new Animator(300, Easing::easeInOut, v -> { slide = v; repaint(); });
     private float slide;
 
-    public Switch() {
+    public AstSwitch() {
         setModel(new StickyToggleModel()); // 快速点击时指针移出边界仍能完成翻转
         setOpaque(false);
         setFocusPainted(false);

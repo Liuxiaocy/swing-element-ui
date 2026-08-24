@@ -429,9 +429,9 @@ public class AstContainer extends JPanel {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstButton;
 import org.swelement.ui.AstContainer;
-import org.swelement.ui.Button;
-import org.swelement.ui.Tabs;
+import org.swelement.ui.AstTabs;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -451,7 +451,10 @@ public class AstContainerDemo {
             final JCheckBox asd = new JCheckBox("Aside", true);
             final JCheckBox ftr = new JCheckBox("Footer", true);
             final JComboBox<String> dir = new JComboBox<>(new String[]{"HORIZONTAL (Aside 左 + Main 右)", "VERTICAL (Aside 上 + Main 下)"});
-            ctrl.add(dir); ctrl.add(hdr); ctrl.add(asd); ctrl.add(ftr);
+            ctrl.add(dir);
+            ctrl.add(hdr);
+            ctrl.add(asd);
+            ctrl.add(ftr);
 
             // Construct components
             JPanel headerBox = new JPanel(new BorderLayout());
@@ -460,8 +463,8 @@ public class AstContainerDemo {
             title.setForeground(new Color(0x303133));
             headerBox.add(title, BorderLayout.WEST);
             JPanel hdrRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 12));
-            hdrRight.add(new Button("🔔 通知", Button.DEFAULT, false));
-            hdrRight.add(new Button("👤 管理员", Button.PRIMARY, false));
+            hdrRight.add(new AstButton("🔔 通知", AstButton.DEFAULT, false));
+            hdrRight.add(new AstButton("👤 管理员", AstButton.PRIMARY, false));
             headerBox.add(hdrRight, BorderLayout.EAST);
 
             DefaultListModel<String> lm = new DefaultListModel<>();
@@ -473,7 +476,7 @@ public class AstContainerDemo {
             asideBox.setBorder(new EmptyBorder(8, 8, 8, 8));
             asideBox.setBackground(new Color(0xFAFAFA));
 
-            Tabs mainTabs = new Tabs(new String[]{"基本信息", "权限配置", "安全日志"}, 0);
+            AstTabs mainTabs = new AstTabs(new String[]{"基本信息", "权限配置", "安全日志"}, 0);
             JLabel mainBody = new JLabel("<html><body style='color:#606266;font-size:12px;padding:16px 24px'>" +
                     "Main 主内容区：可放置表单、表格、卡片。AstContainer 默认 Main 四周 16/20/16/20 padding。</body></html>");
             JPanel mainCard = new JPanel(new BorderLayout());
@@ -500,8 +503,10 @@ public class AstContainerDemo {
             dir.addActionListener(e -> rebuild.run());
             rebuild.run();
 
-            f.pack(); f.setSize(980, 680);
-            f.setLocationRelativeTo(null); f.setVisible(true);
+            f.pack();
+            f.setSize(980, 680);
+            f.setLocationRelativeTo(null);
+            f.setVisible(true);
         });
     }
 }
@@ -561,37 +566,57 @@ public class AstAvatar extends JComponent {
     private final Color bg;
     private final String text;    // may be 1 char or longer label
     private final ImageIcon icon; // nullable
-    private final Badge badge;    // delegate
-    private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
+    private final AstBadge badge;    // delegate
+    private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> {
+        hover = v;
+        repaint();
+    });
     private float hover;
 
     public AstAvatar(char c, int size, int shape) {
         this(ColorFactory.pick(c), String.valueOf(c), null, size, shape);
     }
+
     public AstAvatar(Color bg, String text, int size, int shape) {
         this(bg, text, null, size, shape);
     }
+
     public AstAvatar(ImageIcon icon, int size, int shape) {
         this(Color.WHITE, "", icon, size, shape);
     }
+
     private AstAvatar(Color bg, String text, ImageIcon icon, int size, int shape) {
-        this.bg = bg; this.text = text; this.icon = icon;
-        this.size = size; this.shape = shape;
-        this.badge = new Badge();
+        this.bg = bg;
+        this.text = text;
+        this.icon = icon;
+        this.size = size;
+        this.shape = shape;
+        this.badge = new AstBadge();
         setOpaque(false);
         setLayout(null);
         add(badge);
         badge.setContent(new JLabel()); // placeholder, badge paints in corner outside of content bounds
         addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) { if (isEnabled()) hoverAnim.go(hover, 1f); }
-            public void mouseExited(java.awt.event.MouseEvent e)  { hoverAnim.go(hover, 0f); }
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                if (isEnabled()) hoverAnim.go(hover, 1f);
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                hoverAnim.go(hover, 0f);
+            }
         });
     }
 
-    public void setBadgeCount(int n)    { badge.setCount(n); }
-    public void setBadgeDot(boolean b)  { badge.setDot(b); }
+    public void setBadgeCount(int n) {
+        badge.setCount(n);
+    }
 
-    @Override protected void paintComponent(Graphics g) {
+    public void setBadgeDot(boolean b) {
+        badge.setDot(b);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         // border lift on hover
@@ -604,7 +629,7 @@ public class AstAvatar extends JComponent {
         // contrast-safe text color: pick WHITE when bg dark, TEXT_MAIN when bg light
         float lum = ElementTheme.luminance(bgPaint);
         Color fg = lum < 0.55f ? Color.WHITE : ElementTheme.TEXT_MAIN;
-        ElementTheme.assertContrast(fg, bgPaint, "AstAvatar.text.shape="+shape);
+        ElementTheme.assertContrast(fg, bgPaint, "AstAvatar.text.shape=" + shape);
         if (icon != null) {
             int iw = Math.min(icon.getIconWidth(), size - 4);
             int ih = Math.min(icon.getIconHeight(), size - 4);
@@ -619,10 +644,18 @@ public class AstAvatar extends JComponent {
         g2.dispose();
     }
 
-    @Override public Dimension getPreferredSize() { return new Dimension(size, size); }
-    @Override public Dimension getMinimumSize()   { return new Dimension(size, size); }
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(size, size);
+    }
 
-    @Override public void doLayout() {
+    @Override
+    public Dimension getMinimumSize() {
+        return new Dimension(size, size);
+    }
+
+    @Override
+    public void doLayout() {
         // place badge at top-right corner of the avatar square
         badge.setBounds(Math.max(0, size - 22), 0, 40, 40);
     }
@@ -632,13 +665,17 @@ public class AstAvatar extends JComponent {
                 new Color(0x409EFF), new Color(0x67C23A), new Color(0xE6A23C), new Color(0xF56C6C),
                 new Color(0x909399), new Color(0x8e44ad), new Color(0x16a085), new Color(0xd35400)
         };
-        static Color pick(char c) { return POOL[(c & 0x7fffffff) % POOL.length]; }
+
+        static Color pick(char c) {
+            return POOL[(c & 0x7fffffff) % POOL.length];
+        }
     }
 
     static void selfCheck() {
         AstAvatar a1 = new AstAvatar('Z', SIZE_DEFAULT, CIRCLE);
         AstAvatar a2 = new AstAvatar(new Color(0xFFFFFF), "U", SIZE_LARGE, SQUARE);
-        a1.setBadgeDot(true); a2.setBadgeCount(99);
+        a1.setBadgeDot(true);
+        a2.setBadgeCount(99);
         assert a1.getPreferredSize().width == SIZE_DEFAULT;
         assert a2.getPreferredSize().height == SIZE_LARGE;
         // contrast assert for dark-luminance bg
@@ -649,10 +686,15 @@ public class AstAvatar extends JComponent {
         try {
             dark.setBounds(0, 0, 40, 40);
             dark.paintComponent(gg); // runs assertContrast
-        } finally { gg.dispose(); }
+        } finally {
+            gg.dispose();
+        }
         System.out.println("AstAvatar self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+
+    public static void main(String[] args) {
+        selfCheck();
+    }
 }
 ```
 
@@ -662,6 +704,7 @@ public class AstAvatar extends JComponent {
 package org.swelement.demo;
 
 import org.swelement.ui.AstAvatar;
+import org.swelement.ui.AstButton;
 import org.swelement.ui.Button;
 
 import javax.swing.*;
@@ -682,10 +725,12 @@ public class AstAvatarDemo {
 
             JPanel p1 = new JPanel(new FlowLayout(FlowLayout.CENTER, 40, 12));
             p1.setBorder(new TitledBorder("单字符头像（按字符哈希取色 + 自动高对比文字色）"));
-            for (char c : new char[]{'Z','A','李','王','5','☰','😀','P'}) {
+            for (char c : new char[]{'Z', 'A', '李', '王', '5', '☰', '😀', 'P'}) {
                 AstAvatar a = new AstAvatar(c, AstAvatar.SIZE_LARGE, AstAvatar.CIRCLE);
-                JPanel wrap = new JPanel(); wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-                wrap.add(a); wrap.add(Box.createVerticalStrut(4));
+                JPanel wrap = new JPanel();
+                wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
+                wrap.add(a);
+                wrap.add(Box.createVerticalStrut(4));
                 JLabel l = new JLabel(String.valueOf(c), SwingConstants.CENTER);
                 l.setForeground(new Color(0x909399));
                 l.setFont(l.getFont().deriveFont(11f));
@@ -701,51 +746,68 @@ public class AstAvatarDemo {
             for (int i = 0; i < sizes.length; i++) {
                 for (int sh : new int[]{AstAvatar.CIRCLE, AstAvatar.SQUARE}) {
                     AstAvatar a = new AstAvatar(new Color(0xE6A23C), "Admin", sizes[i], sh);
-                    JPanel wrap = new JPanel(); wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-                    wrap.add(a); wrap.add(Box.createVerticalStrut(4));
-                    JLabel l = new JLabel(labels[i] + (sh==AstAvatar.CIRCLE?" 圆":" 方"), SwingConstants.CENTER);
-                    l.setForeground(new Color(0x909399)); l.setFont(l.getFont().deriveFont(11f));
-                    l.setAlignmentX(Component.CENTER_ALIGNMENT); wrap.add(l);
+                    JPanel wrap = new JPanel();
+                    wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
+                    wrap.add(a);
+                    wrap.add(Box.createVerticalStrut(4));
+                    JLabel l = new JLabel(labels[i] + (sh == AstAvatar.CIRCLE ? " 圆" : " 方"), SwingConstants.CENTER);
+                    l.setForeground(new Color(0x909399));
+                    l.setFont(l.getFont().deriveFont(11f));
+                    l.setAlignmentX(Component.CENTER_ALIGNMENT);
+                    wrap.add(l);
                     p2.add(wrap);
                 }
             }
 
             final AtomicInteger badge = new AtomicInteger(3);
             final AstAvatar[] avs = new AstAvatar[4];
-            avs[0] = new AstAvatar('U', AstAvatar.SIZE_LARGE, AstAvatar.CIRCLE); avs[0].setBadgeCount(badge.get());
-            avs[1] = new AstAvatar(new Color(0x67C23A), "OK", AstAvatar.SIZE_DEFAULT, AstAvatar.SQUARE); avs[1].setBadgeDot(true);
-            avs[2] = new AstAvatar('P', AstAvatar.SIZE_LARGE, AstAvatar.SQUARE); avs[2].setBadgeCount(100);
-            avs[3] = new AstAvatar('A', AstAvatar.SIZE_DEFAULT, AstAvatar.CIRCLE); avs[3].setBadgeCount(0);
+            avs[0] = new AstAvatar('U', AstAvatar.SIZE_LARGE, AstAvatar.CIRCLE);
+            avs[0].setBadgeCount(badge.get());
+            avs[1] = new AstAvatar(new Color(0x67C23A), "OK", AstAvatar.SIZE_DEFAULT, AstAvatar.SQUARE);
+            avs[1].setBadgeDot(true);
+            avs[2] = new AstAvatar('P', AstAvatar.SIZE_LARGE, AstAvatar.SQUARE);
+            avs[2].setBadgeCount(100);
+            avs[3] = new AstAvatar('A', AstAvatar.SIZE_DEFAULT, AstAvatar.CIRCLE);
+            avs[3].setBadgeCount(0);
             JPanel p3 = new JPanel(new FlowLayout(FlowLayout.CENTER, 40, 12));
             p3.setBorder(new TitledBorder("角标复合（数字 / dot / 99+ / 0隐藏）"));
             for (AstAvatar a : avs) p3.add(a);
 
             JPanel p4 = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 12));
             p4.setBorder(new TitledBorder("交互控制"));
-            Button plus = new Button("用户 U 角标 +1", Button.PRIMARY, false);
-            Button reset = new Button("重置为 3", Button.DEFAULT, false);
-            Button dotSwitch = new Button("切换 OK 的红点", Button.WARNING, false);
+            AstButton plus = new AstButton("用户 U 角标 +1", AstButton.PRIMARY, false);
+            AstButton reset = new AstButton("重置为 3", AstButton.DEFAULT, false);
+            AstButton dotSwitch = new AstButton("切换 OK 的红点", AstButton.WARNING, false);
             final boolean[] dotOn = {true};
             plus.addActionListener(e -> {
                 int n = badge.incrementAndGet();
                 avs[0].setBadgeCount(n);
             });
             reset.addActionListener(e -> {
-                badge.set(3); avs[0].setBadgeCount(3);
+                badge.set(3);
+                avs[0].setBadgeCount(3);
             });
             dotSwitch.addActionListener(e -> {
-                dotOn[0] = !dotOn[0]; avs[1].setBadgeDot(dotOn[0]);
+                dotOn[0] = !dotOn[0];
+                avs[1].setBadgeDot(dotOn[0]);
             });
-            p4.add(plus); p4.add(reset); p4.add(dotSwitch);
+            p4.add(plus);
+            p4.add(reset);
+            p4.add(dotSwitch);
 
-            root.add(p1); root.add(Box.createVerticalStrut(8));
-            root.add(p2); root.add(Box.createVerticalStrut(8));
-            root.add(p3); root.add(Box.createVerticalStrut(8));
+            root.add(p1);
+            root.add(Box.createVerticalStrut(8));
+            root.add(p2);
+            root.add(Box.createVerticalStrut(8));
+            root.add(p3);
+            root.add(Box.createVerticalStrut(8));
             root.add(p4);
 
             f.setContentPane(new JScrollPane(root));
-            f.pack(); f.setSize(Math.max(f.getWidth(), 920), Math.min(f.getHeight(), 720));
-            f.setLocationRelativeTo(null); f.setVisible(true);
+            f.pack();
+            f.setSize(Math.max(f.getWidth(), 920), Math.min(f.getHeight(), 720));
+            f.setLocationRelativeTo(null);
+            f.setVisible(true);
         });
     }
 }
@@ -782,7 +844,6 @@ import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -791,12 +852,17 @@ import java.awt.geom.RoundRectangle2D;
 public class AstCard extends JComponent {
     private final String title;
     private final boolean bordered;
-    private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
+    private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> {
+        hover = v;
+        repaint();
+    });
     private float hover;
     private JComponent content;
     private final JPanel headerActions;
 
-    public AstCard(String title) { this(title, true, true); }
+    public AstCard(String title) {
+        this(title, true, true);
+    }
 
     public AstCard(String title, boolean bordered, boolean shadowOnHover) {
         this.title = title;
@@ -807,25 +873,37 @@ public class AstCard extends JComponent {
         add(headerActions);
         setOpaque(false);
         if (shadowOnHover) addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { if (isEnabled()) hoverAnim.go(hover, 1f); }
-            public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); }
+            public void mouseEntered(MouseEvent e) {
+                if (isEnabled()) hoverAnim.go(hover, 1f);
+            }
+
+            public void mouseExited(MouseEvent e) {
+                hoverAnim.go(hover, 0f);
+            }
         });
     }
 
     public void setContent(JComponent c) {
         if (content != null) remove(content);
-        content = c; add(c); revalidate();
+        content = c;
+        add(c);
+        revalidate();
     }
 
     public void addHeaderAction(JComponent c) {
-        headerActions.add(c); revalidate();
+        headerActions.add(c);
+        revalidate();
     }
 
     public void setShadowElevation(int level) { /* reserved, current hover is binary */ }
 
-    @Override public boolean isOptimizedDrawingEnabled() { return false; }
+    @Override
+    public boolean isOptimizedDrawingEnabled() {
+        return false;
+    }
 
-    @Override public void doLayout() {
+    @Override
+    public void doLayout() {
         Insets in = getInsets();
         int x = in.left, y = in.top, w = getWidth() - in.left - in.right, h = getHeight() - in.top - in.bottom;
         int titleH = 48;
@@ -836,7 +914,8 @@ public class AstCard extends JComponent {
         }
     }
 
-    @Override protected void paintComponent(Graphics g) {
+    @Override
+    protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         Color bg = Color.WHITE;
@@ -844,13 +923,14 @@ public class AstCard extends JComponent {
                 ? ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, hover)
                 : new Color(0, 0, 0, 0);
         ElementTheme.assertContrast(borderColor, bg, "AstCard.border");
-        RoundRectangle2D r = new RoundRectangle2D.Float(0.5f, 0.5f, getWidth()-1.5f, getHeight()-1.5f, ElementTheme.RADIUS*2, ElementTheme.RADIUS*2);
-        g2.setColor(bg); g2.fill(r);
+        RoundRectangle2D r = new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1.5f, getHeight() - 1.5f, ElementTheme.RADIUS * 2, ElementTheme.RADIUS * 2);
+        g2.setColor(bg);
+        g2.fill(r);
         // bottom shadow when hovered
         if (hover > 0.01f) {
-            g2.setColor(new Color(64, 158, 255, Math.round(36*hover)));
+            g2.setColor(new Color(64, 158, 255, Math.round(36 * hover)));
             g2.setStroke(new BasicStroke(1.5f));
-            g2.draw(new RoundRectangle2D.Float(1, 1, getWidth()-2.5f, getHeight()-2.5f, ElementTheme.RADIUS*2, ElementTheme.RADIUS*2));
+            g2.draw(new RoundRectangle2D.Float(1, 1, getWidth() - 2.5f, getHeight() - 2.5f, ElementTheme.RADIUS * 2, ElementTheme.RADIUS * 2));
         }
         if (bordered) {
             g2.setColor(borderColor);
@@ -871,7 +951,8 @@ public class AstCard extends JComponent {
         g2.dispose();
     }
 
-    @Override public Dimension getPreferredSize() {
+    @Override
+    public Dimension getPreferredSize() {
         int cw = content != null ? content.getPreferredSize().width + 40 : 320;
         int ch = 48 + 32 + (content != null ? content.getPreferredSize().height : 160);
         return new Dimension(cw, ch);
@@ -879,20 +960,29 @@ public class AstCard extends JComponent {
 
     static void selfCheck() {
         AstCard c = new AstCard("用户信息");
-        JPanel body = new JPanel(); body.add(new JLabel("Hello"));
+        JPanel body = new JPanel();
+        body.add(new JLabel("Hello"));
         c.setContent(body);
-        c.addHeaderAction(new Button("编辑", Button.DEFAULT, false));
-        JFrame jf = new JFrame(); jf.setSize(500,400);
+        c.addHeaderAction(new AstButton("编辑", AstButton.DEFAULT, false));
+        JFrame jf = new JFrame();
+        jf.setSize(500, 400);
         jf.add(c);
-        c.setBounds(0,0,500,300);
+        c.setBounds(0, 0, 500, 300);
         c.doLayout();
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(500, 300, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         Graphics2D gg = img.createGraphics();
-        try { c.paintComponent(gg); } finally { gg.dispose(); }
+        try {
+            c.paintComponent(gg);
+        } finally {
+            gg.dispose();
+        }
         jf.dispose();
         System.out.println("AstCard self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+
+    public static void main(String[] args) {
+        selfCheck();
+    }
 }
 ```
 

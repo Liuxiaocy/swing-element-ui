@@ -252,7 +252,7 @@ public class AstPopupDemo {
 
         // Left: AstCard "上传作业" with progress body wrapped in WRAP loader
         AstCard taskCard = new AstCard("上传作业");
-        final Progress progress = new Progress(0);
+        final AstProgress progress = new AstProgress(0);
         JLabel taskLabel = new JLabel("当前：未开始", JLabel.LEFT); taskLabel.setForeground(ElementTheme.TEXT_REGULAR);
         JPanel body = new JPanel(); body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.add(taskLabel); body.add(Box.createVerticalStrut(10)); body.add(progress);

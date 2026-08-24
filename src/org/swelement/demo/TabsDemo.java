@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Button;
-import org.swelement.ui.Tabs;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstTabs;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,7 +11,7 @@ import java.awt.*;
 public class TabsDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Tabs Demo - 下划线滑动动画、hover 颜色过渡、切换内容");
+            JFrame f = new JFrame("AstTabs Demo - 下划线滑动动画、hover 颜色过渡、切换内容");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -19,7 +19,7 @@ public class TabsDemo {
             root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
             // Tab 1：4个页面
-            Tabs tabs = new Tabs(new String[]{"📋 基本信息", "⚙️ 系统设置", "🔐 安全中心", "📜 操作日志"}, 0);
+            AstTabs tabs = new AstTabs(new String[]{"📋 基本信息", "⚙️ 系统设置", "🔐 安全中心", "📜 操作日志"}, 0);
             // 为每个 tab 创建对应内容面板
             JPanel contentHolder = new JPanel(new CardLayout());
             JPanel[] contents = {makeInfo(), makeSettings(), makeSecurity(), makeLog()};
@@ -40,7 +40,7 @@ public class TabsDemo {
             view.add(contentHolder);
 
             // Tab 2：3个简单 tab + 控制按钮
-            Tabs tabs2 = new Tabs(new String[]{"Tab A", "Tab B", "Tab C"}, 1);
+            AstTabs tabs2 = new AstTabs(new String[]{"Tab A", "Tab B", "Tab C"}, 1);
             JLabel tab2Echo = new JLabel("当前：Tab B");
             tab2Echo.setFont(new Font("Microsoft YaHei", Font.BOLD, 14));
             tab2Echo.setForeground(new Color(0x409EFF));
@@ -48,11 +48,11 @@ public class TabsDemo {
 
             JPanel ctrl = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
             ctrl.setBorder(new TitledBorder("外部按钮控制 Tab 切换（观察下划线从当前位置动画滑到目标位置）"));
-            Button goto0 = new Button("切到第 1 个", Button.DEFAULT, true);
-            Button goto1 = new Button("切到第 2 个", Button.DEFAULT, true);
-            Button goto2 = new Button("切到第 3 个", Button.DEFAULT, true);
-            Button prev = new Button("◀ 上一个", Button.WARNING, true);
-            Button next = new Button("下一个 ▶", Button.SUCCESS, true);
+            AstButton goto0 = new AstButton("切到第 1 个", AstButton.DEFAULT, true);
+            AstButton goto1 = new AstButton("切到第 2 个", AstButton.DEFAULT, true);
+            AstButton goto2 = new AstButton("切到第 3 个", AstButton.DEFAULT, true);
+            AstButton prev = new AstButton("◀ 上一个", AstButton.WARNING, true);
+            AstButton next = new AstButton("下一个 ▶", AstButton.SUCCESS, true);
             goto0.addActionListener(e -> tabs.setSelectedIndex(0));
             goto1.addActionListener(e -> tabs.setSelectedIndex(1));
             goto2.addActionListener(e -> tabs.setSelectedIndex(2));

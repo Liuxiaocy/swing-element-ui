@@ -34,7 +34,7 @@ public class AstDropdown extends JComponent {
         }
     }
 
-    private final Button invoker;
+    private final AstButton invoker;
     private final AnimatedPopup popup;
     private final AnimatedPopup.Direction dir;
     private final Item[] items;
@@ -54,7 +54,7 @@ public class AstDropdown extends JComponent {
         for (Item it : items) if (it == null) throw new IllegalArgumentException("item must not be null");
         this.items = items.clone(); // defensive copy
         this.dir = dir;
-        this.invoker = new Button(invokerLabel + "  ▾", Button.PRIMARY, false);
+        this.invoker = new AstButton(invokerLabel + "  ▾", AstButton.PRIMARY, false);
         this.popup = new AnimatedPopup();
         popup.setDismissListener(new Runnable() { public void run() { open = false; }});
         this.scrollView = new JPanel();
@@ -235,8 +235,8 @@ public class AstDropdown extends JComponent {
                 Component ch = cur.getComponent(i);
                 if (ch instanceof JLabel) {
                     if (text.equals(((JLabel) ch).getText())) return ch;
-                } else if (ch instanceof Button) {
-                    if (text.equals(((Button) ch).getText())) return ch;
+                } else if (ch instanceof AstButton) {
+                    if (text.equals(((AstButton) ch).getText())) return ch;
                 } else if (ch instanceof AbstractButton) {
                     if (text.equals(((AbstractButton) ch).getText())) return ch;
                 }

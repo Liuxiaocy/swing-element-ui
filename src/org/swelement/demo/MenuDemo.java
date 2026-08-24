@@ -1,6 +1,6 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Menu;
+import org.swelement.ui.AstMenu;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,13 +9,13 @@ import java.awt.*;
 public class MenuDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Menu Demo - 体验导航菜单与子菜单下拉动画");
+            JFrame f = new JFrame("AstMenu Demo - 体验导航菜单与子菜单下拉动画");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel(new BorderLayout());
 
             // 顶部菜单
-            Menu menu = new Menu();
+            AstMenu menu = new AstMenu();
             final JTextArea log = new JTextArea();
             log.setEditable(false);
             log.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));

@@ -9,25 +9,26 @@
 ![基本用法](../screenshots/button-default.png)
 
 ```java
+import org.swelement.ui.AstButton;
 import org.swelement.ui.Button;
 
 // 默认按钮
-Button defaultBtn = new Button("默认按钮");
+AstButton defaultBtn = new AstButton("默认按钮");
 
-// 主要按钮
-Button primaryBtn = new Button("主要按钮", Button.PRIMARY, false);
+        // 主要按钮
+        AstButton primaryBtn = new AstButton("主要按钮", AstButton.PRIMARY, false);
 
-// 成功按钮
-Button successBtn = new Button("成功按钮", Button.SUCCESS, false);
+        // 成功按钮
+        AstButton successBtn = new AstButton("成功按钮", AstButton.SUCCESS, false);
 
-// 警告按钮
-Button warningBtn = new Button("警告按钮", Button.WARNING, false);
+        // 警告按钮
+        AstButton warningBtn = new AstButton("警告按钮", AstButton.WARNING, false);
 
-// 危险按钮
-Button dangerBtn = new Button("危险按钮", Button.DANGER, false);
+        // 危险按钮
+        AstButton dangerBtn = new AstButton("危险按钮", AstButton.DANGER, false);
 
-// 信息按钮
-Button infoBtn = new Button("信息按钮", Button.INFO, false);
+        // 信息按钮
+        AstButton infoBtn = new AstButton("信息按钮", AstButton.INFO, false);
 ```
 
 ## 朴素按钮

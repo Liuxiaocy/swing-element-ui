@@ -9,12 +9,12 @@
 ![基本用法](../screenshots/radio-default.png)
 
 ```java
-import org.swelement.ui.Radio;
+import org.swelement.ui.AstRadio;
 
 // 创建单选框
-Radio radio1 = new Radio("选项A");
-Radio radio2 = new Radio("选项B");
-Radio radio3 = new Radio("选项C");
+AstRadio radio1 = new AstRadio("选项A");
+        AstRadio radio2 = new AstRadio("选项B");
+        AstRadio radio3 = new AstRadio("选项C");
 ```
 
 ## 禁用状态

@@ -122,7 +122,7 @@ public class AstLoading extends JComponent {
         }
         fadeAnim.stop();
         if (mode == Mode.WRAP) {
-            // 淡入完成后藏起 target：不透明子组件（如 Progress）的 paintImmediately
+            // 淡入完成后藏起 target：不透明子组件（如 AstProgress）的 paintImmediately
             // 会绕过 paintChildren 里的 overlay 直接上屏，动画透过遮罩闪烁的根因。
             // 遮罩此时已完全不透明，视觉无差别，但 target 不再产生 dirty region。
             fadeAnim.go(overlay, 1f, new Runnable() { public void run() {

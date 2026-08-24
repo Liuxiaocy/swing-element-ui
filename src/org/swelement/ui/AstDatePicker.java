@@ -1,18 +1,13 @@
 package org.swelement.ui;
 
 import org.swelement.core.AnimatedPopup;
-import org.swelement.core.Animator;
-import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.function.Consumer;
 
 /**
@@ -29,7 +24,7 @@ public class AstDatePicker extends JComponent {
     private LocalDate viewMonth;    // 当前显示的月份 (1st of month)
     private String placeholder = "选择日期";
     private Consumer<LocalDate> dateChangeListener;
-    private final Button invoker;
+    private final AstButton invoker;
     private final AnimatedPopup popup;
     private final CalendarPanel calendarPanel;
     private boolean open;
@@ -47,7 +42,7 @@ public class AstDatePicker extends JComponent {
         if (initial == null) throw new IllegalArgumentException("initial date must not be null");
         this.selectedDate = initial;
         this.viewMonth = initial.withDayOfMonth(1);
-        this.invoker = new Button(formatDate(initial) + "  📅", Button.DEFAULT, false);
+        this.invoker = new AstButton(formatDate(initial) + "  📅", AstButton.DEFAULT, false);
         this.popup = new AnimatedPopup();
         popup.setDismissListener(new Runnable() { public void run() { open = false; }});
         this.calendarPanel = new CalendarPanel();
@@ -263,7 +258,7 @@ public class AstDatePicker extends JComponent {
                     int firstDayOfWeek = firstOfMonth.getDayOfWeek().getValue() % 7;
                     LocalDate gridStartDate = firstOfMonth.minusDays(firstDayOfWeek);
                     LocalDate clicked = gridStartDate.plusDays(row * 7 + col);
-                    // Select the clicked date
+                    // AstSelect the clicked date
                     selectedDate = clicked;
                     if (clicked.getMonth() != viewMonth.getMonth() || clicked.getYear() != viewMonth.getYear()) {
                         viewMonth = clicked.withDayOfMonth(1); // navigate to clicked month

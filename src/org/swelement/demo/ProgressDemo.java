@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Button;
-import org.swelement.ui.Progress;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstProgress;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -11,7 +11,7 @@ import java.awt.*;
 public class ProgressDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Progress Demo - 进度条填充动画、首屏加载动画");
+            JFrame f = new JFrame("AstProgress Demo - 进度条填充动画、首屏加载动画");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -25,7 +25,7 @@ public class ProgressDemo {
             p1.setOpaque(true);
             p1.setBackground(Color.WHITE);
             int[] vals = {10, 25, 45, 60, 78, 92, 100};
-            Progress[] bars = new Progress[vals.length];
+            AstProgress[] bars = new AstProgress[vals.length];
             for (int i = 0; i < vals.length; i++) {
                 final int fi = i;
                 JPanel row = new JPanel(new BorderLayout(10, 0));
@@ -35,7 +35,7 @@ public class ProgressDemo {
                 JLabel lbl = new JLabel("任务 " + (i + 1));
                 lbl.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
                 lbl.setPreferredSize(new Dimension(70, 22));
-                Progress p = new Progress();
+                AstProgress p = new AstProgress();
                 p.setPreferredSize(new Dimension(460, 22));
                 final JLabel vLbl = new JLabel("0 %");
                 vLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -54,7 +54,7 @@ public class ProgressDemo {
             }
 
             // 主控制区：单一主导进度条 + 按钮控制
-            Progress main = new Progress(0);
+            AstProgress main = new AstProgress(0);
             main.setPreferredSize(new Dimension(600, 24));
             JLabel mLbl = new JLabel("0 %");
             mLbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -76,14 +76,14 @@ public class ProgressDemo {
 
             JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
             p3.setBorder(new TitledBorder("操作按钮"));
-            Button to0 = new Button("0%", Button.DEFAULT, true);
-            Button to30 = new Button("30%", Button.DEFAULT, true);
-            Button to60 = new Button("60%", Button.DEFAULT, true);
-            Button to90 = new Button("90%", Button.PRIMARY, true);
-            Button to100 = new Button("完成 100%", Button.SUCCESS, false);
-            Button animStart = new Button("▶ 自动模拟上传", Button.WARNING, false);
-            Button animStop = new Button("⏸ 停止自动", Button.DANGER, true);
-            Button reloadAll = new Button("🔄 重置上方面板并播放动画", Button.DEFAULT, true);
+            AstButton to0 = new AstButton("0%", AstButton.DEFAULT, true);
+            AstButton to30 = new AstButton("30%", AstButton.DEFAULT, true);
+            AstButton to60 = new AstButton("60%", AstButton.DEFAULT, true);
+            AstButton to90 = new AstButton("90%", AstButton.PRIMARY, true);
+            AstButton to100 = new AstButton("完成 100%", AstButton.SUCCESS, false);
+            AstButton animStart = new AstButton("▶ 自动模拟上传", AstButton.WARNING, false);
+            AstButton animStop = new AstButton("⏸ 停止自动", AstButton.DANGER, true);
+            AstButton reloadAll = new AstButton("🔄 重置上方面板并播放动画", AstButton.DEFAULT, true);
 
             final Timer[] uploadTimer = {null};
             to0.addActionListener(e -> main.setValue(0));
@@ -119,7 +119,7 @@ public class ProgressDemo {
             p3.add(reloadAll);
 
             // 0→100 单次演示
-            Progress once = new Progress(0);
+            AstProgress once = new AstProgress(0);
             once.setPreferredSize(new Dimension(600, 20));
             JLabel oLbl = new JLabel("0 %");
             oLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -132,7 +132,7 @@ public class ProgressDemo {
             onceRow.add(new JLabel("演示：重置 0 → 100"), BorderLayout.WEST);
             onceRow.add(once, BorderLayout.CENTER);
             onceRow.add(oLbl, BorderLayout.EAST);
-            Button onceBtn = new Button("🔄 重置并播放 0→100 动画", Button.PRIMARY, false);
+            AstButton onceBtn = new AstButton("🔄 重置并播放 0→100 动画", AstButton.PRIMARY, false);
             onceBtn.addActionListener(e -> {
                 once.setValue(0);
                 new Timer(25, new java.awt.event.ActionListener() {

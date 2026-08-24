@@ -1,7 +1,7 @@
 package org.swelement.demo;
 
-import org.swelement.ui.Button;
-import org.swelement.ui.Checkbox;
+import org.swelement.ui.AstButton;
+import org.swelement.ui.AstCheckbox;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,7 +13,7 @@ import java.util.List;
 public class CheckboxDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Checkbox Demo - 勾选动画、打勾描边揭示、禁用状态");
+            JFrame f = new JFrame("AstCheckbox Demo - 勾选动画、打勾描边揭示、禁用状态");
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
             JPanel root = new JPanel();
@@ -23,14 +23,14 @@ public class CheckboxDemo {
             // 基础展示
             JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 30, 8));
             p1.setBorder(new TitledBorder("基础展示（勾选观察方框填充 + 勾号动画揭示）"));
-            p1.add(new Checkbox("默认（未勾选）"));
-            Checkbox cSel = new Checkbox("已勾选");
+            p1.add(new AstCheckbox("默认（未勾选）"));
+            AstCheckbox cSel = new AstCheckbox("已勾选");
             cSel.setSelected(true);
             p1.add(cSel);
-            Checkbox cDis = new Checkbox("禁用未勾选");
+            AstCheckbox cDis = new AstCheckbox("禁用未勾选");
             cDis.setEnabled(false);
             p1.add(cDis);
-            Checkbox cSelDis = new Checkbox("禁用已勾选");
+            AstCheckbox cSelDis = new AstCheckbox("禁用已勾选");
             cSelDis.setEnabled(false);
             cSelDis.setSelected(true);
             p1.add(cSelDis);
@@ -42,9 +42,9 @@ public class CheckboxDemo {
             gbc.anchor = GridBagConstraints.WEST;
             gbc.insets = new Insets(4, 12, 4, 24);
             String[] hobbies = {"🏃 运动健身", "📚 阅读", "🎵 音乐", "🎮 游戏", "✈️ 旅行", "🎨 绘画", "🍳 烹饪", "📷 摄影"};
-            List<Checkbox> boxes = new ArrayList<>();
+            List<AstCheckbox> boxes = new ArrayList<>();
             for (int i = 0; i < hobbies.length; i++) {
-                Checkbox cb = new Checkbox(hobbies[i]);
+                AstCheckbox cb = new AstCheckbox(hobbies[i]);
                 boxes.add(cb);
                 gbc.gridx = i % 4;
                 gbc.gridy = i / 4;
@@ -58,16 +58,16 @@ public class CheckboxDemo {
             result.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
             result.setForeground(new Color(0x606266));
 
-            Button selAll = new Button("全选", Button.DEFAULT, true);
+            AstButton selAll = new AstButton("全选", AstButton.DEFAULT, true);
             selAll.addActionListener(e -> boxes.forEach(cb -> cb.setSelected(true)));
-            Button clearAll = new Button("全不选", Button.DEFAULT, true);
+            AstButton clearAll = new AstButton("全不选", AstButton.DEFAULT, true);
             clearAll.addActionListener(e -> boxes.forEach(cb -> cb.setSelected(false)));
-            Button invert = new Button("反选", Button.DEFAULT, true);
+            AstButton invert = new AstButton("反选", AstButton.DEFAULT, true);
             invert.addActionListener(e -> boxes.forEach(cb -> cb.setSelected(!cb.isSelected())));
-            Button view = new Button("查看结果", Button.PRIMARY, false);
+            AstButton view = new AstButton("查看结果", AstButton.PRIMARY, false);
             view.addActionListener(e -> {
                 StringBuilder sb = new StringBuilder("已选: ");
-                for (Checkbox cb : boxes) if (cb.isSelected()) sb.append(cb.getText()).append("，");
+                for (AstCheckbox cb : boxes) if (cb.isSelected()) sb.append(cb.getText()).append("，");
                 String s = sb.toString();
                 result.setText(s.length() > 5 ? s.substring(0, s.length() - 1) : "（未选择任何项）");
             });

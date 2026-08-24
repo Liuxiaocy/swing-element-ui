@@ -60,7 +60,7 @@ public class AstPopover extends JComponent {
         this.popup = new AnimatedPopup();
         popup.setDismissListener(new Runnable() { public void run() { open = false; }});
         AnimatedPopup.registerGlobal(popup, AnimatedPopup.PopupLayer.POPUP);
-        Button invokerBtn = new Button(triggerText == null ? "Popover" : triggerText, Button.DEFAULT, false);
+        AstButton invokerBtn = new AstButton(triggerText == null ? "Popover" : triggerText, AstButton.DEFAULT, false);
         this.invokerComp = invokerBtn;
         installInvoker(invokerBtn, true);
         setLayout(new BorderLayout());
@@ -82,8 +82,8 @@ public class AstPopover extends JComponent {
 
     private void installInvoker(final JComponent c, boolean isButton) {
         // CLICK 模式
-        if (isButton && c instanceof Button) {
-            ((Button) c).addActionListener(new ActionListener() {
+        if (isButton && c instanceof AstButton) {
+            ((AstButton) c).addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     if (trigger == Trigger.CLICK) toggle();
                 }

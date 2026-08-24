@@ -94,7 +94,7 @@ git commit -m "docs: 创建文档目录结构"
 ![基本用法](../screenshots/button-default.png)
 
 ```java
-import org.swelement.ui.Button;
+import org.swelement.ui.AstButton;
 
 // 默认按钮
 Button defaultBtn = new Button("默认按钮");
@@ -198,7 +198,7 @@ git commit -m "docs: 添加 Button 组件文档"
 ![基本用法](../screenshots/input-default.png)
 
 ```java
-import org.swelement.ui.Input;
+import org.swelement.ui.AstInput;
 
 // 带占位符的输入框
 Input input = new Input("请输入内容");
@@ -272,7 +272,7 @@ git commit -m "docs: 添加 Input 组件文档"
 ![基本用法](../screenshots/checkbox-default.png)
 
 ```java
-import org.swelement.ui.Checkbox;
+import org.swelement.ui.AstCheckbox;
 
 // 创建多选框
 Checkbox checkbox1 = new Checkbox("选项A");
@@ -330,7 +330,7 @@ git commit -m "docs: 添加 Checkbox 组件文档"
 ![基本用法](../screenshots/radio-default.png)
 
 ```java
-import org.swelement.ui.Radio;
+import org.swelement.ui.AstRadio;
 
 // 创建单选框
 Radio radio1 = new Radio("选项A");
@@ -388,7 +388,7 @@ git commit -m "docs: 添加 Radio 组件文档"
 ![基本用法](../screenshots/switch-default.png)
 
 ```java
-import org.swelement.ui.Switch;
+import org.swelement.ui.AstSwitch;
 
 // 创建开关
 Switch switch1 = new Switch();
@@ -451,7 +451,7 @@ git commit -m "docs: 添加 Switch 组件文档"
 ![基本用法](../screenshots/slider-default.png)
 
 ```java
-import org.swelement.ui.Slider;
+import org.swelement.ui.AstSlider;
 
 // 创建滑块（最小值0，最大值100，初始值50）
 Slider slider = new Slider(0, 100, 50);
@@ -517,7 +517,7 @@ git commit -m "docs: 添加 Slider 组件文档"
 ![基本用法](../screenshots/select-default.png)
 
 ```java
-import org.swelement.ui.Select;
+import org.swelement.ui.AstSelect;
 
 // 创建单选下拉框
 Select select = new Select(new String[]{"黄金糕", "双皮奶", "蚵仔煎", "龙须面"});
@@ -632,7 +632,7 @@ git commit -m "docs: 添加 Select 组件文档"
 ![基本用法](../screenshots/tabs-default.png)
 
 ```java
-import org.swelement.ui.Tabs;
+import org.swelement.ui.AstTabs;
 
 // 创建标签页
 Tabs tabs = new Tabs(new String[]{"用户管理", "配置管理", "角色管理", "定时任务补偿"}, 0);
@@ -699,7 +699,7 @@ git commit -m "docs: 添加 Tabs 组件文档"
 ![基本用法](../screenshots/pagination-default.png)
 
 ```java
-import org.swelement.ui.Pagination;
+import org.swelement.ui.AstPagination;
 
 // 创建分页组件（总数据量100，每页10条，初始第1页）
 Pagination pagination = new Pagination(100, 10, 1);
@@ -777,7 +777,7 @@ git commit -m "docs: 添加 Pagination 组件文档"
 ![基本用法](../screenshots/menu-default.png)
 
 ```java
-import org.swelement.ui.Menu;
+import org.swelement.ui.AstMenu;
 
 // 创建导航菜单
 Menu menu = new Menu();
@@ -821,7 +821,7 @@ git commit -m "docs: 添加 Menu 组件文档"
 ![基本用法](../screenshots/tag-default.png)
 
 ```java
-import org.swelement.ui.Tag;
+import org.swelement.ui.AstTag;
 
 // 主要标记
 Tag primaryTag = new Tag("标签一", Tag.PRIMARY, false);
@@ -901,7 +901,7 @@ git commit -m "docs: 添加 Tag 组件文档"
 ![基本用法](../screenshots/progress-default.png)
 
 ```java
-import org.swelement.ui.Progress;
+import org.swelement.ui.AstProgress;
 
 // 创建进度条
 Progress progress = new Progress(50);
@@ -970,7 +970,7 @@ git commit -m "docs: 添加 Progress 组件文档"
 ![基本用法](../screenshots/badge-default.png)
 
 ```java
-import org.swelement.ui.Badge;
+import org.swelement.ui.AstBadge;
 
 // 创建角标
 Badge badge = new Badge();
@@ -1038,7 +1038,7 @@ git commit -m "docs: 添加 Badge 组件文档"
 ![基本用法](../screenshots/alert-default.png)
 
 ```java
-import org.swelement.ui.Alert;
+import org.swelement.ui.AstAlert;
 
 // 成功提示
 Alert successAlert = new Alert(Alert.SUCCESS, "成功提示", null, false);

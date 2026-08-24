@@ -16,7 +16,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Select extends JPanel {
+public class AstSelect extends JPanel {
     public static class Option {
         public final String label;
         public final Object value;
@@ -45,13 +45,13 @@ public class Select extends JPanel {
     private final Animator arrowAnim = new Animator(200, Easing::easeInOut, v -> { arrowAngle = v; repaint(); });
     private float arrowAngle;
     private boolean popupShown, fieldFocus;
-    // 可清空 ×（复用 Input 批次 1 的 east 面板配方，替代手绘 × + 坐标命中）
-    private final CloseButton clearBtn = new CloseButton(16);
+    // 可清空 ×（复用 AstInput 批次 1 的 east 面板配方，替代手绘 × + 坐标命中）
+    private final AstCloseButton clearBtn = new AstCloseButton(16);
     private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
     private float clearVis;
     private boolean hovering;
 
-    public Select(boolean multiple, boolean filterable) {
+    public AstSelect(boolean multiple, boolean filterable) {
         this.multiple = multiple;
         this.filterable = filterable;
         setOpaque(false);
@@ -78,7 +78,7 @@ public class Select extends JPanel {
         }
         add(center, BorderLayout.CENTER);
 
-        // 可清空 ×（复用 Input 批次 1 的 east 面板配方，替代手绘 × + 坐标命中测试）
+        // 可清空 ×（复用 AstInput 批次 1 的 east 面板配方，替代手绘 × + 坐标命中测试）
         clearBtn.setAlpha(0f);
         clearBtn.setInteractive(false);
         clearBtn.setOnClose(() -> {
@@ -128,12 +128,12 @@ public class Select extends JPanel {
     }
 
     /** Convenience constructor: single-select non-filterable with given labels (value = label). */
-    public Select(String[] labels) {
+    public AstSelect(String[] labels) {
         this(false, false);
         for (String s : labels) addOption(new Option(s, s));
     }
 
-    /** Select a single option by its value (Object.equals). For single-select mode. */
+    /** AstSelect a single option by its value (Object.equals). For single-select mode. */
     public void setSelectedValue(Object value) {
         selected.clear();
         if (value != null) {
@@ -149,7 +149,7 @@ public class Select extends JPanel {
         return selected.isEmpty() ? null : selected.get(0).value;
     }
 
-    /** Select option by index. */
+    /** AstSelect option by index. */
     public void setSelectedIndex(int i) {
         selected.clear();
         if (i >= 0 && i < options.size()) selected.add(options.get(i));
@@ -300,7 +300,7 @@ public class Select extends JPanel {
         OptionRow(Option o) {
             this.option = o;
             setOpaque(false);
-            setPreferredSize(new Dimension(Math.max(180, Select.this.getWidth()), 32));
+            setPreferredSize(new Dimension(Math.max(180, AstSelect.this.getWidth()), 32));
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent e) { if (option.disabled) return; hoverAnim.go(hover, 1f); }
@@ -335,8 +335,8 @@ public class Select extends JPanel {
         assert !matches("Apple", "pear");
         assert !matches("", "a");
 
-        // 可清空：hover 淡入 ×，点击清空选择（复用 Input 的测试配方）
-        final Select sel = new Select(new String[]{"北京", "上海", "广州"});
+        // 可清空：hover 淡入 ×，点击清空选择（复用 AstInput 的测试配方）
+        final AstSelect sel = new AstSelect(new String[]{"北京", "上海", "广州"});
         sel.setSelectedIndex(1);
         assert "上海".equals(sel.getSelectedValue());
         final Throwable[] err = {null};
@@ -353,15 +353,15 @@ public class Select extends JPanel {
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         assert sel.getSelectedValue() == null : "clear should empty selection, got " + sel.getSelectedValue();
-        System.out.println("Select self-check OK");
+        System.out.println("AstSelect self-check OK");
     }
 
-    /** 测试辅助：向 Select 内的 CloseButton 派发按下事件。 */
-    private static void clearBtnClickForTest(Select sel) {
+    /** 测试辅助：向 AstSelect 内的 AstCloseButton 派发按下事件。 */
+    private static void clearBtnClickForTest(AstSelect sel) {
         for (Component c : sel.getComponents()) {
             if (c instanceof JPanel) {
                 for (Component cc : ((JPanel) c).getComponents()) {
-                    if (cc instanceof CloseButton) {
+                    if (cc instanceof AstCloseButton) {
                         cc.dispatchEvent(new java.awt.event.MouseEvent(cc, java.awt.event.MouseEvent.MOUSE_PRESSED,
                                 System.currentTimeMillis(), 0, 8, 8, 1, false));
                         return;
@@ -369,7 +369,7 @@ public class Select extends JPanel {
                 }
             }
         }
-        throw new AssertionError("CloseButton not found in Select");
+        throw new AssertionError("AstCloseButton not found in AstSelect");
     }
 
     public static void main(String[] args) { selfCheck(); }

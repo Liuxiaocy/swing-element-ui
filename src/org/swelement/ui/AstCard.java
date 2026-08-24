@@ -148,8 +148,8 @@ public class AstCard extends JComponent {
         JLabel line2 = new JLabel("邮箱：zhangsan@example.com"); line2.setForeground(ElementTheme.TEXT_REGULAR);
         body.add(line1); body.add(Box.createVerticalStrut(6)); body.add(line2);
         c.setContent(body);
-        c.addHeaderAction(new Button("编辑", Button.DEFAULT, false));
-        c.addHeaderAction(new Button("删除", Button.DANGER, false));
+        c.addHeaderAction(new AstButton("编辑", AstButton.DEFAULT, false));
+        c.addHeaderAction(new AstButton("删除", AstButton.DANGER, false));
         final Throwable[] err = {null};
         try {
             SwingUtilities.invokeAndWait(new Runnable() { public void run() {

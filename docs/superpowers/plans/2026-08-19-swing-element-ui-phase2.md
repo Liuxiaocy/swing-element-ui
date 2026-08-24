@@ -374,7 +374,7 @@ public class Select extends JPanel {
         assert matches("苹果", "苹");
         assert !matches("Apple", "pear");
         assert !matches("", "a");
-        System.out.println("Select self-check OK");
+        System.out.println("AstSelect self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }
@@ -388,8 +388,9 @@ public class Select extends JPanel {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstSelect;
 import org.swelement.ui.Select;
-import org.swelement.ui.Select.Option;
+import org.swelement.ui.AstSelect.Option;
 
 import javax.swing.*;
 import java.awt.*;
@@ -397,33 +398,33 @@ import java.awt.*;
 public class SelectDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Select Demo");
+            JFrame f = new JFrame("AstSelect Demo");
             JPanel p = new JPanel(new FlowLayout(40, 40, 40));
 
-            Select single = new Select(false, false);
+            AstSelect single = new AstSelect(false, false);
             single.addOption(new Option("北京", 1));
             single.addOption(new Option("上海", 2));
             single.addOption(new Option("广州", 3));
             p.add(single);
 
-            Select groups = new Select(false, false);
+            AstSelect groups = new AstSelect(false, false);
             groups.addOption(new Option("苹果", 1, "水果", false));
             groups.addOption(new Option("香蕉", 2, "水果", false));
             groups.addOption(new Option("白菜", 3, "蔬菜", false));
             groups.addOption(new Option("萝卜", 4, "蔬菜", false));
             p.add(groups);
 
-            Select multi = new Select(true, false);
+            AstSelect multi = new AstSelect(true, false);
             multi.addOption(new Option("Red", 1));
             multi.addOption(new Option("Green", 2));
             multi.addOption(new Option("Blue", 3));
             p.add(multi);
 
-            Select search = new Select(true, true);
+            AstSelect search = new AstSelect(true, true);
             for (int i = 1; i <= 10; i++) search.addOption(new Option("选项 " + i, i));
             p.add(search);
 
-            Select disabled = new Select(false, false);
+            AstSelect disabled = new AstSelect(false, false);
             disabled.addOption(new Option("禁用项", 1));
             disabled.setEnabled(false);
             p.add(disabled);
@@ -443,7 +444,7 @@ public class SelectDemo {
 Run:
 ```
 .\build.bat
-java -ea -cp out org.swelement.ui.Select
+java -ea -cp out org.swelement.ui.AstSelect
 ```
 Expected: `Select self-check OK`。
 然后 `java -cp out org.swelement.demo.SelectDemo`，用 Start-Process 启动 3 秒、stderr 为空（窗口本身由人工目视验收）。
@@ -451,7 +452,7 @@ Expected: `Select self-check OK`。
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Select.java src/org/swelement/demo/SelectDemo.java
+git add src/org/swelement/ui/AstSelect.java src/org/swelement/demo/SelectDemo.java
 git commit -m "feat: Select with multiple/filterable/groups + demo"
 ```
 
@@ -600,6 +601,7 @@ public class Tabs extends JComponent {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstTabs;
 import org.swelement.ui.Tabs;
 
 import javax.swing.*;
@@ -608,9 +610,9 @@ import java.awt.*;
 public class TabsDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Tabs Demo");
+            JFrame f = new JFrame("AstTabs Demo");
             JPanel p = new JPanel(new FlowLayout(40, 40, 40));
-            Tabs tabs = new Tabs();
+            AstTabs tabs = new AstTabs();
             for (int i = 1; i <= 4; i++) {
                 JLabel l = new JLabel("面板 " + i, SwingConstants.CENTER);
                 l.setFont(new Font("Microsoft YaHei", Font.PLAIN, 24));
@@ -634,7 +636,7 @@ Run: `.\build.bat`；`java -cp out org.swelement.demo.TabsDemo` 启动 3 秒、s
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Tabs.java src/org/swelement/demo/TabsDemo.java
+git add src/org/swelement/ui/AstTabs.java src/org/swelement/demo/TabsDemo.java
 git commit -m "feat: Tabs with sliding indicator + content fade + demo"
 ```
 
@@ -788,7 +790,7 @@ public class Pagination extends JComponent {
         assert pageWindow(9, 10).equals(java.util.Arrays.asList(1, -1, 7, 8, 9, 10));
         assert pageWindow(1, 1).equals(java.util.Arrays.asList(1));
         assert pageWindow(1, 3).equals(java.util.Arrays.asList(1, 2, 3));
-        System.out.println("Pagination self-check OK");
+        System.out.println("AstPagination self-check OK");
     }
 
     public static void main(String[] args) { selfCheck(); }
@@ -811,7 +813,7 @@ public class Pagination extends JComponent {
         }
 ```
 
-并在 `Pagination` 类中新增静态辅助（从组件上取 animator 有难度，改为让匿名类直接持引用——将 Step 1 的匿名 JLabel 改为普通内部类 `PageButton extends JLabel`，构造 `PageButton(String text, int page)`，hover 动画字段与监听全在类内部，鼠标监听直接 `hoverAnim.go(hover, ...)`）。即：**删除 Step 1 的 pageButton 匿名类版本，改用以下 PageButton 内部类**：
+并在 `AstPagination` 类中新增静态辅助（从组件上取 animator 有难度，改为让匿名类直接持引用——将 Step 1 的匿名 JLabel 改为普通内部类 `PageButton extends JLabel`，构造 `PageButton(String text, int page)`，hover 动画字段与监听全在类内部，鼠标监听直接 `hoverAnim.go(hover, ...)`）。即：**删除 Step 1 的 pageButton 匿名类版本，改用以下 PageButton 内部类**：
 
 ```java
     private class PageButton extends JLabel {
@@ -862,7 +864,7 @@ public class Pagination extends JComponent {
 ```java
 package org.swelement.demo;
 
-import org.swelement.ui.Pagination;
+import org.swelement.ui.AstPagination;
 
 import javax.swing.*;
 import java.awt.*;
@@ -870,9 +872,9 @@ import java.awt.*;
 public class PaginationDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Pagination Demo");
+            JFrame f = new JFrame("AstPagination Demo");
             JPanel p = new JPanel(new FlowLayout(40, 40, 40));
-            Pagination pg = new Pagination();
+            AstPagination pg = new AstPagination();
             pg.setTotal(256);
             JLabel info = new JLabel("当前页: 1");
             pg.addPageChangeListener(v -> info.setText("当前页: " + v));
@@ -895,7 +897,7 @@ Run: `.\build.bat`；`java -ea -cp out org.swelement.ui.Pagination` → `Paginat
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/org/swelement/ui/Pagination.java src/org/swelement/demo/PaginationDemo.java
+git add src/org/swelement/ui/AstPagination.java src/org/swelement/demo/PaginationDemo.java
 git commit -m "feat: Pagination with page window + hover + demo"
 ```
 
@@ -1090,7 +1092,7 @@ public class Menu extends JComponent {
 
 - [ ] **Step 2: 修正 hover 动画驱动方式**
 
-删除 `paintComponent` 中的 `en.hoverAnim.go(en.hover, 0f);` 行（以及 `// 见下方注` 注释）。在 `Menu` 构造器中增加鼠标移动/进出跟踪：
+删除 `paintComponent` 中的 `en.hoverAnim.go(en.hover, 0f);` 行（以及 `// 见下方注` 注释）。在 `AstMenu` 构造器中增加鼠标移动/进出跟踪：
 
 ```java
         addMouseMotionListener(new MouseAdapter() {
@@ -1122,7 +1124,7 @@ public class Menu extends JComponent {
 ```java
 package org.swelement.demo;
 
-import org.swelement.ui.Menu;
+import org.swelement.ui.AstMenu;
 
 import javax.swing.*;
 import java.awt.*;
@@ -1130,9 +1132,9 @@ import java.awt.*;
 public class MenuDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Menu Demo");
+            JFrame f = new JFrame("AstMenu Demo");
             JPanel p = new JPanel(new BorderLayout());
-            Menu menu = new Menu();
+            AstMenu menu = new AstMenu();
             menu.addMenuItem("首页", () -> System.out.println("home"));
             menu.addMenuItem("新闻", () -> System.out.println("news"));
             menu.addSubMenu("关于", new String[]{"项目", "团队", "联系方式"},
@@ -1155,7 +1157,7 @@ Run: `.\build.bat`；`java -cp out org.swelement.demo.MenuDemo` 启动 3 秒 std
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/org/swelement/ui/Menu.java src/org/swelement/demo/MenuDemo.java
+git add src/org/swelement/ui/AstMenu.java src/org/swelement/demo/MenuDemo.java
 git commit -m "feat: horizontal Menu with animated underline + submenu popup + demo"
 ```
 
@@ -1274,6 +1276,7 @@ public class Tag extends JComponent {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstTag;
 import org.swelement.ui.Tag;
 
 import javax.swing.*;
@@ -1282,15 +1285,15 @@ import java.awt.*;
 public class TagDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Tag Demo");
+            JFrame f = new JFrame("AstTag Demo");
             JPanel p = new JPanel(new FlowLayout(20, 20, 20));
-            Tag t1 = new Tag("标签一", Tag.DEFAULT_SAFE, false);
-            p.add(new Tag("默认", Tag.PRIMARY, false));
-            p.add(new Tag("成功", Tag.SUCCESS, false));
-            p.add(new Tag("警告", Tag.WARNING, false));
-            p.add(new Tag("危险", Tag.DANGER, true));
-            p.add(new Tag("信息", Tag.INFO, false));
-            p.add(new Tag("可删除", Tag.DANGER, true));
+            AstTag t1 = new AstTag("标签一", AstTag.DEFAULT_SAFE, false);
+            p.add(new AstTag("默认", AstTag.PRIMARY, false));
+            p.add(new AstTag("成功", AstTag.SUCCESS, false));
+            p.add(new AstTag("警告", AstTag.WARNING, false));
+            p.add(new AstTag("危险", AstTag.DANGER, true));
+            p.add(new AstTag("信息", AstTag.INFO, false));
+            p.add(new AstTag("可删除", AstTag.DANGER, true));
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             f.setContentPane(p);
             f.pack();
@@ -1310,7 +1313,7 @@ Run: `.\build.bat`；`java -cp out org.swelement.demo.TagDemo` 启动 3 秒 stde
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Tag.java src/org/swelement/demo/TagDemo.java
+git add src/org/swelement/ui/AstTag.java src/org/swelement/demo/TagDemo.java
 git commit -m "feat: Tag with types and shrink-close animation + demo"
 ```
 
@@ -1390,6 +1393,7 @@ public class Progress extends JComponent {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstProgress;
 import org.swelement.ui.Progress;
 
 import javax.swing.*;
@@ -1398,15 +1402,15 @@ import java.awt.*;
 public class ProgressDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Progress Demo");
+            JFrame f = new JFrame("AstProgress Demo");
             JPanel p = new JPanel(new GridLayout(4, 1, 10, 10));
             p.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-            Progress a = new Progress();
+            AstProgress a = new AstProgress();
             p.add(a);
-            Progress b = new Progress();
+            AstProgress b = new AstProgress();
             b.setShowText(false);
             p.add(b);
-            Progress c = new Progress();
+            AstProgress c = new AstProgress();
             p.add(c);
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             f.setContentPane(p);
@@ -1424,7 +1428,7 @@ public class ProgressDemo {
 }
 ```
 
-> 注：`Progress` 没有 `getValue()` —— Step 2 里 a 的递增改用计数器变量。修正为：
+> 注：`AstProgress` 没有 `getValue()` —— Step 2 里 a 的递增改用计数器变量。修正为：
 
 ```java
             int[] counter = {0};
@@ -1445,7 +1449,7 @@ Run: `.\build.bat`；`java -cp out org.swelement.demo.ProgressDemo` 启动 3 秒
 - [ ] **Step 4: 提交**
 
 ```bash
-git add src/org/swelement/ui/Progress.java src/org/swelement/demo/ProgressDemo.java
+git add src/org/swelement/ui/AstProgress.java src/org/swelement/demo/ProgressDemo.java
 git commit -m "feat: Progress bar with animated fill + demo"
 ```
 
@@ -1564,6 +1568,7 @@ public class Badge extends JComponent {
 ```java
 package org.swelement.demo;
 
+import org.swelement.ui.AstBadge;
 import org.swelement.ui.Badge;
 
 import javax.swing.*;
@@ -1572,17 +1577,17 @@ import java.awt.*;
 public class BadgeDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Badge Demo");
+            JFrame f = new JFrame("AstBadge Demo");
             JPanel p = new JPanel(new FlowLayout(60, 40, 40));
-            Badge b1 = new Badge();
+            AstBadge b1 = new AstBadge();
             b1.setContent(new JButton("消息"));
             b1.setCount(8);
             p.add(b1);
-            Badge b2 = new Badge();
+            AstBadge b2 = new AstBadge();
             b2.setContent(new JButton("评论"));
             b2.setCount(100);
             p.add(b2);
-            Badge b3 = new Badge();
+            AstBadge b3 = new AstBadge();
             b3.setContent(new JButton("通知"));
             b3.setDot(true);
             p.add(b3);
@@ -1609,7 +1614,7 @@ Run: `.\build.bat`；`java -cp out org.swelement.demo.BadgeDemo` 启动 3 秒 st
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/org/swelement/ui/Badge.java src/org/swelement/demo/BadgeDemo.java
+git add src/org/swelement/ui/AstBadge.java src/org/swelement/demo/BadgeDemo.java
 git commit -m "feat: Badge with pop animation + demo"
 ```
 
@@ -1729,7 +1734,7 @@ public class Alert extends JComponent {
 
 - [ ] **Step 2: 触发出现动画**
 
-在 `Alert` 构造器末尾（`setPreferredSize` 之后）加一行：
+在 `AstAlert` 构造器末尾（`setPreferredSize` 之后）加一行：
 
 ```java
         inAnim.go(0f, 1f);
@@ -1744,25 +1749,24 @@ public class Alert extends JComponent {
 ```java
 package org.swelement.demo;
 
-import org.swelement.ui.Alert;
+import org.swelement.ui.AstAlert;
 
 import javax.swing.*;
-import java.awt.*;
 
 public class AlertDemo {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame f = new JFrame("Alert Demo");
+            JFrame f = new JFrame("AstAlert Demo");
             JPanel p = new JPanel();
             p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
             p.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-            p.add(new Alert(Alert.SUCCESS, "成功提示", "这是一条成功提示信息", true));
+            p.add(new AstAlert(AstAlert.SUCCESS, "成功提示", "这是一条成功提示信息", true));
             p.add(Box.createVerticalStrut(10));
-            p.add(new Alert(Alert.WARNING, "警告提示", "这是一条警告提示信息", true));
+            p.add(new AstAlert(AstAlert.WARNING, "警告提示", "这是一条警告提示信息", true));
             p.add(Box.createVerticalStrut(10));
-            p.add(new Alert(Alert.INFO, "消息提示", null, false));
+            p.add(new AstAlert(AstAlert.INFO, "消息提示", null, false));
             p.add(Box.createVerticalStrut(10));
-            p.add(new Alert(Alert.ERROR, "错误提示", "这是一条错误提示信息", true));
+            p.add(new AstAlert(AstAlert.ERROR, "错误提示", "这是一条错误提示信息", true));
             f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             f.setContentPane(p);
             f.pack();
@@ -1780,7 +1784,7 @@ Run: `.\build.bat`；`java -cp out org.swelement.demo.AlertDemo` 启动 3 秒 st
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/org/swelement/ui/Alert.java src/org/swelement/demo/AlertDemo.java
+git add src/org/swelement/ui/AstAlert.java src/org/swelement/demo/AlertDemo.java
 git commit -m "feat: Alert with types and collapse-close animation + demo"
 ```
 
@@ -1799,8 +1803,8 @@ Run: `.\build.bat`，然后依次运行（自检必须输出 OK）：
 java -ea -cp out org.swelement.core.Easing
 java -ea -cp out org.swelement.core.ElementTheme
 java -ea -cp out org.swelement.core.Animator
-java -ea -cp out org.swelement.ui.Select
-java -ea -cp out org.swelement.ui.Pagination
+java -ea -cp out org.swelement.ui.AstSelect
+java -ea -cp out org.swelement.ui.AstPagination
 ```
 随后 14 个 Demo（6 个 Phase 1 + 8 个 Phase 2）各启动 3 秒、stderr 为空：ButtonDemo, InputDemo, CheckboxDemo, RadioDemo, SwitchDemo, SliderDemo, SelectDemo, TabsDemo, PaginationDemo, MenuDemo, TagDemo, ProgressDemo, BadgeDemo, AlertDemo。
 
@@ -1822,8 +1826,8 @@ java -cp out org.swelement.demo.AlertDemo
 并在 `## 核心自检` 段追加：
 
 ```markdown
-java -ea -cp out org.swelement.ui.Select
-java -ea -cp out org.swelement.ui.Pagination
+java -ea -cp out org.swelement.ui.AstSelect
+java -ea -cp out org.swelement.ui.AstPagination
 ```
 
 - [ ] **Step 3: 提交**
@@ -1844,4 +1848,4 @@ git commit -m "docs: README phase 2 demos and self-checks"
 
 **2. Placeholder scan:** 无 TBD。Task 2/4/5/6/8/9 各含一处"修正步骤"，全部给出具体替换代码，无占位。
 
-**3. Type consistency:** `Animator(int, Easing, Listener)`、`go(float, float)`、`ElementTheme.lerp` 三重重载、`AnimatedPopup.getContent()` 在 Task 2/5 中用法一致；`Select.Option` 构造签名在 Demo 中一致；`Tag` 类型常量与 Demo 一致；`Progress`/`Badge`/`Alert` 构造与 Demo 一致。Task 8 修正 `Animitor`→`Animator`（拼写），Task 9 修正 `inP` 未触发（构造后启动动画），Task 6 修正 Demo 引用了不存在的 `Tag.DEFAULT_SAFE`。
+**3. Type consistency:** `Animator(int, Easing, Listener)`、`go(float, float)`、`ElementTheme.lerp` 三重重载、`AnimatedPopup.getContent()` 在 Task 2/5 中用法一致；`Select.Option` 构造签名在 Demo 中一致；`AstTag` 类型常量与 Demo 一致；`AstProgress`/`AstBadge`/`AstAlert` 构造与 Demo 一致。Task 8 修正 `Animitor`→`Animator`（拼写），Task 9 修正 `inP` 未触发（构造后启动动画），Task 6 修正 Demo 引用了不存在的 `Tag.DEFAULT_SAFE`。

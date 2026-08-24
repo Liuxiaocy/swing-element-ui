@@ -157,7 +157,7 @@ public class AstMessageBox {
             for (int i = 0; i < cur.getComponentCount(); i++) {
                 Component ch = cur.getComponent(i);
                 if (ch instanceof JLabel) { if (text.equals(((JLabel) ch).getText())) return ch; }
-                else if (ch instanceof Button) { if (text.equals(((Button) ch).getText())) return ch; }
+                else if (ch instanceof AstButton) { if (text.equals(((AstButton) ch).getText())) return ch; }
                 else if (ch instanceof AbstractButton) { if (text.equals(((AbstractButton) ch).getText())) return ch; }
                 if (ch instanceof Container) q.add((Container) ch);
             }
@@ -196,7 +196,7 @@ public class AstMessageBox {
         final int[] cb = {0, 0};
         try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
             JFrame jf = new JFrame("MsgBox self-check"); jf.setSize(800, 600); jf.setVisible(true);
-            // Alert ERROR → click 确定
+            // AstAlert ERROR → click 确定
             AstMessageBox.alert(jf, AstMessageBox.MessageBoxType.ERROR, "发生错误");
             try { Thread.sleep(260); } catch (InterruptedException ignore) {}
             Component gp = jf.getGlassPane(); assert gp != null && gp.isVisible();

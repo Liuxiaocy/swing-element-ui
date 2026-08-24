@@ -9,10 +9,11 @@
 ![基本用法](../screenshots/input-default.png)
 
 ```java
+import org.swelement.ui.AstInput;
 import org.swelement.ui.Input;
 
 // 带占位符的输入框
-Input input = new Input("请输入内容");
+AstInput input = new AstInput("请输入内容");
 ```
 
 ## 可清空
