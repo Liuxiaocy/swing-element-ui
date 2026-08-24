@@ -15,7 +15,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
-public class AstInput extends JPanel {
+public class AstInput extends JPanel implements FormValueProvider, FormInvalidMarker {
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     private static final int[] TIER_HEIGHT = {40, 32, 28};
     private static final float[] TIER_FONT = {14f, 13f, 12f};
@@ -43,6 +43,7 @@ public class AstInput extends JPanel {
     private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
     private float focus, hover, clearVis;
     private boolean hasText, hovering, focused;
+    private boolean invalid = false;
     private final String placeholder;
 
     public AstInput(String placeholder) { this(placeholder, TEXT); }
@@ -202,6 +203,7 @@ public class AstInput extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         Color border = ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, Math.max(focus, hover));
         if (!isEnabled()) border = new Color(0xE4E7ED);
+        if (invalid) border = ElementTheme.DANGER;
         Color bg = isEnabled() ? ElementTheme.lerp(ElementTheme.FILL_BLANK, ElementTheme.FILL_BASE, hover) : ElementTheme.FILL_BASE;
         Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, ElementTheme.RADIUS * 2, ElementTheme.RADIUS * 2);
         g2.setColor(bg);
@@ -224,6 +226,10 @@ public class AstInput extends JPanel {
     /** 列数（透传给内嵌文本框，决定首选宽度；高度由尺寸档位决定）。 */
     public void setColumns(int columns) { field.setColumns(columns); revalidate(); }
     public void setText(String t) { field.setText(t); }
+
+    @Override public String getFormValue() { return getText(); }
+    @Override public void setFormValue(String v) { setText(v == null ? "" : v); }
+    @Override public void setInvalid(boolean inv) { this.invalid = inv; repaint(); }
 
     @Override
     public void setEnabled(boolean enabled) {
@@ -292,6 +298,14 @@ public class AstInput extends JPanel {
         // 重复设置不叠加
         pi.setPrefixIcon(AstIcon.USER);
         assert countAstIcons(pi) == 1 : "prefix icon replaced, count=" + countAstIcons(pi);
+
+        // FormValueProvider 取值契约
+        AstInput fb = new AstInput("占位");
+        fb.setText("hello");
+        assert fb.getFormValue().equals("hello") : "AstInput.getFormValue";
+        fb.setFormValue("world");
+        assert fb.getFormValue().equals("world") : "AstInput.setFormValue";
+
         System.out.println("AstInput self-check OK");
     }
 

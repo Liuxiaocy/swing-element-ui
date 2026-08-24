@@ -16,7 +16,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AstSelect extends JPanel {
+public class AstSelect extends JPanel implements FormValueProvider, FormInvalidMarker {
     public static class Option {
         public final String label;
         public final Object value;
@@ -50,6 +50,7 @@ public class AstSelect extends JPanel {
     private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
     private float clearVis;
     private boolean hovering;
+    private boolean invalid = false;
 
     public AstSelect(boolean multiple, boolean filterable) {
         this.multiple = multiple;
@@ -169,6 +170,26 @@ public class AstSelect extends JPanel {
 
     public List<Option> getOptions() { return new ArrayList<>(options); }
 
+    @Override public String getFormValue() {
+        if (multiple) {
+            StringBuilder sb = new StringBuilder();
+            for (Option o : selected) { if (sb.length() > 0) sb.append(","); sb.append(o.value); }
+            return sb.toString();
+        }
+        Object v = getSelectedValue();
+        return v == null ? "" : String.valueOf(v);
+    }
+    @Override public void setFormValue(String v) {
+        selected.clear();
+        if (v != null && !v.isEmpty()) {
+            for (String tok : v.split(",")) {
+                for (Option o : options) if (String.valueOf(o.value).equals(tok.trim())) { selected.add(o); break; }
+            }
+        }
+        updateDisplay();
+    }
+    @Override public void setInvalid(boolean inv) { this.invalid = inv; repaint(); }
+
     static boolean matches(String label, String filter) {
         return label.toLowerCase().contains(filter.toLowerCase());
     }
@@ -271,6 +292,7 @@ public class AstSelect extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         boolean highlighted = popupShown || fieldFocus;
         Color border = isEnabled() ? (highlighted ? ElementTheme.PRIMARY : new Color(0xDCDFE6)) : new Color(0xE4E7ED);
+        if (invalid) border = ElementTheme.DANGER;
         Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
         g2.setColor(isEnabled() ? Color.WHITE : ElementTheme.FILL_BASE);
         g2.fill(shape);
@@ -353,6 +375,20 @@ public class AstSelect extends JPanel {
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         assert sel.getSelectedValue() == null : "clear should empty selection, got " + sel.getSelectedValue();
+
+        // FormValueProvider 取值契约（单选 + 多选）
+        AstSelect ss = new AstSelect(new String[]{"a", "b", "c"});
+        ss.setSelectedValue("a");
+        assert "a".equals(ss.getFormValue()) : "AstSelect single getFormValue, got " + ss.getFormValue();
+        AstSelect ms = new AstSelect(true, false);
+        ms.addOption(new AstSelect.Option("A", "a"));
+        ms.addOption(new AstSelect.Option("B", "b"));
+        ms.addOption(new AstSelect.Option("C", "c"));
+        ms.setFormValue("a,c");
+        assert "a,c".equals(ms.getFormValue()) : "AstSelect multi getFormValue, got " + ms.getFormValue();
+        ms.setFormValue("");
+        assert ms.getFormValue().isEmpty() : "AstSelect multi empty after setFormValue('')";
+
         System.out.println("AstSelect self-check OK");
     }
 
