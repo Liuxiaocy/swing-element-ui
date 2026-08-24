@@ -68,7 +68,12 @@ public class AstTree extends JComponent {
     // 每个节点的展开动画进度 (0=折叠, 1=展开)
     private final java.util.IdentityHashMap<TreeNode, float[]> expandAnim = new java.util.IdentityHashMap<TreeNode, float[]>();
 
-    private static final int ROW_H = 26;
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private static final int[] TIER_ROW_H = {34, 26, 22};
+    private static final float[] TIER_FONT = {14f, 13f, 12f};
+    private int tier = SIZE_DEFAULT;
+    private int rowH = 26;
+    private Font nodeFont = ElementTheme.FONT.deriveFont(14f);
     private static final int INDENT = 20;       // 每级缩进
     private static final int EXPANDER_W = 16;    // 展开图标宽度
     private static final int LEFT_PAD = 4;       // 左侧基础内边距
@@ -86,6 +91,7 @@ public class AstTree extends JComponent {
         if (root == null) throw new IllegalArgumentException("root must not be null");
         this.root = root;
         rebuildFlatRows();
+        applyTier();
         // hover animation (shared for whichever row is hovered)
         hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
             new Animator.Listener() { public void update(float v) { hoverAlpha = v; repaint(); }});
@@ -202,12 +208,25 @@ public class AstTree extends JComponent {
     @Override public Dimension getPreferredSize() {
         int rows = flatRows.size();
         int visibleRows = Math.min(MAX_VISIBLE_ROWS_DEFAULT, Math.max(1, rows));
-        int h = visibleRows * ROW_H + 4;
+        int h = visibleRows * rowH + 4;
         int w = 320; // 默认宽度
         return new Dimension(w, h);
     }
 
-    @Override public Dimension getMinimumSize() { return new Dimension(120, ROW_H * 2); }
+    @Override public Dimension getMinimumSize() { return new Dimension(120, rowH * 2); }
+
+    // --- 尺寸档位（对齐 Element UI）---
+    public void setSize(int tier) {
+        if (tier < SIZE_LARGE || tier > SIZE_SMALL) throw new IllegalArgumentException("tier out of range: " + tier);
+        this.tier = tier;
+        applyTier();
+        revalidate();
+    }
+
+    private void applyTier() {
+        this.rowH = TIER_ROW_H[tier];
+        this.nodeFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
+    }
 
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
@@ -222,7 +241,7 @@ public class AstTree extends JComponent {
         // 绘制每一可见行
         for (int i = 0; i < flatRows.size(); i++) {
             FlatRow row = flatRows.get(i);
-            int y = i * ROW_H + 2;
+            int y = i * rowH + 2;
             paintRow(g2, row, y, i == hoverIndex);
         }
         g2.dispose();
@@ -249,31 +268,31 @@ public class AstTree extends JComponent {
             ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTree idle row");
         }
         g2.setColor(bg);
-        g2.fillRect(0, y, w, ROW_H);
+        g2.fillRect(0, y, w, rowH);
         // 连接线（dashed 竖线）
         g2.setColor(ElementTheme.BORDER_BASE);
         g2.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, new float[]{2f, 2f}, 0f));
         for (int d = 0; d <= depth; d++) {
             int lx = LEFT_PAD + d * INDENT + EXPANDER_W / 2;
-            g2.drawLine(lx, y, lx, y + ROW_H);
+            g2.drawLine(lx, y, lx, y + rowH);
         }
         g2.setStroke(new BasicStroke(1f));
         // 展开图标 ▶/▼
         if (row.node.hasChildren()) {
             g2.setColor(textColor);
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 12f));
+            g2.setFont(nodeFont.deriveFont(Font.PLAIN));
             FontMetrics fmE = g2.getFontMetrics();
             String icon = row.node.isExpanded() ? "▼" : "▶";
             int ix = expX + (EXPANDER_W - fmE.stringWidth(icon)) / 2;
-            int iy = y + (ROW_H - fmE.getHeight()) / 2 + fmE.getAscent();
+            int iy = y + (rowH - fmE.getHeight()) / 2 + fmE.getAscent();
             g2.drawString(icon, ix, iy);
         }
         // 标签
         g2.setColor(textColor);
-        g2.setFont(ElementTheme.FONT.deriveFont(14f));
+        g2.setFont(nodeFont);
         FontMetrics fm = g2.getFontMetrics();
         int labelX = expX + EXPANDER_W + 4;
-        int labelY = y + (ROW_H - fm.getHeight()) / 2 + fm.getAscent();
+        int labelY = y + (rowH - fm.getHeight()) / 2 + fm.getAscent();
         String label = row.node.label;
         int maxW = w - labelX - 8;
         if (fm.stringWidth(label) > maxW) {
@@ -307,7 +326,7 @@ public class AstTree extends JComponent {
 
     private int rowAtPoint(Point p) {
         if (p.y < 2) return -1;
-        int idx = (p.y - 2) / ROW_H;
+        int idx = (p.y - 2) / rowH;
         if (idx < 0 || idx >= flatRows.size()) return -1;
         return idx;
     }
@@ -465,7 +484,7 @@ public class AstTree extends JComponent {
                 // Verify flat: r, x, x1, x2, y (x 已展开)
                 assert t2.flatRows.size() == 5 : "t2 flat=5; actual=" + t2.flatRows.size();
                 // Click row 1 (x) on its label area (past expander) → should select
-                int labelY = 2 + 1 * ROW_H + ROW_H / 2;
+                int labelY = 2 + 1 * t2.rowH + t2.rowH / 2;
                 int labelX = LEFT_PAD + 1 * INDENT + EXPANDER_W + 8;
                 t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, labelX, labelY, 0, false));
                 t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, labelX, labelY, 1, false));
@@ -485,6 +504,20 @@ public class AstTree extends JComponent {
             }
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+
+        // 尺寸档位（R1）：行高随档位单调缩放，非法档位抛异常
+        AstTree t3 = new AstTree(new TreeNode("r"));
+        t3.setSize(AstTree.SIZE_LARGE);
+        int hL = t3.getPreferredSize().height;
+        t3.setSize(AstTree.SIZE_DEFAULT);
+        int hD = t3.getPreferredSize().height;
+        t3.setSize(AstTree.SIZE_SMALL);
+        int hS = t3.getPreferredSize().height;
+        assert hL > hD && hD > hS : "AstTree 档位行高应单调递减 L>D>S, got " + hL + "," + hD + "," + hS;
+        threw = false;
+        try { t3.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "AstTree 非法档位应抛异常";
+
         System.out.println("AstTree self-check OK");
     }
 
