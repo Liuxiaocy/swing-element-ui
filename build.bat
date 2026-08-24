@@ -63,6 +63,7 @@ src\org\swelement\ui\AstTree.java ^
 src\org\swelement\ui\AstTable.java ^
 src\org\swelement\demo\AstAdvancedDemo.java ^
 src\org\swelement\demo\AstP2P3Demo.java ^
+src\org\swelement\demo\AstFormDemo.java ^
 src\org\swelement\ui\AstDivider.java ^
 src\org\swelement\ui\AstIcon.java ^
 src\org\swelement\ui\AstRate.java ^
