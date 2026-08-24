@@ -63,6 +63,10 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
     private final List<ColumnPanel> columns = new ArrayList<ColumnPanel>();
     private boolean open;
     private boolean invalid = false;
+
+    // --- 尺寸档位（对齐 Element UI，与 AstInput 一致）---
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private int tier = SIZE_DEFAULT;
     private static final int COL_W = 160;
     private static final int ROW_H = 32;
     private static final int MAX_VISIBLE_ROWS = 8;
@@ -85,6 +89,20 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
         setLayout(new BorderLayout());
         add(invoker, BorderLayout.CENTER);
         setOpaque(false);
+        applyTier();
+    }
+
+    /** 尺寸档位（对齐 Element UI）：触发框高度由 invoker(AstButton) 档位驱动。 */
+    public void setSize(int t) {
+        if (t < SIZE_LARGE || t > SIZE_SMALL) throw new IllegalArgumentException("invalid size tier: " + t);
+        this.tier = t;
+        applyTier();
+        revalidate();
+        repaint();
+    }
+
+    private void applyTier() {
+        invoker.setSize(tier);
     }
 
     public void setPlaceholder(String s) {
@@ -442,6 +460,18 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
         assert cc2.getFormValue().isEmpty() : "Cascader empty getFormValue";
         cc2.setFormValue("x");
         assert cc2.getFormValue().isEmpty() : "Cascader setFormValue clears";
+
+        // 尺寸档位（R1）：触发框高度随档位单调变化（由 invoker AstButton 档位驱动）
+        AstCascader cz = new AstCascader(java.util.Arrays.asList(new AstCascader.Option("x")), 1);
+        int czDef = cz.getPreferredSize().height;
+        cz.setSize(AstCascader.SIZE_LARGE);
+        int czL = cz.getPreferredSize().height;
+        cz.setSize(AstCascader.SIZE_SMALL);
+        int czS = cz.getPreferredSize().height;
+        assert czL > czDef && czDef > czS : "Cascader tier height monotonic LARGE>DEFAULT>SMALL, got " + czL + "/" + czDef + "/" + czS;
+        boolean czT = false;
+        try { cz.setSize(9); } catch (IllegalArgumentException e) { czT = true; }
+        assert czT : "Cascader invalid tier throws";
 
         System.out.println("AstCascader self-check OK");
     }
