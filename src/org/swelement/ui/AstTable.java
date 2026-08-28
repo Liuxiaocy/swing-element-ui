@@ -53,6 +53,8 @@ public class AstTable extends JPanel {
 
     // --- 尺寸档位（对齐 Element UI）---
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    public static final AstTableModel.SelectionMode SELECTION_SINGLE = AstTableModel.SelectionMode.SINGLE;
+    public static final AstTableModel.SelectionMode SELECTION_MULTIPLE = AstTableModel.SelectionMode.MULTIPLE;
     private static final int[] TIER_HEADER_H = {44, 36, 32};
     private static final int[] TIER_ROW_H = {40, 32, 28};
     private static final float[] TIER_FONT = {14f, 14f, 13f};
@@ -62,6 +64,10 @@ public class AstTable extends JPanel {
     private Font cellFont = ElementTheme.FONT.deriveFont(14f);
 
     private static final int CELL_PAD_X = 12;
+    /** 多选模式选择列宽度（始终冻结在左侧）。 */
+    private static final int SELECT_COL_W = 44;
+    private boolean multiSelect() { return model.getSelectionMode() == AstTableModel.SelectionMode.MULTIPLE; }
+    private int selectColW() { return multiSelect() ? SELECT_COL_W : 0; }
 
     // --- Constructors ---
     public AstTable(AstTableColumn[] cols) {
@@ -133,6 +139,11 @@ public class AstTable extends JPanel {
         if (row < -1 || row >= model.viewRowCount()) throw new IndexOutOfBoundsException("row " + row);
         model.setSelectedViewRow(row); repaint();
     }
+    /** 设置选择模式（单选/多选）；切换会清空当前选择。 */
+    public void setSelectionMode(AstTableModel.SelectionMode m) {
+        if (m == null) throw new IllegalArgumentException("mode must not be null");
+        model.setSelectionMode(m); revalidate(); repaint();
+    }
     public void setRowClickListener(Consumer<Integer> l) {
         if (l == null) throw new IllegalArgumentException("listener must not be null");
         this.rowClickListener = l;
@@ -163,9 +174,9 @@ public class AstTable extends JPanel {
     // --- Layout / paint（容器画白底+外边框，视图画内容）---
     @Override public Dimension getPreferredSize() {
         int h = headerH + model.viewRowCount() * rowH + footerView.getPreferredHeight() + 2;
-        return new Dimension(getTotalWidth() + 2, h);
+        return new Dimension(getTotalWidth() + selectColW() + 2, h);
     }
-    @Override public Dimension getMinimumSize() { return new Dimension(getTotalWidth() + 2, headerH + rowH); }
+    @Override public Dimension getMinimumSize() { return new Dimension(getTotalWidth() + selectColW() + 2, headerH + rowH); }
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
     @Override protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
@@ -179,6 +190,18 @@ public class AstTable extends JPanel {
     // ===================== HeaderView =====================
     public class HeaderView extends JComponent {
         private int hH = 36; private Font hf;
+        HeaderView() {
+            setOpaque(false);
+            addMouseListener(new MouseAdapter() {
+                @Override public void mousePressed(MouseEvent e) {
+                    if (!multiSelect()) return;
+                    int scw = selectColW();
+                    if (e.getX() >= 0 && e.getX() < scw && e.getY() < getPreferredHeight()) {
+                        model.toggleSelectAll(); repaint();
+                    }
+                }
+            });
+        }
         void applyTier(int h, Font f) { this.hH = h; this.hf = f; }
         int getDepth() { int d = 1; for (AstTableColumn c : model.getColumns()) d = Math.max(d, c.getDepth()); return d; }
         int getPreferredHeight() { return getDepth() * hH; }
@@ -193,12 +216,20 @@ public class AstTable extends JPanel {
             g2.drawLine(0, hh - 1, w, hh - 1);
             g2.setColor(Color.WHITE); g2.setFont(hf);
             FontMetrics fm = g2.getFontMetrics();
-            List<AstTableColumn> leaves = model.getLeafColumns();
-            int flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
+            int scw = selectColW(), flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
+            int leftBand = scw + flw;
             int sx = bodyView.scrollX;
-            if (w - flw - frw > 0) { g2.clipRect(flw, 0, w - flw - frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), -sx, 0); g2.setClip(null); }
-            if (flw > 0) { g2.clipRect(0, 0, flw, hh); paintHeaderGroups(g2, fm, model.getColumns(), 0, 0); g2.setClip(null); g2.drawLine(flw, 0, flw, hh); }
-            if (frw > 0) { g2.clipRect(w - frw, 0, frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), w - tlw, 0); g2.setClip(null); g2.drawLine(w - frw, 0, w - frw, hh); }
+            // 选择列（多选模式）：全选复选框，始终冻结左侧
+            if (scw > 0) {
+                g2.clipRect(0, 0, scw, hh);
+                boolean all = model.viewRowCount() > 0 && model.getSelectedViewRows().size() == model.viewRowCount();
+                drawCheckbox(g2, scw / 2, hh / 2, all);
+                g2.setClip(null);
+                g2.drawLine(scw, 0, scw, hh);
+            }
+            if (w - leftBand - frw > 0) { g2.clipRect(leftBand, 0, w - leftBand - frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), -sx, 0); g2.setClip(null); }
+            if (leftBand > 0) { g2.clipRect(0, 0, leftBand, hh); paintHeaderGroups(g2, fm, model.getColumns(), scw, 0); g2.setClip(null); g2.drawLine(leftBand, 0, leftBand, hh); }
+            if (frw > 0) { g2.clipRect(w - frw, 0, frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), w - tlw - scw, 0); g2.setClip(null); g2.drawLine(w - frw, 0, w - frw, hh); }
             g2.dispose();
         }
         /** 递归绘制多级表头：父列跨其子列宽度居中，叶子列位于其层级行。 */
@@ -228,7 +259,7 @@ public class AstTable extends JPanel {
         /** 叶子列当前左缘 X（自然坐标，不含横滚）。 */
         int leafX(int leaf) {
             List<AstTableColumn> leaves = model.getLeafColumns();
-            int x = 0;
+            int x = selectColW();
             for (int i = 0; i < leaf && i < leaves.size(); i++) x += leaves.get(i).width;
             return x;
         }
@@ -254,7 +285,8 @@ public class AstTable extends JPanel {
                 @Override public void mousePressed(MouseEvent e) {
                     int idx = viewRowAtPoint(e.getPoint());
                     if (idx < 0 || idx >= model.viewRowCount()) return;
-                    model.setSelectedViewRow(idx);
+                    if (model.getSelectionMode() == AstTableModel.SelectionMode.MULTIPLE) model.toggleSelectedViewRow(idx);
+                    else model.setSelectedViewRow(idx);
                     repaint();
                     fireRowClick(idx);
                 }
@@ -287,7 +319,7 @@ public class AstTable extends JPanel {
         int viewportH() { return getHeight(); }
         int viewportW() { return getWidth(); }
         int maxScrollY() { return Math.max(0, model.viewRowCount() * rH - viewportH()); }
-        int maxScrollX() { return Math.max(0, totalLeafW() - viewportW()); }
+        int maxScrollX() { return Math.max(0, totalLeafW() + selectColW() - viewportW()); }
         void scrollToRow(int v) {
             int target = v * rH - (viewportH() - rH) / 2;
             scrollY = Math.max(0, Math.min(target, maxScrollY()));
@@ -306,7 +338,7 @@ public class AstTable extends JPanel {
         }
         private int leafNaturalX(int leaf) {
             List<AstTableColumn> leaves = model.getLeafColumns();
-            int x = 0;
+            int x = selectColW();
             for (int i = 0; i < leaf && i < leaves.size(); i++) x += leaves.get(i).width;
             return x;
         }
@@ -317,7 +349,7 @@ public class AstTable extends JPanel {
             int nx = leafNaturalX(leaf);
             AstTableColumn.Fixed f = leaves.get(leaf).fixed;
             if (f == AstTableColumn.Fixed.LEFT) return nx;
-            if (f == AstTableColumn.Fixed.RIGHT) return nx + (viewportW() - totalLeafW());
+            if (f == AstTableColumn.Fixed.RIGHT) return nx + (viewportW() - totalLeafW() - selectColW());
             return nx - scrollX;
         }
 
@@ -330,10 +362,36 @@ public class AstTable extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             int w = getWidth(), h = getHeight();
             List<AstTableColumn> leaves = model.getLeafColumns();
-            int flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
+            int scw = selectColW(), flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
+            int leftBand = scw + flw;
+            // 2) 左冻结（含选择列右侧区域）：先画，使选择列覆盖其上
+            if (leftBand > 0) {
+                g2.clipRect(0, 0, leftBand, h);
+                for (int v = 0; v < model.viewRowCount(); v++) {
+                    int yTop = v * rH - scrollY;
+                    if (yTop > h || yTop + rH < 0) continue;
+                    paintRow(g2, v, yTop, w, leaves, scw, c -> c.fixed == AstTableColumn.Fixed.LEFT);
+                }
+                g2.setClip(null);
+                g2.drawLine(leftBand, 0, leftBand, h);
+            }
+            // 选择列（多选模式）：覆盖在左冻结区最左侧，绘制行复选框
+            if (scw > 0) {
+                g2.clipRect(0, 0, scw, h);
+                for (int v = 0; v < model.viewRowCount(); v++) {
+                    int yTop = v * rH - scrollY;
+                    if (yTop > h || yTop + rH < 0) continue;
+                    boolean sel = model.isSelectedView(v);
+                    Color bg = sel ? ElementTheme.PRIMARY : (v % 2 == 1 ? ElementTheme.FILL_BASE : Color.WHITE);
+                    g2.setColor(bg); g2.fillRect(0, yTop, scw, rH);
+                    drawCheckbox(g2, scw / 2, yTop + rH / 2, sel);
+                }
+                g2.setClip(null);
+                g2.drawLine(scw, 0, scw, h);
+            }
             // 1) 中列
-            if (w - flw - frw > 0) {
-                g2.clipRect(flw, 0, w - flw - frw, h);
+            if (w - leftBand - frw > 0) {
+                g2.clipRect(leftBand, 0, w - leftBand - frw, h);
                 for (int v = 0; v < model.viewRowCount(); v++) {
                     int yTop = v * rH - scrollY;
                     if (yTop > h || yTop + rH < 0) continue;
@@ -341,24 +399,13 @@ public class AstTable extends JPanel {
                 }
                 g2.setClip(null);
             }
-            // 2) 左冻结
-            if (flw > 0) {
-                g2.clipRect(0, 0, flw, h);
-                for (int v = 0; v < model.viewRowCount(); v++) {
-                    int yTop = v * rH - scrollY;
-                    if (yTop > h || yTop + rH < 0) continue;
-                    paintRow(g2, v, yTop, w, leaves, 0, c -> c.fixed == AstTableColumn.Fixed.LEFT);
-                }
-                g2.setClip(null);
-                g2.drawLine(flw, 0, flw, h);
-            }
             // 3) 右冻结
             if (frw > 0) {
                 g2.clipRect(w - frw, 0, frw, h);
                 for (int v = 0; v < model.viewRowCount(); v++) {
                     int yTop = v * rH - scrollY;
                     if (yTop > h || yTop + rH < 0) continue;
-                    paintRow(g2, v, yTop, w, leaves, w - tlw, c -> c.fixed == AstTableColumn.Fixed.RIGHT);
+                    paintRow(g2, v, yTop, w, leaves, w - tlw - scw, c -> c.fixed == AstTableColumn.Fixed.RIGHT);
                 }
                 g2.setClip(null);
                 g2.drawLine(w - frw, 0, w - frw, h);
@@ -430,6 +477,17 @@ public class AstTable extends JPanel {
         String t = text;
         while (t.length() > 0 && fm.stringWidth(t) + ellW > maxW) t = t.substring(0, t.length() - 1);
         return t + ell;
+    }
+    /** 绘制一个 16×16 复选框（白底 + PRIMARY 勾选）。供选择列复用。 */
+    private void drawCheckbox(Graphics2D g2, int cx, int cy, boolean checked) {
+        int s = 16, x = cx - s / 2, y = cy - s / 2;
+        g2.setColor(Color.WHITE); g2.fillRect(x, y, s, s);
+        g2.setColor(ElementTheme.BORDER_BASE); g2.drawRect(x, y, s, s);
+        if (checked) {
+            g2.setColor(ElementTheme.PRIMARY);
+            g2.drawLine(x + 3, cy, x + 6, y + s - 4);
+            g2.drawLine(x + 6, y + s - 4, x + s - 3, y + 3);
+        }
     }
 
     // --- Self-check ---
@@ -644,6 +702,36 @@ public class AstTable extends JPanel {
         assert c3leaves.get(1) == c3city && c3leaves.get(2) == c3street : "C3 叶子顺序 城市→街道";
         assert t3.getHeaderView().leafX(1) == 100 : "C3 城市列X=100, got " + t3.getHeaderView().leafX(1);
         assert t3.getHeaderView().leafX(2) == 220 : "C3 街道X=220, got " + t3.getHeaderView().leafX(2);
+
+        // --- C4: 单选 / 多选 ---
+        final Throwable[] err4 = {null};
+        try { SwingUtilities.invokeAndWait(new Runnable(){ public void run(){
+            JFrame jf = new JFrame("C4"); jf.setSize(420, 200); jf.setVisible(true);
+            try {
+                AstTable t4 = new AstTable(new AstTableColumn[]{
+                    new AstTableColumn("姓名", 120), new AstTableColumn("年龄", 80)});
+                for (int i = 0; i < 5; i++) t4.addRow("u" + i, i);
+                t4.setSelectionMode(AstTable.SELECTION_MULTIPLE);
+                JPanel cp = (JPanel) jf.getContentPane(); cp.setLayout(new BorderLayout());
+                cp.add(t4, BorderLayout.CENTER); jf.validate();
+                int rh = t4.getRowHeight();
+                int y2 = 2 * rh + rh / 2; // body 局部：第2行中心
+                t4.getBodyView().dispatchEvent(new MouseEvent(t4.getBodyView(), MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 30, y2, 1, false));
+                assert t4.getModel().isSelectedView(2) : "C4 多选点中行2";
+                int y3 = 3 * rh + rh / 2;
+                t4.getBodyView().dispatchEvent(new MouseEvent(t4.getBodyView(), MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 30, y3, 1, false));
+                assert t4.getModel().isSelectedView(2) && t4.getModel().isSelectedView(3) : "C4 多选累加";
+                t4.setSelectionMode(AstTable.SELECTION_SINGLE);
+                int y1 = 1 * rh + rh / 2;
+                t4.getBodyView().dispatchEvent(new MouseEvent(t4.getBodyView(), MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 30, y1, 1, false));
+                assert t4.getModel().getSelectedViewRow() == 1 && t4.getModel().getSelectedViewRows().size() == 1 : "C4 单选互斥";
+                // 离屏绘制不抛异常（含选择列）
+                java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(t4.getPreferredSize().width, 160, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D gg = img.createGraphics();
+                try { t4.paint(gg); } finally { gg.dispose(); }
+            } finally { jf.dispose(); }
+        }}); } catch (Throwable t){ err4[0] = t; }
+        if (err4[0] != null) throw new RuntimeException(err4[0]);
 
         System.out.println("AstTable self-check OK");
     }

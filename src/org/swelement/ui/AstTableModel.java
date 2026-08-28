@@ -77,16 +77,44 @@ public class AstTableModel {
         return raw.get(view.get(v))[leafCol];
     }
 
-    // --- 单选（C1；多选在 C4 覆盖）---
+    // --- 选择（C1 单选 + C4 多选）---
+    private SelectionMode selectionMode = SelectionMode.SINGLE;
+    private final java.util.Set<Integer> selectedViewRows = new java.util.HashSet<Integer>();
+
+    public void setSelectionMode(SelectionMode m) {
+        this.selectionMode = m;
+        selectedViewRow = -1;
+        selectedViewRows.clear();
+    }
+    public SelectionMode getSelectionMode() { return selectionMode; }
+
     public void setSelectedViewRow(int v) {
         if (v < -1 || v >= view.size()) throw new IndexOutOfBoundsException("view row " + v);
         this.selectedViewRow = v;
+        selectedViewRows.clear();
+        if (v >= 0) selectedViewRows.add(v);
     }
-    public int getSelectedViewRow() { return selectedViewRow; }
-    public boolean isSelectedView(int v) { return v == selectedViewRow; }
+    public int getSelectedViewRow() {
+        if (selectionMode == SelectionMode.MULTIPLE) return selectedViewRows.isEmpty() ? -1 : selectedViewRows.iterator().next();
+        return selectedViewRow;
+    }
+    public boolean isSelectedView(int v) {
+        return selectionMode == SelectionMode.MULTIPLE ? selectedViewRows.contains(v) : v == selectedViewRow;
+    }
+    public void toggleSelectedViewRow(int v) {
+        if (v < 0 || v >= view.size()) return;
+        if (selectionMode == SelectionMode.SINGLE) selectedViewRow = (v == selectedViewRow) ? -1 : v;
+        else if (selectedViewRows.contains(v)) selectedViewRows.remove(v);
+        else selectedViewRows.add(v);
+    }
+    public void toggleSelectAll() {
+        if (selectionMode != SelectionMode.MULTIPLE) return;
+        if (selectedViewRows.size() == view.size()) selectedViewRows.clear();
+        else for (int i = 0; i < view.size(); i++) selectedViewRows.add(i);
+    }
     public java.util.Set<Integer> getSelectedViewRows() {
-        java.util.Set<Integer> s = new java.util.HashSet<Integer>();
-        if (selectedViewRow >= 0) s.add(selectedViewRow);
+        java.util.Set<Integer> s = new java.util.HashSet<Integer>(selectedViewRows);
+        if (selectionMode != SelectionMode.MULTIPLE && selectedViewRow >= 0) s.add(selectedViewRow);
         return s;
     }
 }
