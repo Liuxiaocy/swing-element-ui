@@ -50,6 +50,7 @@ public class AstTable extends JPanel {
     private final FooterView footerView;
     private Consumer<Integer> rowClickListener;
     private int tier = SIZE_DEFAULT;
+    private final java.util.Map<Integer, String> filterQueries = new java.util.HashMap<Integer, String>();
 
     // --- 尺寸档位（对齐 Element UI）---
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
@@ -149,6 +150,18 @@ public class AstTable extends JPanel {
         if (dir == null) throw new IllegalArgumentException("dir must not be null");
         model.sort(leafCol, dir); revalidate(); repaint();
     }
+    /** 按叶子列文本子串筛选；空查询清空该列筛选。 */
+    public void setFilter(int leafCol, String query) {
+        if (leafCol < 0 || leafCol >= model.leafCount()) throw new IndexOutOfBoundsException("leafCol " + leafCol);
+        if (query == null || query.isEmpty()) { filterQueries.remove(leafCol); model.clearFilter(); }
+        else {
+            final String q = query; final int col = leafCol;
+            filterQueries.put(leafCol, q);
+            model.filter(r -> String.valueOf(r[col]).contains(q));
+        }
+        revalidate(); repaint();
+    }
+    public void clearFilter() { filterQueries.clear(); model.clearFilter(); revalidate(); repaint(); }
     public void setRowClickListener(Consumer<Integer> l) {
         if (l == null) throw new IllegalArgumentException("listener must not be null");
         this.rowClickListener = l;
@@ -205,16 +218,24 @@ public class AstTable extends JPanel {
                             model.toggleSelectAll(); repaint(); return;
                         }
                     }
-                    // 排序：点击 sortable 叶子列循环 NONE→ASC→DESC→NONE
+                    // 排序/筛选：点击叶子列表头
                     int leaf = headerLeafAt(e.getX());
-                    if (leaf >= 0 && model.getLeafColumns().get(leaf).sortable && e.getY() < getPreferredHeight()) {
-                        AstTableModel.SortDir cur = model.getSortDir();
-                        AstTableModel.SortDir next;
-                        if (model.getSortLeaf() != leaf || cur == AstTableModel.SortDir.NONE) next = AstTableModel.SortDir.ASC;
-                        else if (cur == AstTableModel.SortDir.ASC) next = AstTableModel.SortDir.DESC;
-                        else next = AstTableModel.SortDir.NONE;
-                        model.sort(leaf, next);
-                        repaint();
+                    if (leaf >= 0) {
+                        AstTableColumn col = model.getLeafColumns().get(leaf);
+                        int sx = bodyView.scrollX;
+                        int lx = (col.fixed == AstTableColumn.Fixed.LEFT) ? leafX(leaf) : leafX(leaf) - sx;
+                        if (col.filterable && e.getX() >= lx + col.width - 16 && e.getY() < getPreferredHeight()) {
+                            openFilterPopup(leaf, lx); return;
+                        }
+                        if (col.sortable && e.getY() < getPreferredHeight()) {
+                            AstTableModel.SortDir cur = model.getSortDir();
+                            AstTableModel.SortDir next;
+                            if (model.getSortLeaf() != leaf || cur == AstTableModel.SortDir.NONE) next = AstTableModel.SortDir.ASC;
+                            else if (cur == AstTableModel.SortDir.ASC) next = AstTableModel.SortDir.DESC;
+                            else next = AstTableModel.SortDir.NONE;
+                            model.sort(leaf, next);
+                            repaint();
+                        }
                     }
                 }
             });
@@ -229,6 +250,15 @@ public class AstTable extends JPanel {
                 if (x >= lx && x < lx + leaves.get(i).width) return i;
             }
             return -1;
+        }
+        /** 点击漏斗：弹出内联文本输入框，回车即按该列文本子串筛选。 */
+        private void openFilterPopup(int leaf, int lx) {
+            JPopupMenu pm = new JPopupMenu();
+            final JTextField tf = new JTextField(filterQueries.getOrDefault(leaf, ""), 12);
+            tf.addActionListener(ae -> { setFilter(leaf, tf.getText().trim()); pm.setVisible(false); });
+            pm.add(tf);
+            pm.show(this, Math.max(0, lx), getHeight());
+            tf.requestFocusInWindow();
         }
         void applyTier(int h, Font f) { this.hH = h; this.hf = f; }
         int getDepth() { int d = 1; for (AstTableColumn c : model.getColumns()) d = Math.max(d, c.getDepth()); return d; }
@@ -274,15 +304,24 @@ public class AstTable extends JPanel {
             int tx = x + (groupW - fm.stringWidth(text)) / 2;
             int ty = level * hH + (hH - fm.getHeight()) / 2 + fm.getAscent();
             g2.drawString(text, tx, ty);
-            // 可排序叶子：右侧画方向箭头
+            // 可排序叶子：右侧画方向箭头（若有筛选漏斗则左移避让）
             if (col.isLeaf() && col.sortable) {
                 int li = model.getLeafColumns().indexOf(col);
                 AstTableModel.SortDir d = (li == model.getSortLeaf()) ? model.getSortDir() : AstTableModel.SortDir.NONE;
-                int ax = x + groupW - CELL_PAD_X - 4, ayc = level * hH + hH / 2;
+                int ax = x + groupW - (col.filterable ? 28 : 16), ayc = level * hH + hH / 2;
                 g2.setColor(Color.WHITE);
                 if (d == AstTableModel.SortDir.ASC) { g2.drawLine(ax - 4, ayc + 3, ax, ayc - 3); g2.drawLine(ax, ayc - 3, ax + 4, ayc + 3); }
                 else if (d == AstTableModel.SortDir.DESC) { g2.drawLine(ax - 4, ayc - 3, ax, ayc + 3); g2.drawLine(ax, ayc + 3, ax + 4, ayc - 3); }
                 else { g2.drawLine(ax - 5, ayc - 2, ax - 1, ayc + 2); g2.drawLine(ax - 1, ayc + 2, ax + 3, ayc - 2); }
+            }
+            // 可筛选叶子：最右画漏斗图标
+            if (col.isLeaf() && col.filterable) {
+                int fx = x + groupW - 11, fy = level * hH + hH / 2;
+                g2.setColor(model.getFilterActive() && model.getSortLeaf() < 0 ? Color.WHITE : Color.WHITE);
+                g2.drawLine(fx - 4, fy - 4, fx + 4, fy - 4);
+                g2.drawLine(fx - 4, fy - 4, fx, fy + 2);
+                g2.drawLine(fx + 4, fy - 4, fx, fy + 2);
+                g2.drawLine(fx, fy + 2, fx, fy + 5);
             }
             // 该行底部分隔线
             g2.drawLine(x, level * hH + hH - 1, x + groupW, level * hH + hH - 1);
@@ -786,6 +825,22 @@ public class AstTable extends JPanel {
         java.awt.image.BufferedImage img5 = new java.awt.image.BufferedImage(t5.getPreferredSize().width, 90, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         Graphics2D gg5 = img5.createGraphics();
         try { t5.paint(gg5); } finally { gg5.dispose(); }
+
+        // --- C6: 筛选（列文本过滤）---
+        AstTable t6 = new AstTable(new AstTableColumn[]{
+            new AstTableColumn("城市", 160), new AstTableColumn("人数", 80)});
+        t6.addRow("北京市", 100); t6.addRow("上海市", 200); t6.addRow("广州市", 150);
+        t6.getModel().filter(r -> "上海市".equals(r[0]));
+        assert t6.getRowCount() == 1 : "C6 过滤后1行";
+        assert "上海市".equals(t6.getValueAt(0, 0)) : "C6 剩上海";
+        t6.getModel().clearFilter();
+        assert t6.getRowCount() == 3 : "C6 清空还原3行";
+        // 筛选 + 排序组合：按人数降序后仅剩上海市(200)
+        t6.getModel().sort(1, AstTableModel.SortDir.DESC);
+        t6.getModel().filter(r -> (Integer) r[1] >= 200);
+        assert t6.getRowCount() == 1 && "上海市".equals(t6.getValueAt(0, 0)) : "C6 筛选+排序组合";
+        t6.getModel().clearFilter();
+        assert t6.getRowCount() == 3 : "C6 组合清空还原3行";
 
         System.out.println("AstTable self-check OK");
     }

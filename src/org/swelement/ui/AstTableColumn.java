@@ -18,16 +18,23 @@ public class AstTableColumn {
     public final AstTable.Align align;
     public final boolean sortable;
     public final Fixed fixed;
+    public final boolean filterable;
     /** 多级表头子列；叶子列为 null。 */
     public final List<AstTableColumn> children;
 
     public AstTableColumn(String title, int width) {
-        this(title, width, AstTable.Align.LEFT, false, Fixed.NONE, null);
+        this(title, width, AstTable.Align.LEFT, false, Fixed.NONE, false, null);
     }
     public AstTableColumn(String title, int width, AstTable.Align align) {
-        this(title, width, align, false, Fixed.NONE, null);
+        this(title, width, align, false, Fixed.NONE, false, null);
+    }
+    public AstTableColumn(String title, int width, boolean filterable) {
+        this(title, width, AstTable.Align.LEFT, false, Fixed.NONE, filterable, null);
     }
     public AstTableColumn(String title, int width, AstTable.Align align, boolean sortable, Fixed fixed, List<AstTableColumn> children) {
+        this(title, width, align, sortable, fixed, false, children);
+    }
+    public AstTableColumn(String title, int width, AstTable.Align align, boolean sortable, Fixed fixed, boolean filterable, List<AstTableColumn> children) {
         if (title == null) throw new IllegalArgumentException("title must not be null");
         if (width < 24) throw new IllegalArgumentException("width must be >= 24");
         if (align == null) throw new IllegalArgumentException("align must not be null");
@@ -37,6 +44,7 @@ public class AstTableColumn {
         this.align = align;
         this.sortable = sortable;
         this.fixed = fixed;
+        this.filterable = filterable;
         this.children = children;
     }
     /** 多级表头构造器：父列横跨其子列宽度之和。 */

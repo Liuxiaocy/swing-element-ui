@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * 表格数据视图（P4-C）。
@@ -25,6 +26,9 @@ public class AstTableModel {
     // 排序（C5）
     private int sortLeaf = -1;
     private SortDir sortDir = SortDir.NONE;
+
+    // 筛选（C6）
+    private Predicate<Object[]> filter = null;
 
     // 单选（C1）；多选集合在 C4 扩展
     private int selectedViewRow = -1;
@@ -52,7 +56,7 @@ public class AstTableModel {
         for (Object v : values) if (v == null) throw new IllegalArgumentException("value must not be null");
         Object[] copy = Arrays.copyOf(values, values.length);
         raw.add(copy);
-        view.add(raw.size() - 1);
+        rebuildView();
     }
 
     public void setRows(List<Object[]> data) {
@@ -64,8 +68,8 @@ public class AstTableModel {
             if (row.length != leafCount())
                 throw new IllegalArgumentException("row length must match leaf columns");
             raw.add(Arrays.copyOf(row, row.length));
-            view.add(raw.size() - 1);
         }
+        rebuildView();
         selectedViewRow = -1;
     }
 
@@ -73,6 +77,7 @@ public class AstTableModel {
         raw.clear();
         view.clear();
         selectedViewRow = -1;
+        selectedViewRows.clear();
     }
 
     // --- 视图查询 ---
@@ -86,28 +91,47 @@ public class AstTableModel {
         return raw.get(view.get(v))[leafCol];
     }
 
-    // --- 排序（C5）---
+    // --- 排序 + 筛选（C5/C6）：view = 筛选(raw) 后排序 ---
     public int getSortLeaf() { return sortLeaf; }
     public SortDir getSortDir() { return sortDir; }
-    /** 按叶子列排序，重建 view（保留当前筛选顺序）；NONE 还原为原始序。切换排序会清空选择。 */
+    public boolean getFilterActive() { return filter != null; }
+
+    /** 按叶子列排序，重建 view（在筛选结果上排序）；NONE 还原为筛选序。切换会清空选择。 */
     public void sort(int leafCol, SortDir dir) {
         if (leafCol < 0 || leafCol >= leafCount()) throw new IndexOutOfBoundsException("leafCol " + leafCol);
         this.sortLeaf = (dir == SortDir.NONE) ? -1 : leafCol;
         this.sortDir = dir;
-        if (dir == SortDir.NONE) {
-            view = new ArrayList<Integer>();
-            for (int i = 0; i < raw.size(); i++) view.add(i);
-        } else {
-            final int col = leafCol;
-            List<Integer> idx = new ArrayList<Integer>(view);
-            Collections.sort(idx, new Comparator<Integer>() {
+        rebuildView();
+    }
+
+    /** 应用行级筛选谓词，重建 view（在筛选结果上排序）。传入 null 视为清空。 */
+    public void filter(Predicate<Object[]> p) {
+        if (p == null) { clearFilter(); return; }
+        this.filter = p;
+        rebuildView();
+    }
+    /** 清空筛选，保留排序。 */
+    public void clearFilter() {
+        this.filter = null;
+        rebuildView();
+    }
+
+    /** 依据当前 filter + sort 重建视图索引；清空选择。 */
+    private void rebuildView() {
+        List<Integer> base = new ArrayList<Integer>();
+        for (int i = 0; i < raw.size(); i++) {
+            if (filter == null || filter.test(raw.get(i))) base.add(i);
+        }
+        if (sortDir != SortDir.NONE && sortLeaf >= 0) {
+            final int col = sortLeaf;
+            Collections.sort(base, new Comparator<Integer>() {
                 public int compare(Integer a, Integer b) {
                     int c = compareValues(raw.get(a)[col], raw.get(b)[col]);
-                    return dir == SortDir.ASC ? c : -c;
+                    return sortDir == SortDir.ASC ? c : -c;
                 }
             });
-            view = idx;
         }
+        view = base;
         selectedViewRow = -1;
         selectedViewRows.clear();
     }
