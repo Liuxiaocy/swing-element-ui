@@ -98,10 +98,12 @@ public class AstDrawer {
         gp.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
                 card.placeIn(gp.getSize());
+                card.validate();
                 gp.removeComponentListener(this);
             }
         });
         card.placeIn(gp.getSize());
+        gp.validate(); // 首次打开：确保 body 子组件完成布局（否则第二次才显示）
         card.startSlideIn();
         // Esc 关闭
         gp.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0), "ast-drawer-close");
@@ -291,6 +293,16 @@ public class AstDrawer {
         }
     }
 
+    private static JLabel findLabel(Container c, String text) {
+        if (c == null) return null;
+        for (int i = 0; i < c.getComponentCount(); i++) {
+            Component ch = c.getComponent(i);
+            if (ch instanceof JLabel && text.equals(((JLabel) ch).getText())) return (JLabel) ch;
+            if (ch instanceof Container) { JLabel r = findLabel((Container) ch, text); if (r != null) return r; }
+        }
+        return null;
+    }
+
     // --- self-check ---
     static void selfCheck() {
         boolean threw = false;
@@ -332,6 +344,11 @@ public class AstDrawer {
                         if (ch instanceof DrawerPanel) { cardHolder[0] = (DrawerPanel) ch; break; }
                     }
                     assert cardHolder[0] != null : "drawer card 已挂载到 glass pane";
+                    // 首次打开：body 子组件应已被 validate，可见且有非零尺寸
+                    JLabel bodyLbl = findLabel(cardHolder[0], "抽屉正文");
+                    assert bodyLbl != null : "body 标签应已挂载到抽屉";
+                    assert bodyLbl.getWidth() > 0 && bodyLbl.getHeight() > 0 : "首次打开 body 应已完成布局（宽高>0），实际="
+                            + bodyLbl.getWidth() + "x" + bodyLbl.getHeight();
                     cardHolder[0].close(); // 触发 slide out → onClosed
                 } catch (Throwable t) { err[0] = t; }
             }});

@@ -321,6 +321,37 @@ public class AstPopupDemo {
         s6.add(s6row, BorderLayout.CENTER);
         root.add(s6); root.add(SPACER_16);
 
+        // Section 7: AstDrawer — 四方向抽屉（验证首次打开即渲染内部组件，修复 A1）
+        JPanel s7 = section("Section 7: AstDrawer 抽屉（左/右/上/下，验证首次打开即渲染面板内容）");
+        JPanel s7row = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
+        s7row.setBorder(new EmptyBorder(12, 12, 12, 12));
+        final JFrame drawerOwner = f;
+        Object[][] dirs = {{"左 LEFT", "LEFT"}, {"右 RIGHT", "RIGHT"}, {"上 TOP", "TOP"}, {"下 BOTTOM", "BOTTOM"}};
+        for (final Object[] d : dirs) {
+            JButton b = new JButton((String) d[0]);
+            b.setPreferredSize(new Dimension(150, 40));
+            b.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+                JPanel body = new JPanel(new BorderLayout()); body.setBorder(new EmptyBorder(16, 16, 16, 16));
+                JLabel msg = new JLabel("<html><b>抽屉内容</b><br>这是抽屉内部组件，首次打开即应正确渲染。<br>方向：" + d[0] + "</html>");
+                msg.setForeground(ElementTheme.TEXT_REGULAR);
+                body.add(msg, BorderLayout.CENTER);
+                AstDrawer.show(drawerOwner, AstDrawer.Direction.valueOf((String) d[1]), "抽屉标题 " + d[0], body);
+            }});
+            s7row.add(b);
+        }
+        s7.add(s7row, BorderLayout.CENTER);
+        root.add(s7); root.add(SPACER_12);
+
+        // Section 8: AstCalendar — 翻年/翻月 + 上月下月补位日期（修复 A3）
+        JPanel s8 = section("Section 8: AstCalendar 日历（‹‹/‹ 翻年/月，›/›› 翻月/年；灰色为上下月补位，点击可跳月并选中）");
+        AstCalendar cal = new AstCalendar();
+        cal.setDateListener(dt -> echo("Calendar → " + dt[0] + "-" + (dt[1] + 1) + "-" + dt[2]));
+        JPanel s8row = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
+        s8row.setBorder(new EmptyBorder(12, 12, 12, 12));
+        s8row.add(cal);
+        s8.add(s8row, BorderLayout.CENTER);
+        root.add(s8); root.add(SPACER_16);
+
         // Echo label (bottom)
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setBorder(new TitledBorder("日志输出（所有动作最终都在下面打印一行）"));
@@ -330,8 +361,10 @@ public class AstPopupDemo {
         root.add(bottom);
 
         f.setContentPane(new JScrollPane(root));
-        f.pack(); f.setSize(Math.max(1200, f.getWidth()), Math.min(900, f.getHeight()));
-        f.setLocationRelativeTo(null); f.setVisible(true);
+        f.pack();
+        f.setExtendedState(JFrame.MAXIMIZED_BOTH); // 最大化，确保屏幕顶端 Toast 可见
+        f.setLocationRelativeTo(null);
+        f.setVisible(true);
     }
 
     // ------------------ helpers ------------------

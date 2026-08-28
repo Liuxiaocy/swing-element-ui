@@ -14,6 +14,12 @@ public class AstAlert extends JComponent {
     private static final Color[] BG = {new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xF4F4F5), new Color(0xFEF0F0)};
     private static final String[] ICONS = {"\u221a", "!", "i", "\u00d7"};
 
+    private static final int PAD = 12;
+    private static final int TITLE_LINE_H = 20;
+    private static final int DESC_LINE_H = 18;
+    private static final int LEFT_PAD = 40;
+    private static final int RIGHT_PAD = 16;
+
     private float inP = 0f, outP;
     private Runnable onClosed;
     private int origW, origH;
@@ -57,9 +63,21 @@ public class AstAlert extends JComponent {
     public void doLayout() {
         super.doLayout();
         if (closeBtn != null) {
-            closeBtn.setBounds(getWidth() - 16 - 20, (getHeight() - 20) / 2, 20, 20);
+            int boxH = Math.min(getHeight(), computeFixedH(getWidth()));
+            closeBtn.setBounds(getWidth() - 16 - 20, (boxH - 20) / 2, 20, 20);
         }
     }
+
+    /** 固定高度（内容派生，不随父容器拉伸）：无描述 40；有描述按换行行数（≤2 行）。 */
+    private int computeFixedH(int availW) {
+        if (desc == null) return 40;
+        int descW = Math.max(20, availW - LEFT_PAD - RIGHT_PAD);
+        int lines = wrapLines(getFontMetrics(ElementTheme.FONT.deriveFont(13f)), desc, descW, 2).length;
+        return Math.max(40, PAD + TITLE_LINE_H + 4 + lines * DESC_LINE_H + PAD);
+    }
+
+    @Override public Dimension getPreferredSize() { return new Dimension(360, computeFixedH(360)); }
+    @Override public Dimension getMaximumSize() { return new Dimension(Integer.MAX_VALUE, computeFixedH(360)); }
 
     /** 淡入淡出动画驱动 AstCloseButton 的 alpha 与可交互性。 */
     private void syncClose() {
@@ -89,34 +107,71 @@ public class AstAlert extends JComponent {
         if (a <= 0) return;
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        int w = getWidth();
+        int boxH = Math.min(getHeight(), computeFixedH(w));
         g2.setColor(new Color(BG[type].getRed(), BG[type].getGreen(), BG[type].getBlue(), a));
-        g2.fillRect(0, 0, getWidth(), getHeight());
+        g2.fillRect(0, 0, w, boxH);
         g2.setColor(new Color(COLORS[type].getRed(), COLORS[type].getGreen(), COLORS[type].getBlue(), a));
-        g2.fillRect(0, 0, 4, getHeight());
+        g2.fillRect(0, 0, 4, boxH);
 
+        int availW = Math.max(20, w - LEFT_PAD - RIGHT_PAD);
         if (desc == null) {
             // 精简模式（高40）：图标与标题垂直居中
             g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(ICONS[type], 16, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+            g2.drawString(ICONS[type], 16, (boxH - fm.getHeight()) / 2f + fm.getAscent());
             g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD));
             FontMetrics tfm = g2.getFontMetrics();
-            g2.drawString(title, 40, (getHeight() - tfm.getHeight()) / 2f + tfm.getAscent());
+            g2.drawString(truncate(tfm, title, availW), LEFT_PAD, (boxH - tfm.getHeight()) / 2f + tfm.getAscent());
         } else {
-            // 完整模式（高56）：标题上、描述下
+            // 完整模式：标题上、描述下（描述最多 2 行，超出省略号截断）
             g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
-            FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(ICONS[type], 16, 22 - fm.getHeight() / 2f + fm.getAscent() - 2);
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD));
             FontMetrics tfm = g2.getFontMetrics();
-            g2.drawString(title, 40, 22 - tfm.getHeight() / 2f + tfm.getAscent() - 2);
-            g2.setFont(ElementTheme.FONT);
+            g2.drawString(ICONS[type], 16, PAD + (TITLE_LINE_H - tfm.getHeight()) / 2f + tfm.getAscent());
+            g2.drawString(truncate(tfm, title, availW), LEFT_PAD, PAD + (TITLE_LINE_H - tfm.getHeight()) / 2f + tfm.getAscent());
+            g2.setFont(ElementTheme.FONT.deriveFont(13f));
             FontMetrics dfm = g2.getFontMetrics();
             Color descColor = new Color(0x606266);
             g2.setColor(new Color(descColor.getRed(), descColor.getGreen(), descColor.getBlue(), a));
-            g2.drawString(desc, 40, 40 - dfm.getHeight() / 2f + dfm.getAscent() - 2);
+            String[] lines = wrapLines(dfm, desc, availW, 2);
+            int y = PAD + TITLE_LINE_H + 4;
+            for (String ln : lines) {
+                g2.drawString(ln, LEFT_PAD, y + dfm.getAscent());
+                y += DESC_LINE_H;
+            }
         }
         g2.dispose();
+    }
+
+    /** 按宽度折行（CJK 友好），最多 maxLines 行；超出时末行以省略号截断。 */
+    private static String[] wrapLines(FontMetrics fm, String text, int maxW, int maxLines) {
+        if (text == null || text.isEmpty()) return new String[]{""};
+        java.util.List<String> raw = new java.util.ArrayList<String>();
+        StringBuilder cur = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (ch == '\n') { raw.add(cur.toString()); cur.setLength(0); continue; }
+            String t = cur.toString() + ch;
+            if (fm.stringWidth(t) > maxW && cur.length() > 0) { raw.add(cur.toString()); cur = new StringBuilder(String.valueOf(ch)); }
+            else cur.append(ch);
+        }
+        if (cur.length() > 0) raw.add(cur.toString());
+        if (raw.size() <= maxLines) return raw.toArray(new String[0]);
+        String[] out = new String[maxLines];
+        for (int i = 0; i < maxLines - 1; i++) out[i] = raw.get(i);
+        StringBuilder sb = new StringBuilder(raw.get(maxLines - 1));
+        for (int i = maxLines; i < raw.size(); i++) sb.append(raw.get(i));
+        out[maxLines - 1] = truncate(fm, sb.toString(), maxW);
+        return out;
+    }
+
+    private static String truncate(FontMetrics fm, String s, int maxW) {
+        if (s == null) return "";
+        if (fm.stringWidth(s) <= maxW) return s;
+        String ell = "\u2026";
+        int ellW = fm.stringWidth(ell);
+        while (s.length() > 0 && fm.stringWidth(s) + ellW > maxW) s = s.substring(0, s.length() - 1);
+        return s + ell;
     }
 
     static void selfCheck() {
@@ -137,6 +192,24 @@ public class AstAlert extends JComponent {
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         assert closed[0] : "onClosed callback should fire after close animation";
+
+        // 长描述 wrap + 截断：固定高度=2 行，绘制不抛异常且盒体不透明
+        final AstAlert longA = new AstAlert(AstAlert.INFO, "标题",
+                "这是一段非常长的描述文字，用于测试自动换行与省略号截断功能是否正常生效，内容应当被限制在最多两行并以省略号结尾。", true);
+        assert longA.getPreferredSize().height >= 84 : "长描述应为 2 行固定高度(≥84)，实际=" + longA.getPreferredSize().height;
+        final Throwable[] err2 = {null};
+        try {
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+                longA.setSize(longA.getPreferredSize());
+                java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(longA.getWidth(), longA.getHeight(), java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D gg = img.createGraphics();
+                try { longA.paint(gg); } finally { gg.dispose(); }
+                int aa = (img.getRGB(20, longA.getHeight() / 2) >>> 24) & 0xFF;
+                assert aa > 120 : "long desc alert box painted, alpha=" + aa;
+            }});
+        } catch (Throwable t) { err2[0] = t; }
+        if (err2[0] != null) throw new RuntimeException(err2[0]);
+
         System.out.println("AstAlert self-check OK");
     }
 

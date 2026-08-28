@@ -223,7 +223,7 @@ public class AstDialog {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-            int a = Math.min(255, Math.max(0, Math.round(255f * cardAlpha)));
+            int a = 255; // 整卡透明度由 paint() 的 AlphaComposite 统一控制，避免页头/按钮最后消失
             Color cardBg = new Color(0xFF, 0xFF, 0xFF, a);
             Color borderC = new Color(ElementTheme.BORDER_BASE.getRed(), ElementTheme.BORDER_BASE.getGreen(), ElementTheme.BORDER_BASE.getBlue(), a);
             ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstDialog body on card bg");
@@ -234,6 +234,15 @@ public class AstDialog {
             g2.setColor(borderC);
             g2.setStroke(new BasicStroke(1f));
             g2.draw(rect);
+            g2.dispose();
+        }
+
+        /** 整卡（标题栏/正文/页脚/按钮）随 cardAlpha 统一淡入淡出，避免各部分消失不同步。 */
+        @Override public void paint(Graphics g) {
+            if (cardAlpha >= 0.999f) { super.paint(g); return; }
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setComposite(AlphaComposite.SrcOver.derive(Math.max(0f, Math.min(1f, cardAlpha))));
+            super.paint(g2);
             g2.dispose();
         }
     }

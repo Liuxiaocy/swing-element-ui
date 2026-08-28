@@ -40,6 +40,8 @@ public class AstCalendar extends JComponent {
     private static final int HEADER_H = 40;
     private static final int WEEK_H = 24;
     private static final String[] WEEK = { "日", "一", "二", "三", "四", "五", "六" };
+    private static final int NAV_PREV_YEAR = -4, NAV_PREV_MONTH = -2, NAV_NEXT_MONTH = -3, NAV_NEXT_YEAR = -5;
+    private static final int NB_X = 6, NB_Y = 8, NB_W = 24; // nav button box
 
     public AstCalendar() {
         Calendar now = Calendar.getInstance();
@@ -48,7 +50,8 @@ public class AstCalendar extends JComponent {
         setOpaque(false);
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override public void mouseMoved(java.awt.event.MouseEvent e) {
-                int cell = cellAt(e.getX(), e.getY());
+                int nav = navAt(e.getX(), e.getY());
+                int cell = (nav == 0) ? cellAt(e.getX(), e.getY()) : nav;
                 if (cell != hoverCell) {
                     hoverCell = cell;
                     repaint();
@@ -58,6 +61,11 @@ public class AstCalendar extends JComponent {
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseExited(java.awt.event.MouseEvent e) { hoverCell = -1; repaint(); }
             @Override public void mousePressed(java.awt.event.MouseEvent e) {
+                int nav = navAt(e.getX(), e.getY());
+                if (nav == NAV_PREV_YEAR) { prevYear(); return; }
+                if (nav == NAV_NEXT_YEAR) { nextYear(); return; }
+                if (nav == NAV_PREV_MONTH) { prevMonth(); return; }
+                if (nav == NAV_NEXT_MONTH) { nextMonth(); return; }
                 int cell = cellAt(e.getX(), e.getY());
                 if (cell < 0) return;
                 int[] grid = gridInfo();
@@ -68,6 +76,21 @@ public class AstCalendar extends JComponent {
                     selDay = day;
                     repaint();
                     if (dateListener != null) dateListener.accept(new int[]{ year, month, day });
+                } else if (day < 1) {
+                    // 上月补位日期：点击跳到上月并选中该日
+                    int pm = month - 1, py = year; if (pm < 0) { pm = 11; py--; }
+                    int pdim = daysInMonth(pm, py);
+                    int pday = pdim - (firstWeekday - 1 - cell);
+                    year = py; month = pm; selDay = pday;
+                    repaint();
+                    if (dateListener != null) dateListener.accept(new int[]{ year, month, selDay });
+                } else {
+                    // 下月补位日期：点击跳到下月并选中该日
+                    int nm = month + 1, ny = year; if (nm > 11) { nm = 0; ny++; }
+                    int nday = day - daysInMonth;
+                    year = ny; month = nm; selDay = nday;
+                    repaint();
+                    if (dateListener != null) dateListener.accept(new int[]{ year, month, selDay });
                 }
             }
         });
@@ -114,6 +137,44 @@ public class AstCalendar extends JComponent {
         return new int[]{ firstWeekday, daysInMonth };
     }
 
+    private int daysInMonth(int m, int y) {
+        return new GregorianCalendar(y, m, 1).getActualMaximum(Calendar.DAY_OF_MONTH);
+    }
+
+    /** 命中翻年/翻月按钮区域返回对应 nav 常量，否则 0。 */
+    private int navAt(int x, int y) {
+        if (y < NB_Y || y > NB_Y + NB_W) return 0;
+        int w = getWidth();
+        if (x >= NB_X && x <= NB_X + NB_W) return NAV_PREV_YEAR;
+        if (x >= NB_X + 28 && x <= NB_X + 28 + NB_W) return NAV_PREV_MONTH;
+        if (x >= w - NB_X - 28 - NB_W && x <= w - NB_X - 28) return NAV_NEXT_MONTH;
+        if (x >= w - NB_X - NB_W && x <= w - NB_X) return NAV_NEXT_YEAR;
+        return 0;
+    }
+
+    /** 单元格上实际绘制的日期数字（上月/本月/下月补位）。供 self-check 校验。 */
+    int displayedDayForCell(int cell) {
+        int[] grid = gridInfo();
+        int firstWeekday = grid[0], daysInMonth = grid[1];
+        int day = cell - firstWeekday + 1;
+        if (day >= 1 && day <= daysInMonth) return day;
+        if (day < 1) {
+            int pm = month - 1, py = year; if (pm < 0) { pm = 11; py--; }
+            return daysInMonth(pm, py) - (firstWeekday - 1 - cell);
+        }
+        return day - daysInMonth;
+    }
+
+    public void prevYear() {
+        year--; selDay = -1;
+        alpha = 0f; fadeAnim.stop(); fadeAnim.go(0f, 1f);
+    }
+
+    public void nextYear() {
+        year++; selDay = -1;
+        alpha = 0f; fadeAnim.stop(); fadeAnim.go(0f, 1f);
+    }
+
     private int cellAt(int x, int y) {
         int ox = 8, oy = HEADER_H + WEEK_H + 8;
         int cx = (x - ox) / CELL;
@@ -138,9 +199,11 @@ public class AstCalendar extends JComponent {
         ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, getBackground0(), "AstCalendar title");
         int titleX = (w - fm.stringWidth(title)) / 2;
         g2.drawString(title, titleX, 26);
-        // 左右箭头按钮
-        drawNavButton(g2, 12, 6, "‹", hoverCell == -2);
-        drawNavButton(g2, w - 36, 6, "›", hoverCell == -3);
+        // 翻年/翻月按钮：‹‹  ‹      ›  ››
+        drawNavButton(g2, NB_X, NB_Y, "‹‹", hoverCell == NAV_PREV_YEAR);
+        drawNavButton(g2, NB_X + 28, NB_Y, "‹", hoverCell == NAV_PREV_MONTH);
+        drawNavButton(g2, w - NB_X - 28 - NB_W, NB_Y, "›", hoverCell == NAV_NEXT_MONTH);
+        drawNavButton(g2, w - NB_X - NB_W, NB_Y, "››", hoverCell == NAV_NEXT_YEAR);
         // 星期表头
         int ox = 8, oy = HEADER_H + 8;
         g2.setFont(ElementTheme.FONT.deriveFont(13f));
@@ -155,6 +218,9 @@ public class AstCalendar extends JComponent {
         // 日期网格
         int[] grid = gridInfo();
         int firstWeekday = grid[0], daysInMonth = grid[1];
+        int prevM = month - 1, prevY = year; if (prevM < 0) { prevM = 11; prevY--; }
+        int nextM = month + 1, nextY = year; if (nextM > 11) { nextM = 0; nextY++; }
+        int prevDim = daysInMonth(prevM, prevY);
         Calendar today = Calendar.getInstance();
         int todayY = today.get(Calendar.YEAR), todayM = today.get(Calendar.MONTH), todayD = today.get(Calendar.DAY_OF_MONTH);
         for (int i = 0; i < 42; i++) {
@@ -162,6 +228,7 @@ public class AstCalendar extends JComponent {
             int x = ox + col * CELL, y = oy + row * CELL;
             int day = i - firstWeekday + 1;
             boolean inMonth = (day >= 1 && day <= daysInMonth);
+            int shown = inMonth ? day : (day < 1 ? prevDim - (firstWeekday - 1 - i) : day - daysInMonth);
             boolean isToday = (year == todayY && month == todayM && day == todayD);
             boolean isSel = (day == selDay);
             boolean isHover = (i == hoverCell);
@@ -169,7 +236,7 @@ public class AstCalendar extends JComponent {
             Color bg = null;
             if (isToday) { bg = ElementTheme.PRIMARY; fg = Color.WHITE; }
             else if (isSel) { fg = ElementTheme.PRIMARY; bg = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), 30); }
-            else if (isHover && inMonth) { bg = ElementTheme.FILL_BASE; fg = ElementTheme.TEXT_MAIN; }
+            else if (isHover) { bg = ElementTheme.FILL_BASE; fg = ElementTheme.TEXT_MAIN; }
             else if (!inMonth) { fg = ElementTheme.TEXT_PLACEHOLDER; }
             else { fg = ElementTheme.TEXT_MAIN; }
             if (!isToday && inMonth) {
@@ -182,12 +249,10 @@ public class AstCalendar extends JComponent {
             g2.setColor(fg);
             g2.setFont(ElementTheme.FONT.deriveFont(13f));
             FontMetrics fm2 = g2.getFontMetrics();
-            String s = inMonth ? String.valueOf(day) : "";
-            if (s.length() > 0) {
-                int sx = x + (CELL - fm2.stringWidth(s)) / 2;
-                int sy = y + (CELL - fm2.getHeight()) / 2 + fm2.getAscent();
-                g2.drawString(s, sx, sy);
-            }
+            String s = String.valueOf(shown);
+            int sx = x + (CELL - fm2.stringWidth(s)) / 2;
+            int sy = y + (CELL - fm2.getHeight()) / 2 + fm2.getAscent();
+            g2.drawString(s, sx, sy);
         }
         g2.setComposite(oldComp);
         g2.dispose();
@@ -238,6 +303,25 @@ public class AstCalendar extends JComponent {
         assert cal.year == 2026 && cal.month == 0 : "nextMonth 跨年";
         cal.month = 11; cal.nextMonth();
         assert cal.year == 2027 && cal.month == 0 : "nextMonth 跨年";
+
+        // prevYear / nextYear
+        cal.year = 2026; cal.month = 5; cal.prevYear();
+        assert cal.year == 2025 && cal.month == 5 : "prevYear";
+        cal.nextYear();
+        assert cal.year == 2026 && cal.month == 5 : "nextYear";
+        cal.year = 2020; cal.prevYear();
+        assert cal.year == 2019 : "prevYear 跨年";
+        cal.year = 2019; cal.nextYear();
+        assert cal.year == 2020 : "nextYear 跨年";
+
+        // 补位日期：2026-08 firstWeekday=6（周六），上月=7月31天
+        cal.year = 2026; cal.month = 7; // August
+        assert cal.displayedDayForCell(0) == 26 : "cell0 应为上月26，实际=" + cal.displayedDayForCell(0);
+        assert cal.displayedDayForCell(5) == 31 : "cell5 应为上月31，实际=" + cal.displayedDayForCell(5);
+        assert cal.displayedDayForCell(6) == 1 : "cell6 应为本月1";
+        assert cal.displayedDayForCell(36) == 31 : "cell36 应为本月31";
+        assert cal.displayedDayForCell(37) == 1 : "cell37 应为下月1";
+        assert cal.displayedDayForCell(41) == 5 : "cell41 应为下月5，实际=" + cal.displayedDayForCell(41);
 
         final int[] fired = {0};
         final AstCalendar cal2 = new AstCalendar();

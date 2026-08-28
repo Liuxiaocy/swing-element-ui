@@ -64,9 +64,9 @@ public class AstMessage {
         if (open == null) { open = new ArrayList<AnimatedPopup>(); openPerOwner.put(key, open); }
         int idx = open.size();
         open.add(popup);
-        // Positioning: PopupPositioner TOP_CENTER; then add +TOAST_OFFSET × idx
-        PopupPositioner pp = new PopupPositioner(card.getPreferredSize(),
-                java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds());
+        // Positioning: 基于 owner 所在屏幕顶端居中，叠加 idx × TOAST_OFFSET
+        Rectangle screen = screenOf(owner);
+        PopupPositioner pp = new PopupPositioner(card.getPreferredSize(), screen);
         Rectangle invokerBounds = new Rectangle(owner.getLocationOnScreen(), owner.getSize());
         PopupPositioner.Result r = pp.calc(invokerBounds, AnimatedPopup.Direction.TOP_CENTER);
         Point screenPt = new Point(r.location.x, r.location.y + idx * TOAST_OFFSET);
@@ -75,6 +75,7 @@ public class AstMessage {
         SwingUtilities.convertPointFromScreen(lpPt, lp);
         popup.setBounds(lpPt.x, lpPt.y, card.getPreferredSize().width, card.getPreferredSize().height);
         lp.add(popup, JLayeredPane.POPUP_LAYER);
+        lp.moveToFront(popup); // 屏幕顶端最前显示
         card.startIn();
         // Auto close timer
         Timer closeT = new Timer(durationMs, null);
@@ -93,13 +94,29 @@ public class AstMessage {
         closeT.start();
     }
 
+    /** owner 所在屏幕边界（多显示器时定位在窗口所在屏，而非仅主屏）。 */
+    private static Rectangle screenOf(Window owner) {
+        GraphicsConfiguration gc = owner.getGraphicsConfiguration();
+        if (gc != null) return gc.getBounds();
+        return java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+    }
+
+    private static Rectangle screenOf(Container layeredPane) {
+        Window w = SwingUtilities.getWindowAncestor(layeredPane);
+        if (w != null) {
+            GraphicsConfiguration gc = w.getGraphicsConfiguration();
+            if (gc != null) return gc.getBounds();
+        }
+        return java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+    }
+
     private static void repositionUpward(Container layeredPane, List<AnimatedPopup> open) {
         // For popup index i, its y should be (base TOP_CENTER y) + i*TOAST_OFFSET
         // Use first popup's X and the current Y base (compute the position as if it were index 0)
         if (open.isEmpty()) return;
         if (layeredPane == null || !layeredPane.isShowing()) return;
         try {
-            Rectangle screen = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+            Rectangle screen = screenOf(layeredPane);
             int x0, y0;
             Dimension size = open.get(0).getSize();
             int baseX = screen.x + screen.width / 2 - size.width / 2;
