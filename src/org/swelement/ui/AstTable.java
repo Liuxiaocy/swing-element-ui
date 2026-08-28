@@ -142,6 +142,22 @@ public class AstTable extends JPanel {
         for (AstTableColumn c : model.getLeafColumns()) w += c.width;
         return w;
     }
+    // 冻结列宽度（供 HeaderView/BodyView 三段式 clip 共用）
+    int totalLeafW() {
+        int w = 0;
+        for (AstTableColumn c : model.getLeafColumns()) w += c.width;
+        return w;
+    }
+    int frozenLeftW() {
+        int w = 0;
+        for (AstTableColumn c : model.getLeafColumns()) if (c.fixed == AstTableColumn.Fixed.LEFT) w += c.width;
+        return w;
+    }
+    int frozenRightW() {
+        int w = 0;
+        for (AstTableColumn c : model.getLeafColumns()) if (c.fixed == AstTableColumn.Fixed.RIGHT) w += c.width;
+        return w;
+    }
     void fireRowClick(int viewRow) { if (rowClickListener != null) rowClickListener.accept(viewRow); }
 
     // --- Layout / paint（容器画白底+外边框，视图画内容）---
@@ -170,33 +186,45 @@ public class AstTable extends JPanel {
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int w = getWidth();
+            int w = getWidth(), hh = getPreferredHeight();
             g2.setColor(ElementTheme.PRIMARY);
-            g2.fillRect(0, 0, w, getPreferredHeight());
+            g2.fillRect(0, 0, w, hh);
             g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f));
-            g2.drawLine(0, getPreferredHeight() - 1, w, getPreferredHeight() - 1);
+            g2.drawLine(0, hh - 1, w, hh - 1);
             g2.setColor(Color.WHITE); g2.setFont(hf);
             FontMetrics fm = g2.getFontMetrics();
-            int x = 0;
-            for (AstTableColumn col : model.getLeafColumns()) {
-                String text = clipText(g2, col.title, col.width - 2 * CELL_PAD_X);
-                int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-                int ty = (hH - fm.getHeight()) / 2 + fm.getAscent();
-                g2.drawString(text, tx, ty);
-                if (x + col.width < w) {
-                    g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
-                    g2.drawLine(x + col.width - 1, 4, x + col.width - 1, hH - 4);
-                    g2.setColor(Color.WHITE);
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            int flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
+            int sx = bodyView.scrollX;
+            if (w - flw - frw > 0) { g2.clipRect(flw, 0, w - flw - frw, hh); paintHeaderLeaves(g2, fm, leaves, -sx, null, hh); g2.setClip(null); }
+            if (flw > 0) { g2.clipRect(0, 0, flw, hh); paintHeaderLeaves(g2, fm, leaves, 0, c -> c.fixed == AstTableColumn.Fixed.LEFT, hh); g2.setClip(null); g2.drawLine(flw, 0, flw, hh); }
+            if (frw > 0) { g2.clipRect(w - frw, 0, frw, hh); paintHeaderLeaves(g2, fm, leaves, w - tlw, c -> c.fixed == AstTableColumn.Fixed.RIGHT, hh); g2.setClip(null); g2.drawLine(w - frw, 0, w - frw, hh); }
+            g2.dispose();
+        }
+        private void paintHeaderLeaves(Graphics2D g2, FontMetrics fm, List<AstTableColumn> leaves, int xOffset, java.util.function.Predicate<AstTableColumn> filter, int hh) {
+            int x = xOffset;
+            for (AstTableColumn col : leaves) {
+                if (filter == null || filter.test(col)) {
+                    String text = clipText(g2, col.title, col.width - 2 * CELL_PAD_X);
+                    int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
+                    int ty = (hh - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(text, tx, ty);
+                    if (x + col.width < getWidth()) {
+                        Color saved = g2.getColor();
+                        g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
+                        g2.drawLine(x + col.width - 1, 4, x + col.width - 1, hh - 4);
+                        g2.setColor(saved);
+                    }
                 }
                 x += col.width;
             }
-            g2.dispose();
         }
     }
 
     // ===================== BodyView =====================
     public class BodyView extends JComponent {
         private int rH = 32; private Font cf;
+        int scrollX = 0;          // 横向滚动（包可见，供 HeaderView 对齐 + selfCheck）
         private int scrollY = 0;
         private int hoverRow = -1;
         private float hoverAlpha = 0f;
@@ -227,11 +255,26 @@ public class AstTable extends JPanel {
                     }
                 }
             });
+            addMouseWheelListener(new MouseWheelListener() {
+                @Override public void mouseWheelMoved(MouseWheelEvent e) {
+                    int d = e.getWheelRotation() * rH;
+                    if (e.isShiftDown()) {
+                        int max = maxScrollX();
+                        scrollX = Math.max(0, Math.min(scrollX + d, max));
+                    } else {
+                        int max = maxScrollY();
+                        scrollY = Math.max(0, Math.min(scrollY + d, max));
+                    }
+                    repaint();
+                }
+            });
         }
         void applyTier(int h, Font f) { this.rH = h; this.cf = f; }
 
         int viewportH() { return getHeight(); }
+        int viewportW() { return getWidth(); }
         int maxScrollY() { return Math.max(0, model.viewRowCount() * rH - viewportH()); }
+        int maxScrollX() { return Math.max(0, totalLeafW() - viewportW()); }
         void scrollToRow(int v) {
             int target = v * rH - (viewportH() - rH) / 2;
             scrollY = Math.max(0, Math.min(target, maxScrollY()));
@@ -248,6 +291,22 @@ public class AstTable extends JPanel {
             if (v < 0 || v >= model.viewRowCount()) return -1;
             return v;
         }
+        private int leafNaturalX(int leaf) {
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            int x = 0;
+            for (int i = 0; i < leaf && i < leaves.size(); i++) x += leaves.get(i).width;
+            return x;
+        }
+        /** 叶子列当前屏幕左缘 X（含冻结/横滚）。 */
+        int leafXOnScreen(int leaf) {
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            if (leaf < 0 || leaf >= leaves.size()) return -1;
+            int nx = leafNaturalX(leaf);
+            AstTableColumn.Fixed f = leaves.get(leaf).fixed;
+            if (f == AstTableColumn.Fixed.LEFT) return nx;
+            if (f == AstTableColumn.Fixed.RIGHT) return nx + (viewportW() - totalLeafW());
+            return nx - scrollX;
+        }
 
         @Override public Dimension getPreferredSize() {
             return new Dimension(getTotalWidth(), model.viewRowCount() * rH);
@@ -258,15 +317,42 @@ public class AstTable extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             int w = getWidth(), h = getHeight();
             List<AstTableColumn> leaves = model.getLeafColumns();
-            for (int v = 0; v < model.viewRowCount(); v++) {
-                int yTop = v * rH - scrollY;
-                if (yTop > h) break;
-                if (yTop + rH < 0) continue;
-                paintRow(g2, v, yTop, w, leaves);
+            int flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
+            // 1) 中列
+            if (w - flw - frw > 0) {
+                g2.clipRect(flw, 0, w - flw - frw, h);
+                for (int v = 0; v < model.viewRowCount(); v++) {
+                    int yTop = v * rH - scrollY;
+                    if (yTop > h || yTop + rH < 0) continue;
+                    paintRow(g2, v, yTop, w, leaves, -scrollX, null);
+                }
+                g2.setClip(null);
+            }
+            // 2) 左冻结
+            if (flw > 0) {
+                g2.clipRect(0, 0, flw, h);
+                for (int v = 0; v < model.viewRowCount(); v++) {
+                    int yTop = v * rH - scrollY;
+                    if (yTop > h || yTop + rH < 0) continue;
+                    paintRow(g2, v, yTop, w, leaves, 0, c -> c.fixed == AstTableColumn.Fixed.LEFT);
+                }
+                g2.setClip(null);
+                g2.drawLine(flw, 0, flw, h);
+            }
+            // 3) 右冻结
+            if (frw > 0) {
+                g2.clipRect(w - frw, 0, frw, h);
+                for (int v = 0; v < model.viewRowCount(); v++) {
+                    int yTop = v * rH - scrollY;
+                    if (yTop > h || yTop + rH < 0) continue;
+                    paintRow(g2, v, yTop, w, leaves, w - tlw, c -> c.fixed == AstTableColumn.Fixed.RIGHT);
+                }
+                g2.setClip(null);
+                g2.drawLine(w - frw, 0, w - frw, h);
             }
             g2.dispose();
         }
-        private void paintRow(Graphics2D g2, int v, int y, int w, List<AstTableColumn> leaves) {
+        private void paintRow(Graphics2D g2, int v, int y, int w, List<AstTableColumn> leaves, int xOffset, java.util.function.Predicate<AstTableColumn> filter) {
             boolean selected = model.isSelectedView(v);
             boolean isHovered = (v == hoverRow) && hoverAlpha > 0.01f;
             boolean zebra = (v % 2 == 1);
@@ -285,18 +371,20 @@ public class AstTable extends JPanel {
             }
             g2.setColor(textColor); g2.setFont(cf);
             FontMetrics fm = g2.getFontMetrics();
-            int x = 0;
+            int x = xOffset;
             for (int c = 0; c < leaves.size(); c++) {
                 AstTableColumn col = leaves.get(c);
-                String text = clipText(g2, String.valueOf(model.getValueAtView(v, c)), col.width - 2 * CELL_PAD_X);
-                int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-                int ty = y + (rH - fm.getHeight()) / 2 + fm.getAscent();
-                g2.drawString(text, tx, ty);
-                if (x + col.width < w) {
-                    Color saved = g2.getColor();
-                    g2.setColor(ElementTheme.BORDER_BASE);
-                    g2.drawLine(x + col.width - 1, y + 4, x + col.width - 1, y + rH - 4);
-                    g2.setColor(saved);
+                if (filter == null || filter.test(col)) {
+                    String text = clipText(g2, String.valueOf(model.getValueAtView(v, c)), col.width - 2 * CELL_PAD_X);
+                    int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
+                    int ty = y + (rH - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(text, tx, ty);
+                    if (x + col.width < w) {
+                        Color saved = g2.getColor();
+                        g2.setColor(ElementTheme.BORDER_BASE);
+                        g2.drawLine(x + col.width - 1, y + 4, x + col.width - 1, y + rH - 4);
+                        g2.setColor(saved);
+                    }
                 }
                 x += col.width;
             }
@@ -500,6 +588,35 @@ public class AstTable extends JPanel {
             } finally { jf.dispose(); }
         }}); } catch (Throwable t){ err1[0]=t; }
         if (err1[0]!=null) throw new RuntimeException(err1[0]);
+
+        // --- C2: 横向滚动 + 左冻结列 ---
+        final int[] c2res = {0,0,0,0};
+        final Throwable[] err2 = {null};
+        try { SwingUtilities.invokeAndWait(new Runnable(){ public void run(){
+            JFrame jf = new JFrame("C2"); jf.setSize(360, 200); jf.setVisible(true);
+            try {
+                AstTableColumn name = new AstTableColumn("姓名",100,Align.LEFT,false,AstTableColumn.Fixed.LEFT,null);
+                AstTableColumn age  = new AstTableColumn("年龄",90,Align.CENTER);
+                AstTableColumn addr = new AstTableColumn("地址",260,Align.LEFT);
+                AstTableColumn tag  = new AstTableColumn("标签",260,Align.LEFT);
+                AstTable tt = new AstTable(new AstTableColumn[]{name,age,addr,tag});
+                for (int i=0;i<10;i++) tt.addRow("n"+i,i,"a-long-address-"+i,"t"+i);
+                JPanel cp = (JPanel) jf.getContentPane(); cp.setLayout(new BorderLayout());
+                cp.add(tt, BorderLayout.CENTER); jf.validate();
+                int leafW = tt.frozenLeftW();
+                c2res[0] = leafW;
+                int xBefore = tt.getBodyView().leafXOnScreen(1); // 年龄(中列)
+                tt.getBodyView().scrollX = 120; tt.getBodyView().repaint();
+                int xNameAfter = tt.getBodyView().leafXOnScreen(0); // 姓名(冻结)
+                int xAgeAfter  = tt.getBodyView().leafXOnScreen(1);  // 年龄(中列)
+                c2res[1] = xNameAfter; c2res[2] = xAgeAfter; c2res[3] = xBefore;
+                assert leafW == 100 : "C2 左冻结宽=100, got "+leafW;
+                assert xNameAfter == 0 : "C2 冻结列横滚后仍贴左(0), got "+xNameAfter;
+                assert xAgeAfter < xBefore : "C2 中列横滚后左移, before="+xBefore+" after="+xAgeAfter;
+                assert leafW + tt.frozenRightW() < tt.getWidth() : "C2 冻结宽小于视口";
+            } finally { jf.dispose(); }
+        }}); } catch (Throwable t){ err2[0]=t; }
+        if (err2[0]!=null) throw new RuntimeException(err2[0]);
 
         System.out.println("AstTable self-check OK");
     }
