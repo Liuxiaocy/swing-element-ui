@@ -196,28 +196,41 @@ public class AstTable extends JPanel {
             List<AstTableColumn> leaves = model.getLeafColumns();
             int flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
             int sx = bodyView.scrollX;
-            if (w - flw - frw > 0) { g2.clipRect(flw, 0, w - flw - frw, hh); paintHeaderLeaves(g2, fm, leaves, -sx, null, hh); g2.setClip(null); }
-            if (flw > 0) { g2.clipRect(0, 0, flw, hh); paintHeaderLeaves(g2, fm, leaves, 0, c -> c.fixed == AstTableColumn.Fixed.LEFT, hh); g2.setClip(null); g2.drawLine(flw, 0, flw, hh); }
-            if (frw > 0) { g2.clipRect(w - frw, 0, frw, hh); paintHeaderLeaves(g2, fm, leaves, w - tlw, c -> c.fixed == AstTableColumn.Fixed.RIGHT, hh); g2.setClip(null); g2.drawLine(w - frw, 0, w - frw, hh); }
+            if (w - flw - frw > 0) { g2.clipRect(flw, 0, w - flw - frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), -sx, 0); g2.setClip(null); }
+            if (flw > 0) { g2.clipRect(0, 0, flw, hh); paintHeaderGroups(g2, fm, model.getColumns(), 0, 0); g2.setClip(null); g2.drawLine(flw, 0, flw, hh); }
+            if (frw > 0) { g2.clipRect(w - frw, 0, frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), w - tlw, 0); g2.setClip(null); g2.drawLine(w - frw, 0, w - frw, hh); }
             g2.dispose();
         }
-        private void paintHeaderLeaves(Graphics2D g2, FontMetrics fm, List<AstTableColumn> leaves, int xOffset, java.util.function.Predicate<AstTableColumn> filter, int hh) {
+        /** 递归绘制多级表头：父列跨其子列宽度居中，叶子列位于其层级行。 */
+        private void paintHeaderGroups(Graphics2D g2, FontMetrics fm, List<AstTableColumn> cols, int xOffset, int level) {
             int x = xOffset;
-            for (AstTableColumn col : leaves) {
-                if (filter == null || filter.test(col)) {
-                    String text = clipText(g2, col.title, col.width - 2 * CELL_PAD_X);
-                    int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-                    int ty = (hh - fm.getHeight()) / 2 + fm.getAscent();
-                    g2.drawString(text, tx, ty);
-                    if (x + col.width < getWidth()) {
-                        Color saved = g2.getColor();
-                        g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
-                        g2.drawLine(x + col.width - 1, 4, x + col.width - 1, hh - 4);
-                        g2.setColor(saved);
-                    }
-                }
-                x += col.width;
+            for (AstTableColumn col : cols) {
+                drawHeaderCell(g2, fm, col, x, col.width, level);
+                if (col.isLeaf()) x += col.width;
+                else { paintHeaderGroups(g2, fm, col.children, x, level + 1); x += col.width; }
             }
+        }
+        private void drawHeaderCell(Graphics2D g2, FontMetrics fm, AstTableColumn col, int x, int groupW, int level) {
+            String text = clipText(g2, col.title, groupW - 2 * CELL_PAD_X);
+            int tx = x + (groupW - fm.stringWidth(text)) / 2;
+            int ty = level * hH + (hH - fm.getHeight()) / 2 + fm.getAscent();
+            g2.drawString(text, tx, ty);
+            // 该行底部分隔线
+            g2.drawLine(x, level * hH + hH - 1, x + groupW, level * hH + hH - 1);
+            // 叶子列右侧竖分隔
+            if (col.isLeaf() && (x + col.width) < getWidth()) {
+                Color saved = g2.getColor();
+                g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
+                g2.drawLine(x + col.width - 1, level * hH + 4, x + col.width - 1, level * hH + hH - 4);
+                g2.setColor(saved);
+            }
+        }
+        /** 叶子列当前左缘 X（自然坐标，不含横滚）。 */
+        int leafX(int leaf) {
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            int x = 0;
+            for (int i = 0; i < leaf && i < leaves.size(); i++) x += leaves.get(i).width;
+            return x;
         }
     }
 
@@ -617,6 +630,20 @@ public class AstTable extends JPanel {
             } finally { jf.dispose(); }
         }}); } catch (Throwable t){ err2[0]=t; }
         if (err2[0]!=null) throw new RuntimeException(err2[0]);
+
+        // --- C3: 多级表头 ---
+        AstTableColumn c3name = new AstTableColumn("姓名", 100);
+        AstTableColumn c3city = new AstTableColumn("城市", 120);
+        AstTableColumn c3street = new AstTableColumn("街道", 160);
+        AstTableColumn c3addr = new AstTableColumn("地址", Arrays.asList(c3city, c3street));
+        AstTableColumn c3age = new AstTableColumn("年龄", 80);
+        AstTable t3 = new AstTable(new AstTableColumn[]{c3name, c3addr, c3age});
+        assert t3.getHeaderView().getDepth() == 2 : "C3 层级=2";
+        List<AstTableColumn> c3leaves = t3.getModel().getLeafColumns();
+        assert c3leaves.size() == 4 : "C3 叶子=4";
+        assert c3leaves.get(1) == c3city && c3leaves.get(2) == c3street : "C3 叶子顺序 城市→街道";
+        assert t3.getHeaderView().leafX(1) == 100 : "C3 城市列X=100, got " + t3.getHeaderView().leafX(1);
+        assert t3.getHeaderView().leafX(2) == 220 : "C3 街道X=220, got " + t3.getHeaderView().leafX(2);
 
         System.out.println("AstTable self-check OK");
     }
