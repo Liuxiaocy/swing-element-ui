@@ -2,6 +2,8 @@ package org.swelement.ui;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -13,9 +15,16 @@ public class AstTableModel {
     /** 选择模式。 */
     public enum SelectionMode { SINGLE, MULTIPLE }
 
+    /** 排序方向（C5）。 */
+    public enum SortDir { ASC, DESC, NONE }
+
     private final List<AstTableColumn> columns;
     private final List<Object[]> raw = new ArrayList<Object[]>();
     private List<Integer> view = new ArrayList<Integer>();
+
+    // 排序（C5）
+    private int sortLeaf = -1;
+    private SortDir sortDir = SortDir.NONE;
 
     // 单选（C1）；多选集合在 C4 扩展
     private int selectedViewRow = -1;
@@ -75,6 +84,40 @@ public class AstTableModel {
     }
     public Object getValueAtView(int v, int leafCol) {
         return raw.get(view.get(v))[leafCol];
+    }
+
+    // --- 排序（C5）---
+    public int getSortLeaf() { return sortLeaf; }
+    public SortDir getSortDir() { return sortDir; }
+    /** 按叶子列排序，重建 view（保留当前筛选顺序）；NONE 还原为原始序。切换排序会清空选择。 */
+    public void sort(int leafCol, SortDir dir) {
+        if (leafCol < 0 || leafCol >= leafCount()) throw new IndexOutOfBoundsException("leafCol " + leafCol);
+        this.sortLeaf = (dir == SortDir.NONE) ? -1 : leafCol;
+        this.sortDir = dir;
+        if (dir == SortDir.NONE) {
+            view = new ArrayList<Integer>();
+            for (int i = 0; i < raw.size(); i++) view.add(i);
+        } else {
+            final int col = leafCol;
+            List<Integer> idx = new ArrayList<Integer>(view);
+            Collections.sort(idx, new Comparator<Integer>() {
+                public int compare(Integer a, Integer b) {
+                    int c = compareValues(raw.get(a)[col], raw.get(b)[col]);
+                    return dir == SortDir.ASC ? c : -c;
+                }
+            });
+            view = idx;
+        }
+        selectedViewRow = -1;
+        selectedViewRows.clear();
+    }
+    private static int compareValues(Object a, Object b) {
+        if (a == null && b == null) return 0;
+        if (a == null) return -1;
+        if (b == null) return 1;
+        if (a instanceof Number && b instanceof Number)
+            return Double.compare(((Number) a).doubleValue(), ((Number) b).doubleValue());
+        return String.valueOf(a).compareTo(String.valueOf(b));
     }
 
     // --- 选择（C1 单选 + C4 多选）---

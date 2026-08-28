@@ -144,6 +144,11 @@ public class AstTable extends JPanel {
         if (m == null) throw new IllegalArgumentException("mode must not be null");
         model.setSelectionMode(m); revalidate(); repaint();
     }
+    /** 按叶子列排序（升/降/无）；切换会清空选择。 */
+    public void setSort(int leafCol, AstTableModel.SortDir dir) {
+        if (dir == null) throw new IllegalArgumentException("dir must not be null");
+        model.sort(leafCol, dir); revalidate(); repaint();
+    }
     public void setRowClickListener(Consumer<Integer> l) {
         if (l == null) throw new IllegalArgumentException("listener must not be null");
         this.rowClickListener = l;
@@ -194,13 +199,36 @@ public class AstTable extends JPanel {
             setOpaque(false);
             addMouseListener(new MouseAdapter() {
                 @Override public void mousePressed(MouseEvent e) {
-                    if (!multiSelect()) return;
-                    int scw = selectColW();
-                    if (e.getX() >= 0 && e.getX() < scw && e.getY() < getPreferredHeight()) {
-                        model.toggleSelectAll(); repaint();
+                    if (multiSelect()) {
+                        int scw = selectColW();
+                        if (e.getX() >= 0 && e.getX() < scw && e.getY() < getPreferredHeight()) {
+                            model.toggleSelectAll(); repaint(); return;
+                        }
+                    }
+                    // 排序：点击 sortable 叶子列循环 NONE→ASC→DESC→NONE
+                    int leaf = headerLeafAt(e.getX());
+                    if (leaf >= 0 && model.getLeafColumns().get(leaf).sortable && e.getY() < getPreferredHeight()) {
+                        AstTableModel.SortDir cur = model.getSortDir();
+                        AstTableModel.SortDir next;
+                        if (model.getSortLeaf() != leaf || cur == AstTableModel.SortDir.NONE) next = AstTableModel.SortDir.ASC;
+                        else if (cur == AstTableModel.SortDir.ASC) next = AstTableModel.SortDir.DESC;
+                        else next = AstTableModel.SortDir.NONE;
+                        model.sort(leaf, next);
+                        repaint();
                     }
                 }
             });
+        }
+        /** 命中测试：表头局部 x → 叶子列索引（含选择列偏移/横滚/左冻结）。 */
+        int headerLeafAt(int x) {
+            int sx = bodyView.scrollX;
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            for (int i = 0; i < leaves.size(); i++) {
+                AstTableColumn.Fixed f = leaves.get(i).fixed;
+                int lx = (f == AstTableColumn.Fixed.LEFT) ? leafX(i) : leafX(i) - sx;
+                if (x >= lx && x < lx + leaves.get(i).width) return i;
+            }
+            return -1;
         }
         void applyTier(int h, Font f) { this.hH = h; this.hf = f; }
         int getDepth() { int d = 1; for (AstTableColumn c : model.getColumns()) d = Math.max(d, c.getDepth()); return d; }
@@ -246,6 +274,16 @@ public class AstTable extends JPanel {
             int tx = x + (groupW - fm.stringWidth(text)) / 2;
             int ty = level * hH + (hH - fm.getHeight()) / 2 + fm.getAscent();
             g2.drawString(text, tx, ty);
+            // 可排序叶子：右侧画方向箭头
+            if (col.isLeaf() && col.sortable) {
+                int li = model.getLeafColumns().indexOf(col);
+                AstTableModel.SortDir d = (li == model.getSortLeaf()) ? model.getSortDir() : AstTableModel.SortDir.NONE;
+                int ax = x + groupW - CELL_PAD_X - 4, ayc = level * hH + hH / 2;
+                g2.setColor(Color.WHITE);
+                if (d == AstTableModel.SortDir.ASC) { g2.drawLine(ax - 4, ayc + 3, ax, ayc - 3); g2.drawLine(ax, ayc - 3, ax + 4, ayc + 3); }
+                else if (d == AstTableModel.SortDir.DESC) { g2.drawLine(ax - 4, ayc - 3, ax, ayc + 3); g2.drawLine(ax, ayc + 3, ax + 4, ayc - 3); }
+                else { g2.drawLine(ax - 5, ayc - 2, ax - 1, ayc + 2); g2.drawLine(ax - 1, ayc + 2, ax + 3, ayc - 2); }
+            }
             // 该行底部分隔线
             g2.drawLine(x, level * hH + hH - 1, x + groupW, level * hH + hH - 1);
             // 叶子列右侧竖分隔
@@ -732,6 +770,22 @@ public class AstTable extends JPanel {
             } finally { jf.dispose(); }
         }}); } catch (Throwable t){ err4[0] = t; }
         if (err4[0] != null) throw new RuntimeException(err4[0]);
+
+        // --- C5: 排序（升/降/无 + 表头三角）---
+        AstTable t5 = new AstTable(new AstTableColumn[]{
+            new AstTableColumn("姓名", 120),
+            new AstTableColumn("年龄", 80, Align.CENTER, true, AstTableColumn.Fixed.NONE, null)});
+        t5.addRow("王", 22); t5.addRow("张", 34); t5.addRow("李", 28);
+        t5.getModel().sort(1, AstTableModel.SortDir.ASC);
+        assert (Integer) t5.getValueAt(0, 1) == 22 && (Integer) t5.getValueAt(1, 1) == 28 && (Integer) t5.getValueAt(2, 1) == 34 : "C5 升序 22,28,34";
+        t5.getModel().sort(1, AstTableModel.SortDir.DESC);
+        assert (Integer) t5.getValueAt(0, 1) == 34 && (Integer) t5.getValueAt(2, 1) == 22 : "C5 降序 34,22";
+        t5.getModel().sort(1, AstTableModel.SortDir.NONE);
+        assert (Integer) t5.getValueAt(0, 1) == 22 : "C5 NONE 还原原始序";
+        // 离屏绘制不抛异常（含排序箭头）
+        java.awt.image.BufferedImage img5 = new java.awt.image.BufferedImage(t5.getPreferredSize().width, 90, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gg5 = img5.createGraphics();
+        try { t5.paint(gg5); } finally { gg5.dispose(); }
 
         System.out.println("AstTable self-check OK");
     }
