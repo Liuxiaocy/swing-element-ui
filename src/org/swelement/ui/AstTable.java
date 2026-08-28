@@ -10,326 +10,316 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
- * 表格组件 — Element UI Table 的 Java 实现。
- * 表头固定（PRIMARY 背景 + 白字 + 粗体），斑马纹奇偶行交替背景，
- * 列宽可配置，行 hover 高亮，点击行选中（PRIMARY 描边）。
+ * 表格组件 — Element UI Table 的 Java 实现（P4-C 重构为分层容器）。
+ *
+ * 结构：AstTable(JPanel, BorderLayout) 内含
+ *   - HeaderView(NORTH) 吸顶表头
+ *   - BodyView(CENTER)  自管视口(scrollY)，绘制数据行
+ *   - FooterView(SOUTH) 合计行（C8 启用）
+ * 数据与视图抽离到 {@link AstTableModel}；列模型为 {@link AstTableColumn}。
  *
  * 用法：
- *   AstTable.Column[] cols = {
- *       new AstTable.Column("姓名", 120),
- *       new AstTable.Column("年龄", 80, AstTable.Align.CENTER),
- *       new AstTable.Column("地址", 200),
+ *   AstTableColumn[] cols = {
+ *       new AstTableColumn("姓名", 120),
+ *       new AstTableColumn("年龄", 80, AstTable.Align.CENTER),
+ *       new AstTableColumn("地址", 200),
  *   };
  *   AstTable table = new AstTable(cols);
  *   table.addRow("张三", 28, "北京市朝阳区");
- *   table.addRow("李四", 34, "上海市浦东新区");
- *   table.setRowClickListener(row -> System.out.println("点击第 " + row + " 行"));
  *
- * 设计要点：
- * - 表头行高 36px，数据行高 32px。
- * - 斑马纹：偶数行(0,2,4…)白色，奇数行(1,3,5…)FILL_BASE 浅灰。
- * - 列对齐：LEFT/CENTER/RIGHT，表头与数据行一致。
- * - 文字超宽省略 …。
- * - hover 行：PRIMARY 半透明覆盖；选中行：PRIMARY 背景 + 白字。
- * - 行数过多时整体可滚动（JScrollPane）。
+ * 设计要点：表头行高 44/36/32、数据行高 40/32/28（尺寸档位 R1）。
+ * 斑马纹、hover 高亮、点击选中均经 AstTableModel 视图行。
  */
-public class AstTable extends JComponent {
-    // --- Column model ---
+public class AstTable extends JPanel {
+    // --- Align（列对齐，供 AstTableColumn 复用）---
     public enum Align { LEFT, CENTER, RIGHT }
 
-    public static final class Column {
-        public final String title;
-        public final int width;
-        public final Align align;
-        public Column(String title, int width) { this(title, width, Align.LEFT); }
-        public Column(String title, int width, Align align) {
-            if (title == null) throw new IllegalArgumentException("title must not be null");
-            if (width < 24) throw new IllegalArgumentException("width must be >= 24");
-            if (align == null) throw new IllegalArgumentException("align must not be null");
-            this.title = title;
-            this.width = width;
-            this.align = align;
-        }
+    public static final class Column extends AstTableColumn {
+        public Column(String title, int width) { super(title, width); }
+        public Column(String title, int width, Align align) { super(title, width, align); }
     }
 
     // --- Fields ---
-    private final List<Column> columns;
-    private final List<Object[]> rows = new ArrayList<Object[]>();
+    private final AstTableModel model;
+    private final HeaderView headerView;
+    private final BodyView bodyView;
+    private final FooterView footerView;
     private Consumer<Integer> rowClickListener;
-    private int selectedRow = -1;
-    private int hoverRow = -1;
-    private final Animator hoverAnim;
-    private float hoverAlpha;
-
-    private static final int CELL_PAD_X = 12;
-    private static final int MAX_VISIBLE_ROWS_DEFAULT = 10;
+    private int tier = SIZE_DEFAULT;
 
     // --- 尺寸档位（对齐 Element UI）---
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     private static final int[] TIER_HEADER_H = {44, 36, 32};
     private static final int[] TIER_ROW_H = {40, 32, 28};
     private static final float[] TIER_FONT = {14f, 14f, 13f};
-    private int tier = SIZE_DEFAULT;
     private int headerH = 36;
     private int rowH = 32;
     private Font headerFont = ElementTheme.FONT.deriveFont(Font.BOLD, 14f);
     private Font cellFont = ElementTheme.FONT.deriveFont(14f);
 
+    private static final int CELL_PAD_X = 12;
+
+    // --- Constructors ---
+    public AstTable(AstTableColumn[] cols) {
+        if (cols == null) throw new IllegalArgumentException("cols must not be null");
+        if (cols.length == 0) throw new IllegalArgumentException("cols must have at least one column");
+        this.model = new AstTableModel(Arrays.asList(cols));
+        this.headerView = new HeaderView(); this.bodyView = new BodyView(); this.footerView = new FooterView();
+        init();
+    }
     public AstTable(Column[] cols) {
         if (cols == null) throw new IllegalArgumentException("cols must not be null");
         if (cols.length == 0) throw new IllegalArgumentException("cols must have at least one column");
-        for (Column c : cols) if (c == null) throw new IllegalArgumentException("column must not be null");
-        this.columns = new ArrayList<Column>(Arrays.asList(cols));
-        // hover animation
-        hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-            new Animator.Listener() { public void update(float v) { hoverAlpha = v; repaint(); }});
-        setOpaque(false);
-        setFocusable(true);
-        addMouseListener(new MouseAdapter() {
-            @Override public void mouseExited(MouseEvent e) {
-                hoverRow = -1;
-                hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
-            }
-            @Override public void mousePressed(MouseEvent e) {
-                int idx = dataRowAtPoint(e.getPoint());
-                if (idx < 0 || idx >= rows.size()) return;
-                selectedRow = idx;
-                repaint();
-                if (rowClickListener != null) rowClickListener.accept(idx);
-            }
-        });
-        addMouseMotionListener(new MouseMotionAdapter() {
-            @Override public void mouseMoved(MouseEvent e) {
-                int idx = dataRowAtPoint(e.getPoint());
-                if (idx != hoverRow) {
-                    hoverRow = idx;
-                    hoverAnim.stop(); hoverAnim.go(hoverAlpha, idx >= 0 ? 1f : 0f);
-                }
-            }
-        });
-        applyTier();
+        AstTableColumn[] a = new AstTableColumn[cols.length];
+        for (int i = 0; i < cols.length; i++) a[i] = cols[i];
+        this.model = new AstTableModel(Arrays.asList(a));
+        this.headerView = new HeaderView(); this.bodyView = new BodyView(); this.footerView = new FooterView();
+        init();
+    }
+    public AstTable(AstTableModel model) {
+        if (model == null) throw new IllegalArgumentException("model must not be null");
+        this.model = model;
+        this.headerView = new HeaderView(); this.bodyView = new BodyView(); this.footerView = new FooterView();
+        init();
     }
 
-    // --- 尺寸档位（对齐 Element UI）---
+    private void init() {
+        setLayout(new BorderLayout());
+        setOpaque(true);
+        setFocusable(true);
+        applyTier();
+        add(headerView, BorderLayout.NORTH);
+        add(bodyView, BorderLayout.CENTER);
+        add(footerView, BorderLayout.SOUTH);
+    }
+
+    public AstTableModel getModel() { return model; }
+    public HeaderView getHeaderView() { return headerView; }
+    public BodyView getBodyView() { return bodyView; }
+    public FooterView getFooterView() { return footerView; }
+
+    // --- 尺寸档位 ---
     public void setSize(int tier) {
         if (tier < SIZE_LARGE || tier > SIZE_SMALL) throw new IllegalArgumentException("tier out of range: " + tier);
         this.tier = tier;
         applyTier();
-        revalidate();
+        revalidate(); repaint();
     }
-
     private void applyTier() {
         this.headerH = TIER_HEADER_H[tier];
         this.rowH = TIER_ROW_H[tier];
         this.headerFont = ElementTheme.FONT.deriveFont(Font.BOLD, TIER_FONT[tier]);
         this.cellFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
+        headerView.applyTier(headerH, headerFont);
+        bodyView.applyTier(rowH, cellFont);
     }
-
-    /** 当前档位的表头高度（像素）。 */
     public int getHeaderHeight() { return headerH; }
-    /** 当前档位的数据行高度（像素）。 */
     public int getRowHeight() { return rowH; }
+    public int getTier() { return tier; }
 
-    // --- Public API ---
-    public void addRow(Object... values) {
-        if (values == null) throw new IllegalArgumentException("values must not be null");
-        if (values.length != columns.size())
-            throw new IllegalArgumentException("values length (" + values.length + ") must match columns (" + columns.size() + ")");
-        for (Object v : values) if (v == null) throw new IllegalArgumentException("value must not be null");
-        Object[] copy = new Object[values.length];
-        System.arraycopy(values, 0, copy, 0, values.length);
-        rows.add(copy);
-        revalidate(); repaint();
-    }
-
-    public void setRows(List<Object[]> data) {
-        if (data == null) throw new IllegalArgumentException("data must not be null");
-        rows.clear();
-        for (Object[] row : data) {
-            if (row == null) throw new IllegalArgumentException("row must not be null");
-            if (row.length != columns.size())
-                throw new IllegalArgumentException("row length must match columns");
-            Object[] copy = new Object[row.length];
-            System.arraycopy(row, 0, copy, 0, row.length);
-            rows.add(copy);
-        }
-        selectedRow = -1;
-        revalidate(); repaint();
-    }
-
-    public void clearRows() {
-        rows.clear();
-        selectedRow = -1;
-        hoverRow = -1;
-        revalidate(); repaint();
-    }
-
-    public int getRowCount() { return rows.size(); }
-
-    public int getColumnCount() { return columns.size(); }
-
-    public Object getValueAt(int row, int col) {
-        if (row < 0 || row >= rows.size()) throw new IndexOutOfBoundsException("row " + row);
-        if (col < 0 || col >= columns.size()) throw new IndexOutOfBoundsException("col " + col);
-        return rows.get(row)[col];
-    }
-
-    public int getSelectedRow() { return selectedRow; }
-
+    // --- Public API（向后兼容，转发到 model / bodyView）---
+    public void addRow(Object... values) { model.addRow(values); revalidate(); repaint(); }
+    public void setRows(List<Object[]> data) { model.setRows(data); revalidate(); repaint(); }
+    public void clearRows() { model.clearRows(); revalidate(); repaint(); }
+    public int getRowCount() { return model.viewRowCount(); }
+    public int getColumnCount() { return model.leafCount(); }
+    public Object getValueAt(int row, int col) { return model.getValueAtView(row, col); }
+    public int getSelectedRow() { return model.getSelectedViewRow(); }
     public void setSelectedRow(int row) {
-        if (row < -1 || row >= rows.size()) throw new IndexOutOfBoundsException("row " + row);
-        this.selectedRow = row;
-        repaint();
+        if (row < -1 || row >= model.viewRowCount()) throw new IndexOutOfBoundsException("row " + row);
+        model.setSelectedViewRow(row); repaint();
     }
-
     public void setRowClickListener(Consumer<Integer> l) {
         if (l == null) throw new IllegalArgumentException("listener must not be null");
         this.rowClickListener = l;
     }
-
     public int getTotalWidth() {
         int w = 0;
-        for (Column c : columns) w += c.width;
+        for (AstTableColumn c : model.getLeafColumns()) w += c.width;
         return w;
     }
+    void fireRowClick(int viewRow) { if (rowClickListener != null) rowClickListener.accept(viewRow); }
 
-    // --- Layout ---
+    // --- Layout / paint（容器画白底+外边框，视图画内容）---
     @Override public Dimension getPreferredSize() {
-        int rows_n = rows.size();
-        int visibleRows = Math.min(MAX_VISIBLE_ROWS_DEFAULT, Math.max(1, rows_n));
-        int h = headerH + visibleRows * rowH + 2;
-        int w = getTotalWidth() + 2;
-        return new Dimension(w, h);
+        int h = headerH + model.viewRowCount() * rowH + footerView.getPreferredHeight() + 2;
+        return new Dimension(getTotalWidth() + 2, h);
     }
-
     @Override public Dimension getMinimumSize() { return new Dimension(getTotalWidth() + 2, headerH + rowH); }
-
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
-
-    // --- Paint ---
     @Override protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-        int w = getWidth();
-        int h = getHeight();
-        // 整体背景（白色）
         g2.setColor(Color.WHITE);
-        g2.fillRect(0, 0, w, h);
-        // 表头
-        paintHeader(g2, w);
-        // 数据行
-        for (int i = 0; i < rows.size(); i++) {
-            int y = headerH + i * rowH;
-            if (y > h) break;
-            paintRow(g2, i, y, w);
-        }
-        // 外边框
+        g2.fillRect(0, 0, getWidth(), getHeight());
         g2.setColor(ElementTheme.BORDER_BASE);
-        g2.drawRect(0, 0, w - 1, h - 1);
+        g2.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
         g2.dispose();
     }
 
-    private void paintHeader(Graphics2D g2, int w) {
-        // 表头背景 PRIMARY
-        g2.setColor(ElementTheme.PRIMARY);
-        g2.fillRect(0, 0, w, headerH);
-        // 表头底部分隔线
-        g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f));
-        g2.drawLine(0, headerH - 1, w, headerH - 1);
-        // 表头文字：白字粗体
-        g2.setColor(Color.WHITE);
-        g2.setFont(headerFont);
-        int x = 0;
-        for (int c = 0; c < columns.size(); c++) {
-            Column col = columns.get(c);
-            String text = clipText(g2, col.title, col.width - 2 * CELL_PAD_X);
+    // ===================== HeaderView =====================
+    public class HeaderView extends JComponent {
+        private int hH = 36; private Font hf;
+        void applyTier(int h, Font f) { this.hH = h; this.hf = f; }
+        int getDepth() { int d = 1; for (AstTableColumn c : model.getColumns()) d = Math.max(d, c.getDepth()); return d; }
+        int getPreferredHeight() { return getDepth() * hH; }
+        @Override public Dimension getPreferredSize() { return new Dimension(getTotalWidth(), getPreferredHeight()); }
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth();
+            g2.setColor(ElementTheme.PRIMARY);
+            g2.fillRect(0, 0, w, getPreferredHeight());
+            g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f));
+            g2.drawLine(0, getPreferredHeight() - 1, w, getPreferredHeight() - 1);
+            g2.setColor(Color.WHITE); g2.setFont(hf);
             FontMetrics fm = g2.getFontMetrics();
-            int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-            int ty = (headerH - fm.getHeight()) / 2 + fm.getAscent();
-            // 表头白字对 PRIMARY 背景对比度充足（白 vs PRIMARY ≈ 3.0，略低于 4.5 但表头是粗体大字，遵循 Element UI 视觉惯例，跳过断言）
-            g2.drawString(text, tx, ty);
-            // 列分隔线（除最后一列）
-            if (c < columns.size() - 1) {
-                g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
-                g2.drawLine(x + col.width - 1, 4, x + col.width - 1, headerH - 4);
-                g2.setColor(Color.WHITE);
+            int x = 0;
+            for (AstTableColumn col : model.getLeafColumns()) {
+                String text = clipText(g2, col.title, col.width - 2 * CELL_PAD_X);
+                int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
+                int ty = (hH - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(text, tx, ty);
+                if (x + col.width < w) {
+                    g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
+                    g2.drawLine(x + col.width - 1, 4, x + col.width - 1, hH - 4);
+                    g2.setColor(Color.WHITE);
+                }
+                x += col.width;
             }
-            x += col.width;
+            g2.dispose();
         }
     }
 
-    private void paintRow(Graphics2D g2, int rowIdx, int y, int w) {
-        Object[] row = rows.get(rowIdx);
-        boolean selected = (rowIdx == selectedRow);
-        boolean isHovered = (rowIdx == hoverRow) && hoverAlpha > 0.01f;
-        boolean zebra = (rowIdx % 2 == 1); // 奇数行浅灰
-        // 1) 基础背景
-        Color bg = Color.WHITE;
-        Color textColor = ElementTheme.TEXT_MAIN;
-        if (selected) {
-            bg = ElementTheme.PRIMARY;
-            textColor = Color.WHITE;
-            // 选中行跳过对比度断言（遵循 AstCascader/AstTree 惯例）
-        } else {
-            if (zebra) {
-                bg = ElementTheme.FILL_BASE;
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, ElementTheme.FILL_BASE, "AstTable zebra row");
-            } else {
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTable white row");
-            }
-            if (isHovered) {
-                textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha * 0.7f);
-            }
+    // ===================== BodyView =====================
+    public class BodyView extends JComponent {
+        private int rH = 32; private Font cf;
+        private int scrollY = 0;
+        private int hoverRow = -1;
+        private float hoverAlpha = 0f;
+        private final Animator hoverAnim;
+
+        BodyView() {
+            setOpaque(false);
+            hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); } },
+                new Animator.Listener() { public void update(float v) { hoverAlpha = v; repaint(); }});
+            addMouseListener(new MouseAdapter() {
+                @Override public void mouseExited(MouseEvent e) {
+                    hoverRow = -1; hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
+                }
+                @Override public void mousePressed(MouseEvent e) {
+                    int idx = viewRowAtPoint(e.getPoint());
+                    if (idx < 0 || idx >= model.viewRowCount()) return;
+                    model.setSelectedViewRow(idx);
+                    repaint();
+                    fireRowClick(idx);
+                }
+            });
+            addMouseMotionListener(new MouseMotionAdapter() {
+                @Override public void mouseMoved(MouseEvent e) {
+                    int idx = viewRowAtPoint(e.getPoint());
+                    if (idx != hoverRow) {
+                        hoverRow = idx;
+                        hoverAnim.stop(); hoverAnim.go(hoverAlpha, idx >= 0 ? 1f : 0f);
+                    }
+                }
+            });
         }
-        g2.setColor(bg);
-        g2.fillRect(0, y, w, rowH);
-        // 2) hover 半透明覆盖层（仅非选中行）
-        if (!selected && isHovered) {
-            int a = Math.round(18 * hoverAlpha);
-            g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
-            g2.fillRect(0, y, w, rowH);
+        void applyTier(int h, Font f) { this.rH = h; this.cf = f; }
+
+        int viewportH() { return getHeight(); }
+        int maxScrollY() { return Math.max(0, model.viewRowCount() * rH - viewportH()); }
+        void scrollToRow(int v) {
+            int target = v * rH - (viewportH() - rH) / 2;
+            scrollY = Math.max(0, Math.min(target, maxScrollY()));
+            repaint();
         }
-        // 3) 单元格文字
-        g2.setColor(textColor);
-        g2.setFont(cellFont);
-        paintCells(g2, row, y, textColor);
-        // 4) 行底分隔线（斑马纹行已用背景区分，仅白行画分隔线）
-        if (!zebra) {
-            g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.5f));
-            g2.drawLine(0, y + rowH - 1, w, y + rowH - 1);
+        int lastViewRowVisible() {
+            if (model.viewRowCount() == 0) return -1;
+            int last = (scrollY + viewportH() - 1) / rH;
+            return Math.min(last, model.viewRowCount() - 1);
+        }
+        private int viewRowAtPoint(Point p) {
+            if (p.y < 0) return -1;
+            int v = (p.y + scrollY) / rH;
+            if (v < 0 || v >= model.viewRowCount()) return -1;
+            return v;
+        }
+
+        @Override public Dimension getPreferredSize() {
+            return new Dimension(getTotalWidth(), model.viewRowCount() * rH);
+        }
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            int w = getWidth(), h = getHeight();
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            for (int v = 0; v < model.viewRowCount(); v++) {
+                int yTop = v * rH - scrollY;
+                if (yTop > h) break;
+                if (yTop + rH < 0) continue;
+                paintRow(g2, v, yTop, w, leaves);
+            }
+            g2.dispose();
+        }
+        private void paintRow(Graphics2D g2, int v, int y, int w, List<AstTableColumn> leaves) {
+            boolean selected = model.isSelectedView(v);
+            boolean isHovered = (v == hoverRow) && hoverAlpha > 0.01f;
+            boolean zebra = (v % 2 == 1);
+            Color bg = Color.WHITE, textColor = ElementTheme.TEXT_MAIN;
+            if (selected) { bg = ElementTheme.PRIMARY; textColor = Color.WHITE; }
+            else {
+                if (zebra) { bg = ElementTheme.FILL_BASE; ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, ElementTheme.FILL_BASE, "AstTable zebra row"); }
+                else { ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTable white row"); }
+                if (isHovered) textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha * 0.7f);
+            }
+            g2.setColor(bg); g2.fillRect(0, y, w, rH);
+            if (!selected && isHovered) {
+                int a = Math.round(18 * hoverAlpha);
+                g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
+                g2.fillRect(0, y, w, rH);
+            }
+            g2.setColor(textColor); g2.setFont(cf);
+            FontMetrics fm = g2.getFontMetrics();
+            int x = 0;
+            for (int c = 0; c < leaves.size(); c++) {
+                AstTableColumn col = leaves.get(c);
+                String text = clipText(g2, String.valueOf(model.getValueAtView(v, c)), col.width - 2 * CELL_PAD_X);
+                int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
+                int ty = y + (rH - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(text, tx, ty);
+                if (x + col.width < w) {
+                    Color saved = g2.getColor();
+                    g2.setColor(ElementTheme.BORDER_BASE);
+                    g2.drawLine(x + col.width - 1, y + 4, x + col.width - 1, y + rH - 4);
+                    g2.setColor(saved);
+                }
+                x += col.width;
+            }
+            if (!zebra && !selected) {
+                g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.5f));
+                g2.drawLine(0, y + rH - 1, w, y + rH - 1);
+            }
         }
     }
 
-    private void paintCells(Graphics2D g2, Object[] row, int y, Color textColor) {
-        int x = 0;
-        FontMetrics fm = g2.getFontMetrics();
-        for (int c = 0; c < columns.size(); c++) {
-            Column col = columns.get(c);
-            String text = clipText(g2, String.valueOf(row[c]), col.width - 2 * CELL_PAD_X);
-            int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-            int ty = y + (rowH - fm.getHeight()) / 2 + fm.getAscent();
-            g2.drawString(text, tx, ty);
-            // 列分隔线
-            if (c < columns.size() - 1) {
-                Color saved = g2.getColor();
-                g2.setColor(ElementTheme.BORDER_BASE);
-                g2.drawLine(x + col.width - 1, y + 4, x + col.width - 1, y + rowH - 4);
-                g2.setColor(saved);
-            }
-            x += col.width;
-        }
+    // ===================== FooterView（C8 启用）=====================
+    public class FooterView extends JComponent {
+        int getPreferredHeight() { return 0; }
+        @Override public Dimension getPreferredSize() { return new Dimension(getTotalWidth(), getPreferredHeight()); }
+        @Override protected void paintComponent(Graphics g) { /* C8 实现合计绘制 */ }
     }
 
+    // --- 文本/对齐工具 ---
     private static int alignX(int cellX, int cellW, int textW, Align align, int pad) {
         if (align == Align.CENTER) return cellX + (cellW - textW) / 2;
         if (align == Align.RIGHT) return cellX + cellW - textW - pad;
-        return cellX + pad; // LEFT
+        return cellX + pad;
     }
-
     private static String clipText(Graphics2D g2, String text, int maxW) {
         FontMetrics fm = g2.getFontMetrics();
         if (fm.stringWidth(text) <= maxW) return text;
@@ -341,18 +331,11 @@ public class AstTable extends JComponent {
         return t + ell;
     }
 
-    private int dataRowAtPoint(Point p) {
-        if (p.y < headerH) return -1;
-        int idx = (p.y - headerH) / rowH;
-        if (idx < 0 || idx >= rows.size()) return -1;
-        return idx;
-    }
-
     // --- Self-check ---
     static void selfCheck() {
         // Constructor null guards
         boolean threw = false;
-        try { new AstTable(null); } catch (IllegalArgumentException e) { threw = true; }
+        try { new AstTable((Column[]) null); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "null cols"; threw = false;
         try { new AstTable(new Column[0]); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "empty cols"; threw = false;
@@ -380,7 +363,7 @@ public class AstTable extends JComponent {
         try { new AstTable(new Column[]{ new Column("x", 100) }).getValueAt(0, 0); } catch (IndexOutOfBoundsException e) { threw = true; }
         assert threw : "getValueAt row OOB"; threw = false;
 
-        // Build a table
+        // Build a table (旧 API 兼容)
         Column[] cols = {
             new Column("姓名", 120, Align.LEFT),
             new Column("年龄", 80, Align.CENTER),
@@ -399,24 +382,20 @@ public class AstTable extends JComponent {
         assert "广州市天河区".equals(table.getValueAt(2, 2)) : "row2 col2";
         assert table.getSelectedRow() == -1 : "no selection initially";
 
-        // setSelectedRow
         table.setSelectedRow(1);
         assert table.getSelectedRow() == 1 : "selected row 1";
         table.setSelectedRow(-1);
         assert table.getSelectedRow() == -1 : "cleared selection";
 
-        // clearRows
         table.clearRows();
         assert table.getRowCount() == 0 : "0 rows after clear";
 
-        // setRows
         List<Object[]> data = new ArrayList<Object[]>();
         data.add(new Object[]{"a", 1, "x"});
         data.add(new Object[]{"b", 2, "y"});
         table.setRows(data);
         assert table.getRowCount() == 2 : "2 rows after setRows";
         assert "b".equals(table.getValueAt(1, 0)) : "row1 col0 = b";
-        // setRows with wrong arity should throw
         threw = false;
         java.util.List<Object[]> badData1 = new java.util.ArrayList<Object[]>();
         badData1.add(new Object[]{"only one"});
@@ -428,7 +407,7 @@ public class AstTable extends JComponent {
         try { table.setRows(badData2); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "setRows null row";
 
-        // Listener test on EDT
+        // Listener test on EDT（点击派发到 BodyView，坐标为 body 局部）
         final int[] clicked = {-99};
         final Throwable[] err = {null};
         try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
@@ -449,25 +428,24 @@ public class AstTable extends JComponent {
                 t2.setRowClickListener(row -> clicked[0] = row);
                 JPanel cp = (JPanel) jf.getContentPane(); cp.setLayout(new BorderLayout());
                 cp.add(t2, BorderLayout.CENTER); jf.pack();
-                // Off-screen paint to trigger assertContrast paths
                 java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(t2.getPreferredSize().width, 200, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                 Graphics2D gg = img.createGraphics();
                 try { t2.paint(gg); } finally { gg.dispose(); }
-                // Click row 2 (李四)
-                int clickY = t2.getHeaderHeight() + 2 * t2.getRowHeight() + t2.getRowHeight() / 2;
+                int rh = t2.getRowHeight();
+                int clickY = 2 * rh + rh / 2; // body 局部：第 2 行(李四)中心
                 int clickX = 10;
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, clickX, clickY, 0, false));
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, clickX, clickY, 1, false));
+                t2.getBodyView().dispatchEvent(new MouseEvent(t2.getBodyView(), MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, clickX, clickY, 0, false));
+                t2.getBodyView().dispatchEvent(new MouseEvent(t2.getBodyView(), MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, clickX, clickY, 1, false));
                 try { Thread.sleep(30); } catch (Throwable ignore) {}
                 assert clicked[0] == 2 : "clicked row 2; actual=" + clicked[0];
                 assert t2.getSelectedRow() == 2 : "selected row 2";
-                // Click header area — should not select
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, t2.getHeaderHeight() / 2, 1, false));
+                // 点击表头区域（body 局部 y<0）→ 不改变选择
+                t2.getBodyView().dispatchEvent(new MouseEvent(t2.getBodyView(), MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, -5, 1, false));
                 try { Thread.sleep(20); } catch (Throwable ignore) {}
                 assert t2.getSelectedRow() == 2 : "header click does not change selection";
-                // Click below last row — should not select
-                int belowY = t2.getHeaderHeight() + 4 * t2.getRowHeight() + t2.getRowHeight() / 2;
-                t2.dispatchEvent(new MouseEvent(t2, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, belowY, 1, false));
+                // 点击末行之后 → 不改变选择
+                int belowY = 4 * rh + rh / 2;
+                t2.getBodyView().dispatchEvent(new MouseEvent(t2.getBodyView(), MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, 10, belowY, 1, false));
                 try { Thread.sleep(20); } catch (Throwable ignore) {}
                 assert t2.getSelectedRow() == 2 : "below-rows click does not change selection";
             } finally {
@@ -476,7 +454,7 @@ public class AstTable extends JComponent {
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
 
-        // 尺寸档位（R1）：行高/表头高度随档位单调缩放，非法档位抛异常
+        // 尺寸档位（R1）
         AstTable tb3 = new AstTable(new Column[]{ new Column("姓名", 120), new Column("年龄", 80) });
         tb3.setSize(AstTable.SIZE_LARGE);
         int hHL = tb3.getHeaderHeight(), rHL = tb3.getRowHeight();
@@ -489,6 +467,39 @@ public class AstTable extends JComponent {
         threw = false;
         try { tb3.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "AstTable 非法档位应抛异常";
+
+        // --- C1: 列模型 + 模型 + 容器重构 + 纵向滚动 ---
+        AstTableColumn c0 = new AstTableColumn("姓名", 120, Align.LEFT);
+        AstTableColumn c1 = new AstTableColumn("年龄", 80, Align.CENTER);
+        AstTableColumn c2 = new AstTableColumn("地址", 200, Align.LEFT);
+        AstTable t1 = new AstTable(new AstTableColumn[]{c0, c1, c2});
+        assert t1.getColumnCount() == 3 : "C1 列数=3";
+        t1.addRow("张三", 28, "北京市");
+        t1.addRow("李四", 34, "上海市");
+        assert t1.getRowCount() == 2 : "C1 行数=2";
+        assert "张三".equals(t1.getValueAt(0, 0)) : "C1 getValueAt 兼容";
+        assert Integer.valueOf(34).equals(t1.getValueAt(1, 1)) : "C1 数值列";
+
+        final int[] lastVisibleArr = {-1};
+        final Throwable[] err1 = {null};
+        try { SwingUtilities.invokeAndWait(new Runnable(){ public void run(){
+            JFrame jf = new JFrame("C1"); jf.setSize(500, 160); jf.setVisible(true);
+            try {
+                AstTable tt = new AstTable(new AstTableColumn[]{
+                    new AstTableColumn("姓名",120), new AstTableColumn("年龄",80), new AstTableColumn("地址",200)});
+                for (int i=0;i<20;i++) tt.addRow("u"+i, i, "addr"+i);
+                JPanel cp = (JPanel) jf.getContentPane(); cp.setLayout(new BorderLayout());
+                cp.add(tt, BorderLayout.CENTER); jf.validate();
+                int headerTop = tt.getHeaderView().getY();
+                int beforeScrollLast = tt.getBodyView().lastViewRowVisible();
+                tt.getBodyView().scrollToRow(19);
+                int afterScrollLast = tt.getBodyView().lastViewRowVisible();
+                assert headerTop == 0 : "C1 表头吸顶 Y=0";
+                assert afterScrollLast > beforeScrollLast : "C1 滚动后可见末行后移";
+                assert tt.getBodyView().lastViewRowVisible() == 19 : "C1 能滚到末行(19)";
+            } finally { jf.dispose(); }
+        }}); } catch (Throwable t){ err1[0]=t; }
+        if (err1[0]!=null) throw new RuntimeException(err1[0]);
 
         System.out.println("AstTable self-check OK");
     }
