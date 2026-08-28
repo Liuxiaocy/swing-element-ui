@@ -61,6 +61,9 @@ src\org\swelement\ui\AstDatePicker.java ^
 src\org\swelement\ui\AstForm.java ^
 src\org\swelement\ui\AstTree.java ^
 src\org\swelement\ui\AstTable.java ^
+src\org\swelement\ui\AstTableColumn.java ^
+src\org\swelement\ui\AstTableModel.java ^
+src\org\swelement\demo\AstTableDemo.java ^
 src\org\swelement\demo\AstAdvancedDemo.java ^
 src\org\swelement\demo\AstP2P3Demo.java ^
 src\org\swelement\demo\AstFormDemo.java ^
@@ -162,6 +165,10 @@ if %ERRORLEVEL% NEQ 0 ( echo AstTree self-check FAILED & exit /b 1 )
 echo --- AstTable self-check ---
 java -ea -cp out org.swelement.ui.AstTable
 if %ERRORLEVEL% NEQ 0 ( echo AstTable self-check FAILED & exit /b 1 )
+
+echo --- AstTableDemo self-check ---
+java -ea -cp out org.swelement.demo.AstTableDemo --selfcheck
+if %ERRORLEVEL% NEQ 0 ( echo AstTableDemo self-check FAILED & exit /b 1 )
 
 echo --- AstDivider self-check ---
 java -ea -cp out org.swelement.ui.AstDivider

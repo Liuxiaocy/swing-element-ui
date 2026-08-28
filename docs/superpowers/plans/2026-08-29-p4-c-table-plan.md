@@ -49,7 +49,7 @@
   - `AstTable(AstTableColumn[] cols)` 与 `AstTable(Column[] cols)`（适配）；`setModel(AstTableModel)`。
   - `BodyView` 暴露 `scrollY` 与 `setViewportHeight(int)`；`HeaderView` 高度 = `headerDepth * headerH`。
 
-- [ ] **Step 1: 写失败的 self-check 断言（C1 相关）**
+- [x] **Step 1: 写失败的 self-check 断言（C1 相关）**
 
 在 `AstTable.selfCheck()` 末尾追加（先让旧结构缺方法而编译/运行失败）：
 
@@ -90,12 +90,12 @@ try { SwingUtilities.invokeAndWait(new Runnable(){ public void run(){
 if (err1[0]!=null) throw new RuntimeException(err1[0]);
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `javac -encoding UTF-8 --release 8 -d out src/org/swelement/ui/AstTableColumn.java src/org/swelement/ui/AstTableModel.java src/org/swelement/ui/AstTable.java && java -ea -cp out org.swelement.ui.AstTable`
 Expected: 编译失败（缺少 `AstTableColumn`/`AstTableModel`/`getHeaderView`/`getBodyView`/`scrollToRow`/`lastViewRowVisible`）→ 证明 RED。
 
-- [ ] **Step 3: 写最小实现**
+- [x] **Step 3: 写最小实现**
 
 `AstTableColumn.java`（叶子列 + 拍平）：
 ```java
@@ -171,12 +171,12 @@ public class AstTable extends JPanel {
 ```
 `BodyView extends JComponent`：`paintComponent` 按 `headerH + scrollY` 偏移绘制 `model.viewRowCount()` 行；`scrollToRow(int v)` 设 `scrollY = v*rowH - viewportH/2` 并 clamp；`lastViewRowVisible()` 返回 `scrollY/rowH + viewportH/rowH` 经 clamp；`getPreferredSize` 返回内容总高（header+rows）使外部可限制高度触发滚动；`HeaderView` 固定高 = `headerDepth*headerH`，不随 body 滚动。鼠标滚轮 → `bodyView.scrollY += delta` 并 repaint。
 
-- [ ] **Step 4: 运行确认全绿**
+- [x] **Step 4: 运行确认全绿**
 
 Run: 同上编译 + `java -ea -cp out org.swelement.ui.AstTable`
 Expected: PASS（打印 `AstTable self-check OK`），含旧断言（null 守卫/尺寸档位/点击）与新增 C1 断言。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add src/org/swelement/ui/AstTableColumn.java src/org/swelement/ui/AstTableModel.java src/org/swelement/ui/AstTable.java
@@ -196,7 +196,7 @@ git commit -m "feat(P4-c/C1): 重构为列模型+数据视图+分层渲染，固
 - Consumes: `AstTableColumn.Fixed`；`model.getLeafColumns()` 顺序与宽度。
 - Produces: `AstTableColumn(String, int, Align, boolean sortable, Fixed fixed, List children)`；`BodyView.scrollX`、`frozenLeftW()`、`frozenRightW()`、`isFrozenLeft(int leaf)`/`isFrozenRight(int leaf)`；`BodyView.paintComponent` 三段式 clip。
 
-- [ ] **Step 1: 写失败断言（C2）**
+- [x] **Step 1: 写失败断言（C2）**
 
 ```java
 // C2 冻结列：左冻结姓名列随横滚 X 不动；中列随动
@@ -225,9 +225,9 @@ try { SwingUtilities.invokeAndWait(new Runnable(){ public void run(){
 if(err2[0]!=null) throw new RuntimeException(err2[0]);
 ```
 
-- [ ] **Step 2: 运行确认失败**（缺 `Fixed` 构造/`frozenLeftW`/`leafXOnScreen`/`scrollX`）。
+- [x] **Step 2: 运行确认失败**（缺 `Fixed` 构造/`frozenLeftW`/`leafXOnScreen`/`scrollX`）。
 
-- [ ] **Step 3: 实现** `BodyView.paintComponent` 三段式：
+- [x] **Step 3: 实现** `BodyView.paintComponent` 三段式：
 
 ```java
 // 1) 中列：clip 到 [frozenLeftW, W-frozenRightW]，偏移 (-scrollX,-scrollY)
@@ -243,8 +243,8 @@ if(frozenRightW>0){ g2.clipRect(W-frozenRightW,0,frozenRightW,H); paintRows(g2, 
 ```
 `paintRows(g2, offX, offY, Predicate<AstTableColumn> colFilter)` 仅画 `colFilter` 通过的叶子列，`leafX(leaf)=累计宽度+offX`。`HeaderView` 用同样三段式（横向偏移仅 `scrollX`）。`scrollX` 由 Shift+滚轮或拖拽更新并 clamp 到 `[0, max(0,totalLeafW-W)]`。`frozenLeftW/frozenRightW` 由叶子列 `fixed` 累加。
 
-- [ ] **Step 4: 运行全绿**（编译+`java -ea`）。
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C2): 横向滚动 + 左/右冻结列(clip 重绘)"`
+- [x] **Step 4: 运行全绿**（编译+`java -ea`）。
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C2): 横向滚动 + 左/右冻结列(clip 重绘)"`
 
 ---
 
@@ -258,7 +258,7 @@ if(frozenRightW>0){ g2.clipRect(W-frozenRightW,0,frozenRightW,H); paintRows(g2, 
 - Consumes: `AstTableColumn.children`/`getLeafColumns()`/`getDepth()`。
 - Produces: `AstTableColumn(String title, List<AstTableColumn> children)`；`HeaderView` 行数 = `headerDepth`；父列跨子列宽度居中、底部分隔线。
 
-- [ ] **Step 1: 写失败断言（C3）**
+- [x] **Step 1: 写失败断言（C3）**
 
 ```java
 // C3 多级表头：层级数、叶子拍平顺序与偏移
@@ -276,10 +276,10 @@ assert t3.getHeaderView().leafX(1)==100 : "C3 城市列X=100(姓名宽后)";
 assert t3.getHeaderView().leafX(2)==220 : "C3 街道X=220";
 ```
 
-- [ ] **Step 2: 运行失败**（缺 `children` 构造/`getDepth`/`leafX`）。
-- [ ] **Step 3: 实现** `HeaderView.paintComponent`：递归 `paintGroup(col, x, depth)`——若叶子，于底行画标题；若父列，`groupW=Σ子叶子宽`，于该行居中画标题并 `drawLine` 跨 `x..x+groupW` 底边；`headerH = depth*rowH`。`leafX(leaf)` 由 `getLeafColumns()` 前缀宽度和。`headerView` 高度随 `depth` 变化，`BodyView` 顶部起始 Y = `headerH`。
-- [ ] **Step 4: 运行全绿。**
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C3): 多级表头(children 跨列合并)"`
+- [x] **Step 2: 运行失败**（缺 `children` 构造/`getDepth`/`leafX`）。
+- [x] **Step 3: 实现** `HeaderView.paintComponent`：递归 `paintGroup(col, x, depth)`——若叶子，于底行画标题；若父列，`groupW=Σ子叶子宽`，于该行居中画标题并 `drawLine` 跨 `x..x+groupW` 底边；`headerH = depth*rowH`。`leafX(leaf)` 由 `getLeafColumns()` 前缀宽度和。`headerView` 高度随 `depth` 变化，`BodyView` 顶部起始 Y = `headerH`。
+- [x] **Step 4: 运行全绿。**
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C3): 多级表头(children 跨列合并)"`
 
 ---
 
@@ -296,7 +296,7 @@ assert t3.getHeaderView().leafX(2)==220 : "C3 街道X=220";
   `model.getSelectedViewRow()`、`model.isSelectedView(int v)`、`model.getSelectedViewRows():Set<Integer>`；
   `AstTable.setSelectionMode(...)`；`AstTable.getSelectedRow()` 返回 `model.rawRowOf(selectedViewRow)`（保持旧语义"数据行"）或视图行——**spec 约定 `rowClickListener` 传视图行**，但 `getSelectedRow` 维持旧"数据行"语义（向后兼容），文档注明。
 
-- [ ] **Step 1: 写失败断言（C4）**
+- [x] **Step 1: 写失败断言（C4）**
 
 ```java
 // C4 单选/多选
@@ -323,10 +323,10 @@ try { SwingUtilities.invokeAndWait(new Runnable(){ public void run(){
 if(err4[0]!=null) throw new RuntimeException(err4[0]);
 ```
 
-- [ ] **Step 2: 运行失败**（缺选择模式/方法）。
-- [ ] **Step 3: 实现** `AstTableModel` 加 `selectionMode` 字段、`selectedViewRow`/`selectedViewRows`；`toggleSelectedViewRow` 多选增删、单选置位；`toggleSelectAll` 全选/清空。多选模式 `HeaderView` 首列画全选复选框、`BodyView` 首列画行复选框；点击复选框或行触发选择；`getSelectedRow()` 经 `rawRowOf` 映射回数据行以保持旧语义。
-- [ ] **Step 4: 运行全绿。**
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C4): 单选/多选(选择列复选框)"`
+- [x] **Step 2: 运行失败**（缺选择模式/方法）。
+- [x] **Step 3: 实现** `AstTableModel` 加 `selectionMode` 字段、`selectedViewRow`/`selectedViewRows`；`toggleSelectedViewRow` 多选增删、单选置位；`toggleSelectAll` 全选/清空。多选模式 `HeaderView` 首列画全选复选框、`BodyView` 首列画行复选框；点击复选框或行触发选择；`getSelectedRow()` 经 `rawRowOf` 映射回数据行以保持旧语义。
+- [x] **Step 4: 运行全绿。**
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C4): 单选/多选(选择列复选框)"`
 
 ---
 
@@ -341,7 +341,7 @@ if(err4[0]!=null) throw new RuntimeException(err4[0]);
 - Consumes: `model.getLeafColumns()`、`getValueAtView`。
 - Produces: `enum SortDir{ASC,DESC,NONE}`；`model.sort(int leafCol, SortDir)`（按 `raw` 值比较重建 `view`）；`model.getSortLeaf()`/`getSortDir()`。
 
-- [ ] **Step 1: 写失败断言（C5）**
+- [x] **Step 1: 写失败断言（C5）**
 
 ```java
 // C5 排序：年龄升序后 view 行序 0,1,2 对应年龄 22,28,34
@@ -355,10 +355,10 @@ t5.getModel().sort(1, AstTableModel.SortDir.NONE);
 assert (Integer)t5.getValueAt(0,1)==22 : "C5 NONE 还原原始序";
 ```
 
-- [ ] **Step 2: 运行失败**（缺 `SortDir`/`sort`）。
-- [ ] **Step 3: 实现** `model.sort` 用 `Comparator` 对 `view` 重排（数值按 `Number`，文本按 `String`）；非 `sortable` 列点击忽略。`HeaderView` 对激活列画 ▲/▼。
-- [ ] **Step 4: 运行全绿。**
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C5): 排序(升/降/无 + 表头三角)"`
+- [x] **Step 2: 运行失败**（缺 `SortDir`/`sort`）。
+- [x] **Step 3: 实现** `model.sort` 用 `Comparator` 对 `view` 重排（数值按 `Number`，文本按 `String`）；非 `sortable` 列点击忽略。`HeaderView` 对激活列画 ▲/▼。
+- [x] **Step 4: 运行全绿。**
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C5): 排序(升/降/无 + 表头三角)"`
 
 ---
 
@@ -373,7 +373,7 @@ assert (Integer)t5.getValueAt(0,1)==22 : "C5 NONE 还原原始序";
 - Consumes: `model.raw`/`viewRowCount`。
 - Produces: `model.filter(Predicate<Object[]>)`（重建 `view` 仅含匹配行）；`model.clearFilter()`；文本过滤默认 `row -> Arrays.stream(row).anyMatch(v -> String.valueOf(v).contains(q))`。
 
-- [ ] **Step 1: 写失败断言（C6）**
+- [x] **Step 1: 写失败断言（C6）**
 
 ```java
 // C6 筛选：仅保留含 "上海" 的行
@@ -386,10 +386,10 @@ t6.getModel().clearFilter();
 assert t6.getRowCount()==3 : "C6 清空还原3行";
 ```
 
-- [ ] **Step 2: 运行失败**（缺 `filter`）。
-- [ ] **Step 3: 实现** `model.filter` 重建 `view`；`HeaderView` 对可过滤列画漏斗图标，点击经 `AstPopover`/内联输入框触发 `filter`；本轮回文本过滤，复杂条件留 `filter(Predicate)` 接口。
-- [ ] **Step 4: 运行全绿。**
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C6): 筛选(列文本过滤)"`
+- [x] **Step 2: 运行失败**（缺 `filter`）。
+- [x] **Step 3: 实现** `model.filter` 重建 `view`；`HeaderView` 对可过滤列画漏斗图标，点击经 `AstPopover`/内联输入框触发 `filter`；本轮回文本过滤，复杂条件留 `filter(Predicate)` 接口。
+- [x] **Step 4: 运行全绿。**
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C6): 筛选(列文本过滤)"`
 
 ---
 
@@ -404,7 +404,7 @@ assert t6.getRowCount()==3 : "C6 清空还原3行";
 - Consumes: `model.viewRowOf`/`rawRowOf`。
 - Produces: `model.toggleExpanded(int rawRow)`；`model.isExpanded(int rawRow)`；`AstTable.setRowExpandRenderer(...)`；展开态视图行高 = `rowH + expandH`。
 
-- [ ] **Step 1: 写失败断言（C7）**
+- [x] **Step 1: 写失败断言（C7）**
 
 ```java
 // C7 展开行：展开后视图行数 +1，收起还原
@@ -418,10 +418,10 @@ t7.getModel().toggleExpanded(0);
 assert t7.getRowCount()==base : "C7 收起还原";
 ```
 
-- [ ] **Step 2: 运行失败**（缺 `toggleExpanded`/`setRowExpandText`）。
-- [ ] **Step 3: 实现** `model.viewRowCount` = `rawView + expandedCount`；`BodyView` 绘制时遇展开行，在其下追加展开区（`expandRenderer` 产出高度）；点击行首 ▶/▼ 触发 `toggleExpanded` 并重算布局。
-- [ ] **Step 4: 运行全绿。**
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C7): 展开行(行内子内容)"`
+- [x] **Step 2: 运行失败**（缺 `toggleExpanded`/`setRowExpandText`）。
+- [x] **Step 3: 实现** `model.viewRowCount` = `rawView + expandedCount`；`BodyView` 绘制时遇展开行，在其下追加展开区（`expandRenderer` 产出高度）；点击行首 ▶/▼ 触发 `toggleExpanded` 并重算布局。
+- [x] **Step 4: 运行全绿。**
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C7): 展开行(行内子内容)"`
 
 ---
 
@@ -436,7 +436,7 @@ assert t7.getRowCount()==base : "C7 收起还原";
 - Consumes: `model.raw`/`getLeafColumns`。
 - Produces: `model.setSummary(int leafCol, Aggregator)`（`Aggregator{ Object apply(List<Object[]> rows); }`，默认 `sum`）；`model.getSummary(int leafCol)`；`AstTable.setSummary(int leafCol, Aggregator)`。
 
-- [ ] **Step 1: 写失败断言（C8）**
+- [x] **Step 1: 写失败断言（C8）**
 
 ```java
 // C8 合计：年龄列求和 = 22+34+28=84
@@ -447,10 +447,10 @@ assert (Integer)t8.getModel().getSummary(1)==84 : "C8 合计=84";
 assert t8.getFooterView().isVisible() : "C8 有合计时 footer 可见";
 ```
 
-- [ ] **Step 2: 运行失败**（缺 `setSummary`/`getSummary`/`FooterView`）。
-- [ ] **Step 3: 实现** `model.setSummary` 注册聚合器；`getSummary` 遍历 `raw` 累加数值（非数值列返回空或「合计」标签）。`FooterView` 底部固定，按 `getLeafColumns()` 逐列绘制 `getSummary`，冻结列 clip 对齐同 BodyView。
-- [ ] **Step 4: 运行全绿。**
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C8): 表尾合计行(按列聚合)"`
+- [x] **Step 2: 运行失败**（缺 `setSummary`/`getSummary`/`FooterView`）。
+- [x] **Step 3: 实现** `model.setSummary` 注册聚合器；`getSummary` 遍历 `raw` 累加数值（非数值列返回空或「合计」标签）。`FooterView` 底部固定，按 `getLeafColumns()` 逐列绘制 `getSummary`，冻结列 clip 对齐同 BodyView。
+- [x] **Step 4: 运行全绿。**
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C8): 表尾合计行(按列聚合)"`
 
 ---
 
@@ -465,7 +465,7 @@ assert t8.getFooterView().isVisible() : "C8 有合计时 footer 可见";
 - Consumes: `model.getLeafColumns()`/`getValueAtView`。
 - Produces: `model.setSpan(int raw,int leaf,int rowspan,int colspan)`；`model.getSpan(int raw,int leaf)`→`int[]{rowspan,colspan}`（默认 `{1,1}`）；`model.setRowStatus(int raw, Status)`/`getRowStatus`；`enum Status{DEFAULT,SUCCESS,WARNING,DANGER,INFO}`。
 
-- [ ] **Step 1: 写失败断言（C9）**
+- [x] **Step 1: 写失败断言（C9）**
 
 ```java
 // C9 合并：A1 跨 2 行 1 列；状态行底色
@@ -482,10 +482,10 @@ BufferedImage img=new BufferedImage(220,120,BufferedImage.TYPE_INT_ARGB);
 Graphics2D gg=img.createGraphics(); try{ t9.paint(gg);} finally{ gg.dispose();}
 ```
 
-- [ ] **Step 2: 运行失败**（缺 `setSpan`/`getSpan`/`Status`/`setRowStatus`）。
-- [ ] **Step 3: 实现** `paintCells`：先标记 `(r+dr,c+dc)` 为 covered；绘制锚点格时矩形扩展 `rowspan*rowH × Σcolspan宽`；被覆盖格跳过。状态行：`BODY_BG` 用 `FILL_SUCCESS/WARNING/DANGER/INFO` 浅色，文字 `TEXT_MAIN`（满足 contrast），选中用左 3px PRIMARY 描边。合并行假设同 `rowH`。
-- [ ] **Step 4: 运行全绿。**
-- [ ] **Step 5: 提交** `git commit -m "feat(P4-c/C9): 合并行/列 + 带状态表格"`
+- [x] **Step 2: 运行失败**（缺 `setSpan`/`getSpan`/`Status`/`setRowStatus`）。
+- [x] **Step 3: 实现** `paintCells`：先标记 `(r+dr,c+dc)` 为 covered；绘制锚点格时矩形扩展 `rowspan*rowH × Σcolspan宽`；被覆盖格跳过。状态行：`BODY_BG` 用 `FILL_SUCCESS/WARNING/DANGER/INFO` 浅色，文字 `TEXT_MAIN`（满足 contrast），选中用左 3px PRIMARY 描边。合并行假设同 `rowH`。
+- [x] **Step 4: 运行全绿。**
+- [x] **Step 5: 提交** `git commit -m "feat(P4-c/C9): 合并行/列 + 带状态表格"`
 
 ---
 
@@ -499,10 +499,10 @@ Graphics2D gg=img.createGraphics(); try{ t9.paint(gg);} finally{ gg.dispose();}
 - Consumes: 全部 C1–C9 API。
 - Produces: 可运行 demo（9 section + 综合）；`main` 触发各 section 构建。
 
-- [ ] **Step 1: 写 AstTableDemo** 9 个 `JPanel` section 分别展示 C1 固定表头+滚动、C2 冻结列、C3 多级表头、C4 选择、C5 排序、C6 筛选、C7 展开、C8 合计、C9 合并+状态；`main` 用 `JTabbedPane` 组织并 `setVisible`。
-- [ ] **Step 2: 注册 build.bat** SOURCES 加 `AstTableColumn.java AstTableModel.java AstTableDemo.java`；自检段加 `java -ea -cp out org.swelement.demo.AstTableDemo`（或仅编译校验）。
-- [ ] **Step 3: 全量编译 + 全部 self-check 运行确认通过（含 AstTable + AstTableDemo）。
-- [ ] **Step 4: 提交** `git commit -m "feat(P4-c): AstTableDemo 综合演示 + build.bat 注册"`
+- [x] **Step 1: 写 AstTableDemo** 9 个 `JPanel` section 分别展示 C1 固定表头+滚动、C2 冻结列、C3 多级表头、C4 选择、C5 排序、C6 筛选、C7 展开、C8 合计、C9 合并+状态；`main` 用 `JTabbedPane` 组织并 `setVisible`。
+- [x] **Step 2: 注册 build.bat** SOURCES 加 `AstTableColumn.java AstTableModel.java AstTableDemo.java`；自检段加 `java -ea -cp out org.swelement.demo.AstTableDemo`（或仅编译校验）。
+- [x] **Step 3: 全量编译 + 全部 self-check 运行确认通过（含 AstTable + AstTableDemo）。
+- [x] **Step 4: 提交** `git commit -m "feat(P4-c): AstTableDemo 综合演示 + build.bat 注册"`
 
 ---
 
