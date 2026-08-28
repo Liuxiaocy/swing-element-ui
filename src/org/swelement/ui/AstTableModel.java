@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -34,6 +36,9 @@ public class AstTableModel {
 
     // 展开行（C7）：以 raw 行记录展开状态
     private final Set<Integer> expanded = new HashSet<Integer>();
+
+    // 合计行（C8）
+    private final Map<Integer, Aggregator> summaries = new HashMap<Integer, Aggregator>();
 
     // 单选（C1）；多选集合在 C4 扩展
     private int selectedViewRow = -1;
@@ -136,6 +141,57 @@ public class AstTableModel {
         int c = 0;
         for (Integer v : view) if (expanded.contains(v)) c++;
         return c;
+    }
+
+    // --- 合计行（C8）---
+    /** 列聚合器：对（当前视图行, 叶子列）求值。 */
+    public interface Aggregator { Object apply(List<Object[]> rows, int leafCol); }
+
+    /** 数值求和；无数值时返回空串。 */
+    public static final Aggregator SUM = new Aggregator() {
+        public Object apply(List<Object[]> rows, int leafCol) {
+            double s = 0; boolean any = false;
+            for (Object[] r : rows) {
+                Object v = r[leafCol];
+                if (v instanceof Number) { s += ((Number) v).doubleValue(); any = true; }
+            }
+            if (!any) return "";
+            if (s == Math.rint(s) && Math.abs(s) < 1e15) return Integer.valueOf((int) s);
+            return Double.valueOf(s);
+        }
+    };
+    /** 数值平均；无数值时返回空串。 */
+    public static final Aggregator AVG = new Aggregator() {
+        public Object apply(List<Object[]> rows, int leafCol) {
+            double s = 0; int n = 0;
+            for (Object[] r : rows) {
+                Object v = r[leafCol];
+                if (v instanceof Number) { s += ((Number) v).doubleValue(); n++; }
+            }
+            if (n == 0) return "";
+            return Double.valueOf(s / n);
+        }
+    };
+    /** 行数统计。 */
+    public static final Aggregator COUNT = new Aggregator() {
+        public Object apply(List<Object[]> rows, int leafCol) { return Integer.valueOf(rows.size()); }
+    };
+
+    /** 注册列聚合器；agg 为 null 时默认 SUM。 */
+    public void setSummary(int leafCol, Aggregator agg) {
+        if (leafCol < 0 || leafCol >= leafCount()) throw new IndexOutOfBoundsException("leafCol " + leafCol);
+        summaries.put(leafCol, agg == null ? SUM : agg);
+    }
+    public void clearSummary() { summaries.clear(); }
+    public boolean hasSummary() { return !summaries.isEmpty(); }
+    public boolean hasSummary(int leafCol) { return summaries.containsKey(leafCol); }
+    /** 对当前视图行（含筛选结果）求值；未注册列返回空串。 */
+    public Object getSummary(int leafCol) {
+        Aggregator a = summaries.get(leafCol);
+        if (a == null) return "";
+        List<Object[]> rows = new ArrayList<Object[]>();
+        for (Integer ri : view) rows.add(raw.get(ri));
+        return a.apply(rows, leafCol);
     }
 
     /** 依据当前 filter + sort 重建视图索引；清空选择。 */

@@ -127,6 +127,7 @@ public class AstTable extends JPanel {
         this.cellFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
         headerView.applyTier(headerH, headerFont);
         bodyView.applyTier(rowH, cellFont);
+        footerView.applyTier(rowH, cellFont);
     }
     public int getHeaderHeight() { return headerH; }
     public int getRowHeight() { return rowH; }
@@ -178,6 +179,19 @@ public class AstTable extends JPanel {
         if (fn == null) throw new IllegalArgumentException("fn must not be null");
         this.expandRenderer = (java.util.function.Function<Integer, JComponent>) fn;
         this.expandTextFn = null; revalidate(); repaint();
+    }
+    /** 注册表尾合计聚合器（null 表示默认求和）。有合计时 FooterView 可见。 */
+    public void setSummary(int leafCol, AstTableModel.Aggregator agg) {
+        if (leafCol < 0 || leafCol >= model.leafCount()) throw new IndexOutOfBoundsException("leafCol " + leafCol);
+        model.setSummary(leafCol, agg);
+        footerView.setVisible(model.hasSummary());
+        revalidate(); repaint();
+    }
+    /** 清除全部合计并隐藏 FooterView。 */
+    public void clearSummary() {
+        model.clearSummary();
+        footerView.setVisible(false);
+        revalidate(); repaint();
     }
     public void setRowClickListener(Consumer<Integer> l) {
         if (l == null) throw new IllegalArgumentException("listener must not be null");
@@ -598,11 +612,62 @@ public class AstTable extends JPanel {
         }
     }
 
-    // ===================== FooterView（C8 启用）=====================
+    // ===================== FooterView（C8 合计行）=====================
     public class FooterView extends JComponent {
-        int getPreferredHeight() { return 0; }
-        @Override public Dimension getPreferredSize() { return new Dimension(getTotalWidth(), getPreferredHeight()); }
-        @Override protected void paintComponent(Graphics g) { /* C8 实现合计绘制 */ }
+        private int fH = 32; private Font cf;
+        FooterView() { setOpaque(false); setVisible(false); }
+        void applyTier(int h, Font f) { this.fH = h; this.cf = f; }
+        int getPreferredHeight() { return model.hasSummary() ? fH : 0; }
+        @Override public Dimension getPreferredSize() { return new Dimension(getTotalWidth() + selectColW(), getPreferredHeight()); }
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth(), h = getHeight();
+            g2.setColor(Color.WHITE); g2.fillRect(0, 0, w, h);
+            g2.setColor(ElementTheme.BORDER_BASE); g2.drawLine(0, 0, w, 0);
+            g2.setFont(cf);
+            FontMetrics fm = g2.getFontMetrics();
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            int scw = selectColW(), flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
+            int leftBand = scw + flw;
+            if (leftBand > 0) {
+                g2.clipRect(0, 0, leftBand, h);
+                drawSummaryCells(g2, fm, leaves, scw, c -> c.fixed == AstTableColumn.Fixed.LEFT, h);
+                g2.setClip(null); g2.drawLine(leftBand, 0, leftBand, h);
+            }
+            if (w - leftBand - frw > 0) {
+                g2.clipRect(leftBand, 0, w - leftBand - frw, h);
+                drawSummaryCells(g2, fm, leaves, -bodyView.scrollX, null, h);
+                g2.setClip(null);
+            }
+            if (frw > 0) {
+                g2.clipRect(w - frw, 0, frw, h);
+                drawSummaryCells(g2, fm, leaves, w - tlw - scw, c -> c.fixed == AstTableColumn.Fixed.RIGHT, h);
+                g2.setClip(null); g2.drawLine(w - frw, 0, w - frw, h);
+            }
+            g2.dispose();
+        }
+        private void drawSummaryCells(Graphics2D g2, FontMetrics fm, List<AstTableColumn> leaves, int xOffset,
+                                      java.util.function.Predicate<AstTableColumn> filter, int h) {
+            g2.setColor(ElementTheme.TEXT_MAIN);
+            int x = xOffset;
+            for (int c = 0; c < leaves.size(); c++) {
+                AstTableColumn col = leaves.get(c);
+                if (filter == null || filter.test(col)) {
+                    String text = summaryText(c);
+                    int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
+                    int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(clipText(g2, text, col.width - 2 * CELL_PAD_X), tx, ty);
+                }
+                x += col.width;
+            }
+        }
+        /** 未注册合计的首列显示「合计」标签，其余未注册列留空。 */
+        String summaryText(int c) {
+            if (!model.hasSummary(c)) return c == 0 ? "合计" : "";
+            Object v = model.getSummary(c);
+            return v == null ? "" : String.valueOf(v);
+        }
     }
 
     // --- 文本/对齐工具 ---
@@ -923,6 +988,27 @@ public class AstTable extends JPanel {
         java.awt.image.BufferedImage img7 = new java.awt.image.BufferedImage(t7.getPreferredSize().width, 160, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         Graphics2D gg7 = img7.createGraphics();
         try { t7.paint(gg7); } finally { gg7.dispose(); }
+
+        // --- C8: 表尾合计行 ---
+        AstTable t8 = new AstTable(new AstTableColumn[]{
+            new AstTableColumn("姓名", 120), new AstTableColumn("年龄", 80)});
+        t8.addRow("张", 22); t8.addRow("李", 34); t8.addRow("王", 28);
+        assert !t8.getFooterView().isVisible() : "C8 无合计时 footer 隐藏";
+        t8.setSummary(1, null); // null → 默认求和
+        assert (Integer) t8.getModel().getSummary(1) == 84 : "C8 合计=84";
+        assert t8.getFooterView().isVisible() : "C8 有合计时 footer 可见";
+        assert t8.getFooterView().getPreferredHeight() > 0 : "C8 footer 高度>0";
+        // 合计随筛选变化：仅留一行时合计=34
+        t8.getModel().filter(r -> Integer.valueOf(34).equals(r[1]));
+        assert (Integer) t8.getModel().getSummary(1) == 34 : "C8 合计随筛选变化=34";
+        t8.getModel().clearFilter();
+        assert (Integer) t8.getModel().getSummary(1) == 84 : "C8 清空筛选还原=84";
+        // 离屏绘制不抛异常（含合计行）
+        java.awt.image.BufferedImage img8 = new java.awt.image.BufferedImage(t8.getPreferredSize().width, 160, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gg8 = img8.createGraphics();
+        try { t8.paint(gg8); } finally { gg8.dispose(); }
+        t8.clearSummary();
+        assert !t8.getFooterView().isVisible() : "C8 clearSummary 后隐藏";
 
         System.out.println("AstTable self-check OK");
     }
