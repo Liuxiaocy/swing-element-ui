@@ -194,6 +194,38 @@ public class AstTableModel {
         return a.apply(rows, leafCol);
     }
 
+    // --- 合并单元格 + 行状态（C9）---
+    public enum Status { DEFAULT, SUCCESS, WARNING, DANGER, INFO }
+
+    // 合并 span：key(rawRow, leafCol) → {rowspan, colspan}
+    private final Map<Integer, int[]> spans = new HashMap<Integer, int[]>();
+    // 行状态：key rawRow → Status
+    private final Map<Integer, Status> rowStatus = new HashMap<Integer, Status>();
+
+    public void setSpan(int rawRow, int leafCol, int rowspan, int colspan) {
+        if (rawRow < 0) throw new IndexOutOfBoundsException("rawRow " + rawRow);
+        if (leafCol < 0 || leafCol >= leafCount()) throw new IndexOutOfBoundsException("leafCol " + leafCol);
+        if (rowspan < 1 || colspan < 1) throw new IllegalArgumentException("span must be >= 1");
+        spans.put(spanKey(rawRow, leafCol), new int[]{rowspan, colspan});
+    }
+    /** 返回 {rowspan, colspan}；未合并为 {1,1}（返回副本）。 */
+    public int[] getSpan(int rawRow, int leafCol) {
+        int[] sp = spans.get(spanKey(rawRow, leafCol));
+        return sp == null ? new int[]{1, 1} : new int[]{sp[0], sp[1]};
+    }
+    public void clearSpans() { spans.clear(); }
+
+    public void setRowStatus(int rawRow, Status s) {
+        if (s == null) throw new IllegalArgumentException("status must not be null");
+        if (rawRow < 0) throw new IndexOutOfBoundsException("rawRow " + rawRow);
+        rowStatus.put(rawRow, s);
+    }
+    public Status getRowStatus(int rawRow) {
+        Status s = rowStatus.get(rawRow);
+        return s == null ? Status.DEFAULT : s;
+    }
+    private static int spanKey(int rawRow, int leafCol) { return (rawRow << 16) | leafCol; }
+
     /** 依据当前 filter + sort 重建视图索引；清空选择。 */
     private void rebuildView() {
         List<Integer> base = new ArrayList<Integer>();

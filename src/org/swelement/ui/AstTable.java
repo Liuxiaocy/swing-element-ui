@@ -381,6 +381,8 @@ public class AstTable extends JPanel {
         private int hoverRow = -1;
         private float hoverAlpha = 0f;
         private final Animator hoverAnim;
+        /** 被合并单元格覆盖的格（C9），每次绘制前重算。 */
+        private java.util.Set<Long> coveredCells = java.util.Collections.emptySet();
 
         BodyView() {
             setOpaque(false);
@@ -496,51 +498,145 @@ public class AstTable extends JPanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-            int w = getWidth(), h = getHeight();
+            int h = getHeight();
+            List<AstTableColumn> leaves = model.getLeafColumns();
+            computeCovered(leaves.size());
+            // Pass A：行背景（整行宽）。先铺满再画内容，合并单元格跨行才不会被后画的行覆盖。
             int y = -scrollY;
             for (int v = 0; v < model.viewRowCount(); v++) {
-                if (y + rH > 0 && y < h) paintDataRow(g2, v, y);
+                if (y + rH > 0 && y < h) paintRowBg(g2, v, y);
                 y += rH;
                 if (model.isExpandedView(v)) {
                     if (y + EXPAND_H > 0 && y < h) paintExpandRow(g2, v, y);
                     y += EXPAND_H;
                 }
             }
+            // Pass B：单元格内容（按左/中/右冻结带 clip 绘制）
+            y = -scrollY;
+            for (int v = 0; v < model.viewRowCount(); v++) {
+                if (y + rH > 0 && y < h) paintRowCells(g2, v, y, leaves);
+                y += rH;
+                if (model.isExpandedView(v)) y += EXPAND_H;
+            }
             g2.dispose();
         }
-        /** 绘制单个数据行的选择列 + 左/中/右冻结带（含横滚偏移）。 */
-        private void paintDataRow(Graphics2D g2, int v, int yTop) {
-            int w = getWidth(), h = rH;
-            List<AstTableColumn> leaves = model.getLeafColumns();
+        /** 行背景：选中 / 状态 / 斑马 / hover（C9 状态行）。 */
+        private void paintRowBg(Graphics2D g2, int v, int y) {
+            boolean selected = model.isSelectedView(v);
+            boolean isHovered = (v == hoverRow) && hoverAlpha > 0.01f;
+            boolean zebra = (v % 2 == 1);
+            AstTableModel.Status st = model.getRowStatus(model.rawRowOf(v));
+            Color bg = Color.WHITE;
+            if (selected) bg = ElementTheme.PRIMARY;
+            else if (st != AstTableModel.Status.DEFAULT) {
+                bg = ElementTheme.lerp(statusColor(st), Color.WHITE, 0.85f);
+                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstTable status row");
+            }
+            else if (zebra) {
+                bg = ElementTheme.FILL_BASE;
+                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, ElementTheme.FILL_BASE, "AstTable zebra row");
+            }
+            else ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTable white row");
+            g2.setColor(bg); g2.fillRect(0, y, getWidth(), rH);
+            if (selected) return;
+            if (isHovered) {
+                int a = Math.round(18 * hoverAlpha);
+                g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
+                g2.fillRect(0, y, getWidth(), rH);
+            }
+            if (st == AstTableModel.Status.DEFAULT && !zebra) {
+                g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.5f));
+                g2.drawLine(0, y + rH - 1, getWidth(), y + rH - 1);
+            }
+        }
+        /** 单元格内容：选择列复选框 + 左/中/右冻结带（含横滚偏移）。 */
+        private void paintRowCells(Graphics2D g2, int v, int y, List<AstTableColumn> leaves) {
+            int w = getWidth();
             int scw = selectColW(), flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
             int leftBand = scw + flw;
+            // 合并单元格可跨行，clip 高度需按最大 rowspan 放宽，否则被截断
+            int spanH = rowSpanRows(v, leaves.size()) * rH;
+            boolean selected = model.isSelectedView(v);
+            boolean isHovered = (v == hoverRow) && hoverAlpha > 0.01f;
+            Color textColor = ElementTheme.TEXT_MAIN;
+            if (selected) textColor = Color.WHITE;
+            else if (isHovered) textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha * 0.7f);
             if (leftBand > 0) {
-                g2.clipRect(0, yTop, leftBand, h);
-                paintRow(g2, v, yTop, w, leaves, scw, c -> c.fixed == AstTableColumn.Fixed.LEFT);
-                g2.setClip(null);
-                g2.drawLine(leftBand, yTop, leftBand, yTop + h);
+                g2.clipRect(0, y, leftBand, spanH);
+                drawCells(g2, v, y, w, leaves, scw, c -> c.fixed == AstTableColumn.Fixed.LEFT, textColor);
+                g2.setClip(null); g2.drawLine(leftBand, y, leftBand, y + rH);
             }
             if (scw > 0) {
-                g2.clipRect(0, yTop, scw, h);
-                boolean sel = model.isSelectedView(v);
-                Color bg = sel ? ElementTheme.PRIMARY : (v % 2 == 1 ? ElementTheme.FILL_BASE : Color.WHITE);
-                g2.setColor(bg); g2.fillRect(0, yTop, scw, h);
-                drawCheckbox(g2, scw / 2, yTop + h / 2, sel);
-                g2.setClip(null);
-                g2.drawLine(scw, yTop, scw, yTop + h);
+                g2.clipRect(0, y, scw, rH);
+                drawCheckbox(g2, scw / 2, y + rH / 2, selected);
+                g2.setClip(null); g2.drawLine(scw, y, scw, y + rH);
             }
             if (w - leftBand - frw > 0) {
-                g2.clipRect(leftBand, yTop, w - leftBand - frw, h);
-                paintRow(g2, v, yTop, w, leaves, -scrollX, null);
+                g2.clipRect(leftBand, y, w - leftBand - frw, spanH);
+                drawCells(g2, v, y, w, leaves, -scrollX, null, textColor);
                 g2.setClip(null);
             }
             if (frw > 0) {
-                g2.clipRect(w - frw, yTop, frw, h);
-                paintRow(g2, v, yTop, w, leaves, w - tlw - scw, c -> c.fixed == AstTableColumn.Fixed.RIGHT);
-                g2.setClip(null);
-                g2.drawLine(w - frw, yTop, w - frw, yTop + h);
+                g2.clipRect(w - frw, y, frw, spanH);
+                drawCells(g2, v, y, w, leaves, w - tlw - scw, c -> c.fixed == AstTableColumn.Fixed.RIGHT, textColor);
+                g2.setClip(null); g2.drawLine(w - frw, y, w - frw, y + rH);
             }
         }
+        /** 绘制一行内通过 filter 的叶子列文本；被合并覆盖的格跳过，锚点格按 rowspan/colspan 扩展。 */
+        private void drawCells(Graphics2D g2, int v, int y, int w, List<AstTableColumn> leaves, int xOffset,
+                               java.util.function.Predicate<AstTableColumn> filter, Color textColor) {
+            g2.setColor(textColor); g2.setFont(cf);
+            FontMetrics fm = g2.getFontMetrics();
+            int raw = model.rawRowOf(v);
+            int x = xOffset;
+            for (int c = 0; c < leaves.size(); c++) {
+                AstTableColumn col = leaves.get(c);
+                if ((filter == null || filter.test(col)) && !coveredCells.contains(cellKey(v, c))) {
+                    int[] sp = model.getSpan(raw, c);
+                    int cs = Math.max(1, sp[1]), rs = Math.max(1, sp[0]);
+                    int mw = col.width;
+                    for (int k = 1; k < cs && c + k < leaves.size(); k++) mw += leaves.get(c + k).width;
+                    int mh = rs * rH;
+                    String text = clipText(g2, String.valueOf(model.getValueAtView(v, c)), mw - 2 * CELL_PAD_X);
+                    int tx = alignX(x, mw, fm.stringWidth(text), col.align, CELL_PAD_X);
+                    int ty = y + (mh - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(text, tx, ty);
+                    if (x + mw < w) {
+                        Color saved = g2.getColor();
+                        g2.setColor(ElementTheme.BORDER_BASE);
+                        g2.drawLine(x + mw - 1, y + 4, x + mw - 1, y + mh - 4);
+                        g2.setColor(saved);
+                    }
+                }
+                x += col.width;
+            }
+        }
+        /** 重算被合并单元格覆盖的格集合（视图行 × 叶子列）。 */
+        private void computeCovered(int leafCount) {
+            coveredCells = new java.util.HashSet<Long>();
+            int rows = model.viewRowCount();
+            for (int v = 0; v < rows; v++) {
+                int raw = model.rawRowOf(v);
+                for (int c = 0; c < leafCount; c++) {
+                    int[] sp = model.getSpan(raw, c);
+                    if (sp[0] <= 1 && sp[1] <= 1) continue;
+                    int rs = Math.min(sp[0], rows - v), cs = Math.min(sp[1], leafCount - c);
+                    for (int dr = 0; dr < rs; dr++)
+                        for (int dc = 0; dc < cs; dc++)
+                            if (dr > 0 || dc > 0) coveredCells.add(cellKey(v + dr, c + dc));
+                }
+            }
+        }
+        /** 该行最大 rowspan（决定合并单元格 clip 高度）。 */
+        private int rowSpanRows(int v, int leafCount) {
+            int raw = model.rawRowOf(v), max = 1;
+            for (int c = 0; c < leafCount; c++) {
+                int rs = model.getSpan(raw, c)[0];
+                if (rs > max) max = rs;
+            }
+            return max;
+        }
+        private long cellKey(int v, int c) { return ((long) v << 16) | c; }
         /** 绘制展开行区块（C7），整行宽、浅色底。 */
         private void paintExpandRow(Graphics2D g2, int v, int y) {
             int w = getWidth();
@@ -567,47 +663,6 @@ public class AstTable extends JPanel {
                     int ty = y + (EXPAND_H - fm.getHeight()) / 2 + fm.getAscent();
                     g2.drawString(clipText(g2, text, w - 2 * CELL_PAD_X), CELL_PAD_X, ty);
                 }
-            }
-        }
-        private void paintRow(Graphics2D g2, int v, int y, int w, List<AstTableColumn> leaves, int xOffset, java.util.function.Predicate<AstTableColumn> filter) {
-            boolean selected = model.isSelectedView(v);
-            boolean isHovered = (v == hoverRow) && hoverAlpha > 0.01f;
-            boolean zebra = (v % 2 == 1);
-            Color bg = Color.WHITE, textColor = ElementTheme.TEXT_MAIN;
-            if (selected) { bg = ElementTheme.PRIMARY; textColor = Color.WHITE; }
-            else {
-                if (zebra) { bg = ElementTheme.FILL_BASE; ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, ElementTheme.FILL_BASE, "AstTable zebra row"); }
-                else { ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTable white row"); }
-                if (isHovered) textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha * 0.7f);
-            }
-            g2.setColor(bg); g2.fillRect(0, y, w, rH);
-            if (!selected && isHovered) {
-                int a = Math.round(18 * hoverAlpha);
-                g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
-                g2.fillRect(0, y, w, rH);
-            }
-            g2.setColor(textColor); g2.setFont(cf);
-            FontMetrics fm = g2.getFontMetrics();
-            int x = xOffset;
-            for (int c = 0; c < leaves.size(); c++) {
-                AstTableColumn col = leaves.get(c);
-                if (filter == null || filter.test(col)) {
-                    String text = clipText(g2, String.valueOf(model.getValueAtView(v, c)), col.width - 2 * CELL_PAD_X);
-                    int tx = alignX(x, col.width, fm.stringWidth(text), col.align, CELL_PAD_X);
-                    int ty = y + (rH - fm.getHeight()) / 2 + fm.getAscent();
-                    g2.drawString(text, tx, ty);
-                    if (x + col.width < w) {
-                        Color saved = g2.getColor();
-                        g2.setColor(ElementTheme.BORDER_BASE);
-                        g2.drawLine(x + col.width - 1, y + 4, x + col.width - 1, y + rH - 4);
-                        g2.setColor(saved);
-                    }
-                }
-                x += col.width;
-            }
-            if (!zebra && !selected) {
-                g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.5f));
-                g2.drawLine(0, y + rH - 1, w, y + rH - 1);
             }
         }
     }
@@ -685,6 +740,25 @@ public class AstTable extends JPanel {
         String t = text;
         while (t.length() > 0 && fm.stringWidth(t) + ellW > maxW) t = t.substring(0, t.length() - 1);
         return t + ell;
+    }
+    /** 行状态 → 主题色（C9）。 */
+    private static Color statusColor(AstTableModel.Status st) {
+        switch (st) {
+            case SUCCESS: return ElementTheme.SUCCESS;
+            case WARNING: return ElementTheme.WARNING;
+            case DANGER:  return ElementTheme.DANGER;
+            case INFO:    return ElementTheme.INFO;
+            default:      return ElementTheme.PRIMARY;
+        }
+    }
+    /** 合并单元格（C9）：锚点 (rawRow, leafCol) 向下跨 rowspan 行、向右跨 colspan 列。 */
+    public void setSpan(int rawRow, int leafCol, int rowspan, int colspan) {
+        model.setSpan(rawRow, leafCol, rowspan, colspan); revalidate(); repaint();
+    }
+    /** 设置行状态（C9），影响整行底色。 */
+    public void setRowStatus(int rawRow, AstTableModel.Status st) {
+        if (st == null) throw new IllegalArgumentException("status must not be null");
+        model.setRowStatus(rawRow, st); repaint();
     }
     /** 绘制一个 16×16 复选框（白底 + PRIMARY 勾选）。供选择列复用。 */
     private void drawCheckbox(Graphics2D g2, int cx, int cy, boolean checked) {
@@ -1009,6 +1083,29 @@ public class AstTable extends JPanel {
         try { t8.paint(gg8); } finally { gg8.dispose(); }
         t8.clearSummary();
         assert !t8.getFooterView().isVisible() : "C8 clearSummary 后隐藏";
+
+        // --- C9: 合并行/列 + 带状态表格 ---
+        AstTable t9 = new AstTable(new AstTableColumn[]{
+            new AstTableColumn("A", 100), new AstTableColumn("B", 100)});
+        t9.addRow("x", "1"); t9.addRow("x", "2"); t9.addRow("y", "3");
+        t9.getModel().setSpan(0, 0, 2, 1); // A 列第 0、1 行合并
+        int[] sp = t9.getModel().getSpan(0, 0);
+        assert sp[0] == 2 && sp[1] == 1 : "C9 合并 2x1";
+        assert Arrays.equals(t9.getModel().getSpan(0, 1), new int[]{1, 1}) : "C9 非合并默认 1x1";
+        t9.getModel().setRowStatus(2, AstTableModel.Status.SUCCESS);
+        assert t9.getModel().getRowStatus(2) == AstTableModel.Status.SUCCESS : "C9 状态行";
+        assert t9.getModel().getRowStatus(0) == AstTableModel.Status.DEFAULT : "C9 未设置状态为 DEFAULT";
+        // 合并单元格 + 状态行离屏绘制不抛断言
+        java.awt.image.BufferedImage img9 = new java.awt.image.BufferedImage(220, 120, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gg9 = img9.createGraphics();
+        try { t9.paint(gg9); } finally { gg9.dispose(); }
+        // 非法 span 应抛异常
+        threw = false;
+        try { t9.getModel().setSpan(0, 0, 0, 1); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "C9 span<1 应抛异常";
+        threw = false;
+        try { t9.getModel().setRowStatus(0, null); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "C9 null status 应抛异常";
 
         System.out.println("AstTable self-check OK");
     }
