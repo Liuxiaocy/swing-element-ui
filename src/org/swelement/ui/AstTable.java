@@ -51,6 +51,8 @@ public class AstTable extends JPanel {
     private Consumer<Integer> rowClickListener;
     private int tier = SIZE_DEFAULT;
     private final java.util.Map<Integer, String> filterQueries = new java.util.HashMap<Integer, String>();
+    private java.util.function.Function<Integer, String> expandTextFn = null;
+    private java.util.function.Function<Integer, JComponent> expandRenderer = null;
 
     // --- 尺寸档位（对齐 Element UI）---
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
@@ -67,6 +69,8 @@ public class AstTable extends JPanel {
     private static final int CELL_PAD_X = 12;
     /** 多选模式选择列宽度（始终冻结在左侧）。 */
     private static final int SELECT_COL_W = 44;
+    /** 展开行区块高度（C7）。 */
+    private static final int EXPAND_H = 80;
     private boolean multiSelect() { return model.getSelectionMode() == AstTableModel.SelectionMode.MULTIPLE; }
     private int selectColW() { return multiSelect() ? SELECT_COL_W : 0; }
 
@@ -132,7 +136,7 @@ public class AstTable extends JPanel {
     public void addRow(Object... values) { model.addRow(values); revalidate(); repaint(); }
     public void setRows(List<Object[]> data) { model.setRows(data); revalidate(); repaint(); }
     public void clearRows() { model.clearRows(); revalidate(); repaint(); }
-    public int getRowCount() { return model.viewRowCount(); }
+    public int getRowCount() { return model.viewRowCount() + model.expandedCount(); }
     public int getColumnCount() { return model.leafCount(); }
     public Object getValueAt(int row, int col) { return model.getValueAtView(row, col); }
     public int getSelectedRow() { return model.getSelectedViewRow(); }
@@ -162,6 +166,19 @@ public class AstTable extends JPanel {
         revalidate(); repaint();
     }
     public void clearFilter() { filterQueries.clear(); model.clearFilter(); revalidate(); repaint(); }
+
+    /** 设置展开行文本渲染（按 raw 行返回字符串）。 */
+    public void setRowExpandText(java.util.function.Function<Integer, String> fn) {
+        if (fn == null) throw new IllegalArgumentException("fn must not be null");
+        this.expandTextFn = fn; this.expandRenderer = null; revalidate(); repaint();
+    }
+    /** 设置展开行组件渲染（按 raw 行返回 JComponent）。 */
+    @SuppressWarnings("unchecked")
+    public void setRowExpandRenderer(java.util.function.Function<Integer, ? extends JComponent> fn) {
+        if (fn == null) throw new IllegalArgumentException("fn must not be null");
+        this.expandRenderer = (java.util.function.Function<Integer, JComponent>) fn;
+        this.expandTextFn = null; revalidate(); repaint();
+    }
     public void setRowClickListener(Consumer<Integer> l) {
         if (l == null) throw new IllegalArgumentException("listener must not be null");
         this.rowClickListener = l;
@@ -191,7 +208,7 @@ public class AstTable extends JPanel {
 
     // --- Layout / paint（容器画白底+外边框，视图画内容）---
     @Override public Dimension getPreferredSize() {
-        int h = headerH + model.viewRowCount() * rowH + footerView.getPreferredHeight() + 2;
+        int h = headerH + (model.viewRowCount() * rowH + model.expandedCount() * EXPAND_H) + footerView.getPreferredHeight() + 2;
         return new Dimension(getTotalWidth() + selectColW() + 2, h);
     }
     @Override public Dimension getMinimumSize() { return new Dimension(getTotalWidth() + selectColW() + 2, headerH + rowH); }
@@ -367,6 +384,15 @@ public class AstTable extends JPanel {
                     repaint();
                     fireRowClick(idx);
                 }
+                @Override public void mouseClicked(MouseEvent e) {
+                    // 双击行切换展开（C7）；未设置展开内容时忽略
+                    if (e.getClickCount() != 2) return;
+                    if (expandTextFn == null && expandRenderer == null) return;
+                    int idx = viewRowAtPoint(e.getPoint());
+                    if (idx < 0 || idx >= model.viewRowCount()) return;
+                    model.toggleExpanded(model.rawRowOf(idx));
+                    AstTable.this.revalidate(); AstTable.this.repaint();
+                }
             });
             addMouseMotionListener(new MouseMotionAdapter() {
                 @Override public void mouseMoved(MouseEvent e) {
@@ -395,23 +421,40 @@ public class AstTable extends JPanel {
 
         int viewportH() { return getHeight(); }
         int viewportW() { return getWidth(); }
-        int maxScrollY() { return Math.max(0, model.viewRowCount() * rH - viewportH()); }
+        int maxScrollY() {
+            int total = 0;
+            for (int v = 0; v < model.viewRowCount(); v++) { total += rH; if (model.isExpandedView(v)) total += EXPAND_H; }
+            return Math.max(0, total - viewportH());
+        }
         int maxScrollX() { return Math.max(0, totalLeafW() + selectColW() - viewportW()); }
         void scrollToRow(int v) {
-            int target = v * rH - (viewportH() - rH) / 2;
-            scrollY = Math.max(0, Math.min(target, maxScrollY()));
+            int yy = 0;
+            for (int i = 0; i < v && i < model.viewRowCount(); i++) { yy += rH; if (model.isExpandedView(i)) yy += EXPAND_H; }
+            scrollY = Math.max(0, Math.min(yy - (viewportH() - rH) / 2, maxScrollY()));
             repaint();
         }
         int lastViewRowVisible() {
             if (model.viewRowCount() == 0) return -1;
-            int last = (scrollY + viewportH() - 1) / rH;
-            return Math.min(last, model.viewRowCount() - 1);
+            int contentY = scrollY + viewportH(), yy = 0, last = -1;
+            for (int v = 0; v < model.viewRowCount(); v++) {
+                if (yy + rH <= contentY) last = v;
+                yy += rH;
+                if (model.isExpandedView(v)) yy += EXPAND_H;
+            }
+            return last;
         }
         private int viewRowAtPoint(Point p) {
             if (p.y < 0) return -1;
-            int v = (p.y + scrollY) / rH;
-            if (v < 0 || v >= model.viewRowCount()) return -1;
-            return v;
+            int contentY = p.y + scrollY, yy = 0;
+            for (int v = 0; v < model.viewRowCount(); v++) {
+                if (contentY >= yy && contentY < yy + rH) return v;
+                yy += rH;
+                if (model.isExpandedView(v)) {
+                    if (contentY >= yy && contentY < yy + EXPAND_H) return -1; // 展开区不可选
+                    yy += EXPAND_H;
+                }
+            }
+            return -1;
         }
         private int leafNaturalX(int leaf) {
             List<AstTableColumn> leaves = model.getLeafColumns();
@@ -431,63 +474,86 @@ public class AstTable extends JPanel {
         }
 
         @Override public Dimension getPreferredSize() {
-            return new Dimension(getTotalWidth(), model.viewRowCount() * rH);
+            int total = 0;
+            for (int v = 0; v < model.viewRowCount(); v++) { total += rH; if (model.isExpandedView(v)) total += EXPAND_H; }
+            return new Dimension(getTotalWidth() + selectColW(), total);
         }
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             int w = getWidth(), h = getHeight();
+            int y = -scrollY;
+            for (int v = 0; v < model.viewRowCount(); v++) {
+                if (y + rH > 0 && y < h) paintDataRow(g2, v, y);
+                y += rH;
+                if (model.isExpandedView(v)) {
+                    if (y + EXPAND_H > 0 && y < h) paintExpandRow(g2, v, y);
+                    y += EXPAND_H;
+                }
+            }
+            g2.dispose();
+        }
+        /** 绘制单个数据行的选择列 + 左/中/右冻结带（含横滚偏移）。 */
+        private void paintDataRow(Graphics2D g2, int v, int yTop) {
+            int w = getWidth(), h = rH;
             List<AstTableColumn> leaves = model.getLeafColumns();
             int scw = selectColW(), flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
             int leftBand = scw + flw;
-            // 2) 左冻结（含选择列右侧区域）：先画，使选择列覆盖其上
             if (leftBand > 0) {
-                g2.clipRect(0, 0, leftBand, h);
-                for (int v = 0; v < model.viewRowCount(); v++) {
-                    int yTop = v * rH - scrollY;
-                    if (yTop > h || yTop + rH < 0) continue;
-                    paintRow(g2, v, yTop, w, leaves, scw, c -> c.fixed == AstTableColumn.Fixed.LEFT);
-                }
+                g2.clipRect(0, yTop, leftBand, h);
+                paintRow(g2, v, yTop, w, leaves, scw, c -> c.fixed == AstTableColumn.Fixed.LEFT);
                 g2.setClip(null);
-                g2.drawLine(leftBand, 0, leftBand, h);
+                g2.drawLine(leftBand, yTop, leftBand, yTop + h);
             }
-            // 选择列（多选模式）：覆盖在左冻结区最左侧，绘制行复选框
             if (scw > 0) {
-                g2.clipRect(0, 0, scw, h);
-                for (int v = 0; v < model.viewRowCount(); v++) {
-                    int yTop = v * rH - scrollY;
-                    if (yTop > h || yTop + rH < 0) continue;
-                    boolean sel = model.isSelectedView(v);
-                    Color bg = sel ? ElementTheme.PRIMARY : (v % 2 == 1 ? ElementTheme.FILL_BASE : Color.WHITE);
-                    g2.setColor(bg); g2.fillRect(0, yTop, scw, rH);
-                    drawCheckbox(g2, scw / 2, yTop + rH / 2, sel);
-                }
+                g2.clipRect(0, yTop, scw, h);
+                boolean sel = model.isSelectedView(v);
+                Color bg = sel ? ElementTheme.PRIMARY : (v % 2 == 1 ? ElementTheme.FILL_BASE : Color.WHITE);
+                g2.setColor(bg); g2.fillRect(0, yTop, scw, h);
+                drawCheckbox(g2, scw / 2, yTop + h / 2, sel);
                 g2.setClip(null);
-                g2.drawLine(scw, 0, scw, h);
+                g2.drawLine(scw, yTop, scw, yTop + h);
             }
-            // 1) 中列
             if (w - leftBand - frw > 0) {
-                g2.clipRect(leftBand, 0, w - leftBand - frw, h);
-                for (int v = 0; v < model.viewRowCount(); v++) {
-                    int yTop = v * rH - scrollY;
-                    if (yTop > h || yTop + rH < 0) continue;
-                    paintRow(g2, v, yTop, w, leaves, -scrollX, null);
-                }
+                g2.clipRect(leftBand, yTop, w - leftBand - frw, h);
+                paintRow(g2, v, yTop, w, leaves, -scrollX, null);
                 g2.setClip(null);
             }
-            // 3) 右冻结
             if (frw > 0) {
-                g2.clipRect(w - frw, 0, frw, h);
-                for (int v = 0; v < model.viewRowCount(); v++) {
-                    int yTop = v * rH - scrollY;
-                    if (yTop > h || yTop + rH < 0) continue;
-                    paintRow(g2, v, yTop, w, leaves, w - tlw - scw, c -> c.fixed == AstTableColumn.Fixed.RIGHT);
-                }
+                g2.clipRect(w - frw, yTop, frw, h);
+                paintRow(g2, v, yTop, w, leaves, w - tlw - scw, c -> c.fixed == AstTableColumn.Fixed.RIGHT);
                 g2.setClip(null);
-                g2.drawLine(w - frw, 0, w - frw, h);
+                g2.drawLine(w - frw, yTop, w - frw, yTop + h);
             }
-            g2.dispose();
+        }
+        /** 绘制展开行区块（C7），整行宽、浅色底。 */
+        private void paintExpandRow(Graphics2D g2, int v, int y) {
+            int w = getWidth();
+            g2.setColor(ElementTheme.FILL_BASE);
+            g2.fillRect(0, y, w, EXPAND_H);
+            g2.drawLine(0, y + EXPAND_H - 1, w, y + EXPAND_H - 1);
+            int raw = model.rawRowOf(v);
+            if (expandRenderer != null) {
+                JComponent c = expandRenderer.apply(raw);
+                if (c != null) {
+                    int cw = w - 2 * CELL_PAD_X;
+                    c.setSize(cw, EXPAND_H - 8);
+                    Graphics g0 = g2.create(CELL_PAD_X, y + 4, cw, EXPAND_H - 8);
+                    c.paint(g0); g0.dispose();
+                    return;
+                }
+            }
+            if (expandTextFn != null) {
+                String text = expandTextFn.apply(raw);
+                if (text != null) {
+                    g2.setColor(ElementTheme.TEXT_MAIN);
+                    g2.setFont(cf);
+                    FontMetrics fm = g2.getFontMetrics();
+                    int ty = y + (EXPAND_H - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(clipText(g2, text, w - 2 * CELL_PAD_X), CELL_PAD_X, ty);
+                }
+            }
         }
         private void paintRow(Graphics2D g2, int v, int y, int w, List<AstTableColumn> leaves, int xOffset, java.util.function.Predicate<AstTableColumn> filter) {
             boolean selected = model.isSelectedView(v);
@@ -841,6 +907,22 @@ public class AstTable extends JPanel {
         assert t6.getRowCount() == 1 && "上海市".equals(t6.getValueAt(0, 0)) : "C6 筛选+排序组合";
         t6.getModel().clearFilter();
         assert t6.getRowCount() == 3 : "C6 组合清空还原3行";
+
+        // --- C7: 展开行 ---
+        AstTable t7 = new AstTable(new AstTableColumn[]{
+            new AstTableColumn("姓名", 120), new AstTableColumn("详情", 200)});
+        t7.addRow("张", "..."); t7.addRow("李", "...");
+        final int base = t7.getRowCount();
+        t7.setRowExpandText(r -> "展开内容#" + r);
+        t7.getModel().toggleExpanded(0);
+        assert t7.getRowCount() == base + 1 : "C7 展开后视图行+1(" + (base + 1) + ")";
+        t7.getModel().toggleExpanded(0);
+        assert t7.getRowCount() == base : "C7 收起还原";
+        // 展开后离屏绘制不抛异常（含展开区块）
+        t7.getModel().toggleExpanded(0);
+        java.awt.image.BufferedImage img7 = new java.awt.image.BufferedImage(t7.getPreferredSize().width, 160, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gg7 = img7.createGraphics();
+        try { t7.paint(gg7); } finally { gg7.dispose(); }
 
         System.out.println("AstTable self-check OK");
     }

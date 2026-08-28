@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -29,6 +31,9 @@ public class AstTableModel {
 
     // 筛选（C6）
     private Predicate<Object[]> filter = null;
+
+    // 展开行（C7）：以 raw 行记录展开状态
+    private final Set<Integer> expanded = new HashSet<Integer>();
 
     // 单选（C1）；多选集合在 C4 扩展
     private int selectedViewRow = -1;
@@ -114,6 +119,23 @@ public class AstTableModel {
     public void clearFilter() {
         this.filter = null;
         rebuildView();
+    }
+
+    // --- 展开行（C7）---
+    public void toggleExpanded(int rawRow) {
+        if (rawRow < 0 || rawRow >= raw.size()) return;
+        if (expanded.contains(rawRow)) expanded.remove(rawRow); else expanded.add(rawRow);
+    }
+    public boolean isExpanded(int rawRow) { return expanded.contains(rawRow); }
+    /** 视图行 v 是否展开（v 为筛选/排序后的视图索引）。 */
+    public boolean isExpandedView(int v) {
+        return v >= 0 && v < view.size() && expanded.contains(view.get(v));
+    }
+    /** 当前展开的视图行数量（用于布局高度）。 */
+    public int expandedCount() {
+        int c = 0;
+        for (Integer v : view) if (expanded.contains(v)) c++;
+        return c;
     }
 
     /** 依据当前 filter + sort 重建视图索引；清空选择。 */
