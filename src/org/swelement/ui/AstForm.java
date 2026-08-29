@@ -29,6 +29,10 @@ public class AstForm extends JPanel {
     private int labelPosition = POS_LEFT;
     private int labelWidth = 100;
 
+    /** 尺寸档位（0=large 1=default 2=small），仅下发到已实现 setSize(int) 的字段组件。 */
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private int sizeTier = SIZE_DEFAULT;
+
     // --- Validation rules ---
     public interface ValidationRule {
         String validate(String value, String fieldLabel);
@@ -117,9 +121,33 @@ public class AstForm extends JPanel {
         this.labelWidth = w;
     }
 
+    /** 设置整表尺寸档位：反射调用每个字段组件的 setSize(int)（AstInput/AstSelect 等已实现）。
+     *  未实现该方法的组件（如原生 JTextField）静默跳过；之后新增的字段也自动套用当前档位。 */
+    public void setSize(int tier) {
+        if (tier < SIZE_LARGE || tier > SIZE_SMALL) throw new IllegalArgumentException("size tier: " + tier);
+        this.sizeTier = tier;
+        for (FormField f : fields) applySizeTier(f.input, tier);
+        revalidate();
+        repaint();
+    }
+
+    public int getSizeTier() { return sizeTier; }
+
+    private static void applySizeTier(JComponent input, int tier) {
+        try {
+            java.lang.reflect.Method m = input.getClass().getMethod("setSize", int.class);
+            m.invoke(input, Integer.valueOf(tier));
+        } catch (NoSuchMethodException ignored) {
+            // 组件不支持尺寸档位（原生 Swing 组件等），跳过
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("setSize(int) 下发失败: " + input.getClass().getName(), e);
+        }
+    }
+
     public void addField(String label, JComponent input, ValidationRule... rules) {
         if (label == null) throw new IllegalArgumentException("label must not be null");
         if (input == null) throw new IllegalArgumentException("input must not be null");
+        applySizeTier(input, sizeTier); // 新增字段跟随表单当前档位
         FormField field = new FormField(label, input, rules);
         fields.add(field);
         add(field);
@@ -351,6 +379,21 @@ public class AstForm extends JPanel {
             boolean ok2 = form.validateForm();
             assert ok2 : "validate passes after fixes";
             assert form.getErrors().isEmpty() : "no errors after fix";
+            // --- 尺寸档位下发：AstInput 高度随档位（40/32/28），原生 JTextField 静默跳过 ---
+            AstInput tierInput = new AstInput("");
+            form.addField("档位", tierInput); // 三个原生 JTextField 字段同时验证"跳过不炸"
+            assert tierInput.getPreferredSize().height == 32 : "default input h=" + tierInput.getPreferredSize().height;
+            form.setSize(SIZE_LARGE);
+            assert form.getSizeTier() == SIZE_LARGE : "form tier";
+            assert tierInput.getPreferredSize().height == 40 : "large input h=" + tierInput.getPreferredSize().height;
+            AstInput laterInput = new AstInput(""); // set 后新增字段自动套用当前档位
+            form.addField("后加", laterInput);
+            assert laterInput.getPreferredSize().height == 40 : "later field inherits tier, h=" + laterInput.getPreferredSize().height;
+            form.setSize(SIZE_SMALL);
+            assert tierInput.getPreferredSize().height == 28 : "small input h=" + tierInput.getPreferredSize().height;
+            boolean tierThrew = false;
+            try { form.setSize(9); } catch (IllegalArgumentException e) { tierThrew = true; }
+            assert tierThrew : "invalid tier must throw";
             // Off-screen paint form to trigger assertContrast for label
             java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(400, 200, java.awt.image.BufferedImage.TYPE_INT_ARGB);
             Graphics2D gg = img.createGraphics();

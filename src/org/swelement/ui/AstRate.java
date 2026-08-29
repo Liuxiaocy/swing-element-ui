@@ -109,6 +109,16 @@ public class AstRate extends JComponent {
         this.starSize = s; revalidate(); repaint();
     }
 
+    // --- 尺寸档位 ---
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    private static final int[] TIER_STAR = {30, 24, 18};
+
+    /** 尺寸档位（星星大小 30/24/18 联动）。 */
+    public void setSize(int t) {
+        if (t < SIZE_LARGE || t > SIZE_SMALL) throw new IllegalArgumentException("tier out of range: " + t);
+        setStarSize(TIER_STAR[t]);
+    }
+
     @Override public Dimension getPreferredSize() {
         int w = max * starSize + (max - 1) * gap + 4;
         return new Dimension(w, starSize + 4);
@@ -248,6 +258,17 @@ public class AstRate extends JComponent {
         assert r2.valueAt(new Point(2 + 0 * (24 + 4) + 18, 10)) == 1f : "first star right half → 1";
         assert r2.valueAt(new Point(2 + 2 * (24 + 4) + 5, 10)) == 2.5f : "third star left → 2.5";
         assert r2.valueAt(new Point(2 + 4 * (24 + 4) + 18, 10)) == 5f : "last star right → 5";
+
+        // --- 尺寸档位：星大小随档位变化（30/24/18），非法档位抛异常 ---
+        AstRate rs = new AstRate(5, false);
+        assert rs.getPreferredSize().height == 24 + 4 : "default star h=" + rs.getPreferredSize().height;
+        rs.setSize(SIZE_LARGE);
+        assert rs.getPreferredSize().height == 30 + 4 : "large star h=" + rs.getPreferredSize().height;
+        rs.setSize(SIZE_SMALL);
+        assert rs.getPreferredSize().height == 18 + 4 : "small star h=" + rs.getPreferredSize().height;
+        threw = false;
+        try { rs.setSize(7); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "invalid tier must throw";
 
         // Paint + EDT click test
         final Throwable[] err = {null};

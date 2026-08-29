@@ -129,6 +129,38 @@ public class BadgeDemo {
             show2.add(wrapBadgeWithLabel(onCheckbox, "AstCheckbox 复选框"));
             show2.add(wrapBadgeWithLabel(onLabel, "JLabel 文字标签"));
 
+            // ========== 第三组：类型配色 + 封顶值 ==========
+            final AstBadge[] typed = new AstBadge[AstBadge.Type.values().length];
+            JPanel show3 = new JPanel(new FlowLayout(FlowLayout.CENTER, 28, 10));
+            show3.setBorder(new TitledBorder("类型配色 5 色（count 均设 120，默认封顶 99 → 显示 99+）"));
+            int ti = 0;
+            for (AstBadge.Type t : AstBadge.Type.values()) {
+                AstBadge bt = new AstBadge();
+                bt.setContent(new AstButton(t.name(), AstButton.DEFAULT, false));
+                bt.setType(t);
+                bt.setCount(120);
+                typed[ti++] = bt;
+                show3.add(wrapBadgeWithLabel(bt, t.name() + " → 99+"));
+            }
+
+            // ========== 第四组：尺寸档位 ==========
+            JPanel show4 = new JPanel(new FlowLayout(FlowLayout.CENTER, 28, 10));
+            show4.setBorder(new TitledBorder("尺寸档位 large / default / small（角标高度与红点直径同步缩放）"));
+            String[] tierName = {"large", "default", "small"};
+            for (int tier : new int[]{AstBadge.SIZE_LARGE, AstBadge.SIZE_DEFAULT, AstBadge.SIZE_SMALL}) {
+                AstBadge bn = new AstBadge();
+                bn.setContent(new AstButton(tierName[tier], AstButton.DEFAULT, false));
+                bn.setSize(tier);
+                bn.setCount(5);
+                AstBadge bd = new AstBadge();
+                bd.setContent(new AstButton("dot", AstButton.DEFAULT, false));
+                bd.setSize(tier);
+                bd.setType(AstBadge.Type.PRIMARY);
+                bd.setDot(true);
+                show4.add(wrapBadgeWithLabel(bn, "count " + tierName[tier]));
+                show4.add(wrapBadgeWithLabel(bd, "dot " + tierName[tier]));
+            }
+
             // ========== 交互控制区 ==========
             JPanel ctrl = new JPanel(new GridBagLayout());
             ctrl.setBorder(new TitledBorder("手动更新角标"));
@@ -197,6 +229,26 @@ public class BadgeDemo {
             });
             ctrl.add(plusBtn, gbc);
 
+            // 封顶值 max：类型组的角标实时随封顶变化
+            gbc.gridx = 0; gbc.gridy = 9; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER;
+            JPanel maxRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+            maxRow.add(new JLabel("封顶值 max:"));
+            final JSpinner spMax = new JSpinner(new SpinnerNumberModel(99, 1, 9999, 1));
+            spMax.addChangeListener(e -> {
+                int m = ((Number) spMax.getValue()).intValue();
+                for (AstBadge bt : typed) bt.setMax(m);
+            });
+            maxRow.add(spMax);
+            ctrl.add(maxRow, gbc);
+
+            // hidden 开关：隐藏后仍保留 count/type 状态，取消即恢复
+            gbc.gridy = 10;
+            final JCheckBox hideCb = new JCheckBox("隐藏类型组角标（hidden，状态保留）", false);
+            hideCb.addActionListener(e -> {
+                for (AstBadge bt : typed) bt.setHidden(hideCb.isSelected());
+            });
+            ctrl.add(hideCb, gbc);
+
             // 自动递增演示
             final int[] n = {8};
             new Timer(1500, e -> {
@@ -209,11 +261,15 @@ public class BadgeDemo {
             root.add(Box.createVerticalStrut(10));
             root.add(show2);
             root.add(Box.createVerticalStrut(10));
+            root.add(show3);
+            root.add(Box.createVerticalStrut(10));
+            root.add(show4);
+            root.add(Box.createVerticalStrut(10));
             root.add(ctrl);
 
             f.setContentPane(new JScrollPane(root));
             f.pack();
-            f.setSize(Math.max(f.getWidth(), 920), Math.min(f.getHeight(), 750));
+            f.setSize(Math.max(f.getWidth(), 960), Math.min(f.getHeight(), 900));
             f.setLocationRelativeTo(null);
             f.setVisible(true);
         });

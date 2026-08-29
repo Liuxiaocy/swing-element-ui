@@ -16,6 +16,13 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 public class AstPagination extends JComponent {
+    public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
+    /** 按钮宽高 / 字号随档位。 */
+    private static final int[] TIER_BTN_H = {32, 28, 24};
+    private static final int[] TIER_BTN_W = {32, 28, 24};
+    private static final float[] TIER_FONT = {14f, 12f, 12f};
+    private int tier = SIZE_DEFAULT;
+
     private int total, pageSize = 10, current = 1;
     private final List<IntConsumer> listeners = new ArrayList<>();
     private final javax.swing.event.EventListenerList swingListeners = new javax.swing.event.EventListenerList();
@@ -27,10 +34,20 @@ public class AstPagination extends JComponent {
         setLayout(new BorderLayout());
         row.setOpaque(false);
         add(row, BorderLayout.CENTER);
-        jumper.setFont(ElementTheme.FONT.deriveFont(12f));
+        jumper.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
         jumper.setBorder(new EmptyBorder(2, 4, 2, 4));
         jumper.addActionListener(this::onJump);
     }
+
+    /** 尺寸档位（Element UI size：large/default/small），按钮与跳页框联动。 */
+    public void setSize(int t) {
+        if (t < SIZE_LARGE || t > SIZE_SMALL) throw new IllegalArgumentException("tier out of range: " + t);
+        tier = t;
+        jumper.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        rebuild();
+    }
+
+    public int getSizeTier() { return tier; }
 
     public AstPagination(int totalCount, int pageSize, int initialPage) {
         this();
@@ -116,8 +133,8 @@ public class AstPagination extends JComponent {
             super(text);
             this.page = page;
             setOpaque(false);
-            setPreferredSize(new Dimension(page > 0 ? 28 : 24, 28));
-            setFont(ElementTheme.FONT.deriveFont(12f));
+            setPreferredSize(new Dimension(page > 0 ? TIER_BTN_W[tier] : TIER_BTN_W[tier] - 4, TIER_BTN_H[tier]));
+            setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             if (page > 0) {
                 addMouseListener(new MouseAdapter() {
@@ -137,7 +154,7 @@ public class AstPagination extends JComponent {
                 g2.setColor(active ? ElementTheme.PRIMARY : ElementTheme.lerp(Color.WHITE, new Color(0xF5F7FA), hover));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
             }
-            g2.setFont(ElementTheme.FONT.deriveFont(12f));
+            g2.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
             g2.setColor(active ? Color.WHITE : (page > 0 ? new Color(0x606266) : new Color(0xC0C4CC)));
             FontMetrics fm = g2.getFontMetrics();
             g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
@@ -159,7 +176,31 @@ public class AstPagination extends JComponent {
         assert pageWindow(9, 10).equals(java.util.Arrays.asList(1, -1, 7, 8, 9, 10));
         assert pageWindow(1, 1).equals(java.util.Arrays.asList(1));
         assert pageWindow(1, 3).equals(java.util.Arrays.asList(1, 2, 3));
+
+        // --- 尺寸档位：分页按钮高度与跳页框字体随档位联动（32/28/24） ---
+        AstPagination pg = new AstPagination(100, 10, 1);
+        assert pg.getSizeTier() == SIZE_DEFAULT : "default tier";
+        assert firstPageButton(pg).getPreferredSize().height == 28
+            : "default btn h=" + firstPageButton(pg).getPreferredSize().height;
+        pg.setSize(SIZE_LARGE);
+        assert pg.jumper.getFont().getSize2D() == 14f : "large jumper font=" + pg.jumper.getFont().getSize2D();
+        assert firstPageButton(pg).getPreferredSize().height == 32
+            : "large btn h=" + firstPageButton(pg).getPreferredSize().height;
+        pg.setSize(SIZE_SMALL);
+        assert pg.jumper.getFont().getSize2D() == 12f : "small jumper font=" + pg.jumper.getFont().getSize2D();
+        assert firstPageButton(pg).getPreferredSize().height == 24
+            : "small btn h=" + firstPageButton(pg).getPreferredSize().height;
+        boolean threw = false;
+        try { pg.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
+        assert threw : "invalid tier must throw";
         System.out.println("AstPagination self-check OK");
+    }
+
+    private static PageButton firstPageButton(AstPagination pg) {
+        for (Component c : pg.row.getComponents()) {
+            if (c instanceof PageButton) return (PageButton) c;
+        }
+        throw new AssertionError("no PageButton found");
     }
 
     public static void main(String[] args) { selfCheck(); }

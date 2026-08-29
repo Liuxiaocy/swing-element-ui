@@ -89,7 +89,8 @@ src\org\swelement\ui\AstTimePicker.java ^
 src\org\swelement\ui\AstTransfer.java ^
 src\org\swelement\ui\AstTimeline.java ^
 src\org\swelement\ui\AstCalendar.java ^
-src\org\swelement\ui\AstCarousel.java
+src\org\swelement\ui\AstCarousel.java ^
+src\org\swelement\ui\AstBadge.java
 
 rem JDK 1.8 直接编译即可（默认 -source/-target 8）；若回退到高版本 JDK 则用 --release 8 兜底
 "%JAVAC%" -encoding UTF-8 -d out %SOURCES%
@@ -239,3 +240,7 @@ if %ERRORLEVEL% NEQ 0 ( echo AstCarousel self-check FAILED & exit /b 1 )
 echo --- AstIconDemo self-check ---
 "%JRUN%" -ea -cp out org.swelement.demo.AstIconDemo --selfcheck
 if %ERRORLEVEL% NEQ 0 ( echo AstIconDemo self-check FAILED & exit /b 1 )
+
+echo --- AstBadge self-check ---
+"%JRUN%" -ea -cp out org.swelement.ui.AstBadge
+if %ERRORLEVEL% NEQ 0 ( echo AstBadge self-check FAILED & exit /b 1 )
