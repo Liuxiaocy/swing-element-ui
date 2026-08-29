@@ -77,6 +77,7 @@ src\org\swelement\demo\AstP2P3Demo.java ^
 src\org\swelement\demo\AstFormDemo.java ^
 src\org\swelement\ui\AstDivider.java ^
 src\org\swelement\ui\AstIcon.java ^
+src\org\swelement\demo\AstIconDemo.java ^
 src\org\swelement\ui\AstRate.java ^
 src\org\swelement\ui\AstBreadcrumb.java ^
 src\org\swelement\ui\AstSteps.java ^
@@ -234,3 +235,7 @@ if %ERRORLEVEL% NEQ 0 ( echo AstCalendar self-check FAILED & exit /b 1 )
 echo --- AstCarousel self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstCarousel
 if %ERRORLEVEL% NEQ 0 ( echo AstCarousel self-check FAILED & exit /b 1 )
+
+echo --- AstIconDemo self-check ---
+"%JRUN%" -ea -cp out org.swelement.demo.AstIconDemo --selfcheck
+if %ERRORLEVEL% NEQ 0 ( echo AstIconDemo self-check FAILED & exit /b 1 )
