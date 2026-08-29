@@ -156,9 +156,119 @@ public class AstCardDemo {
         root.add(ctrl); root.add(Box.createVerticalStrut(12));
         root.add(row);  root.add(Box.createVerticalStrut(12));
         root.add(dynamicRow);
+
+        // ---- P4-E 新增模板段 ----
+        root.add(Box.createVerticalStrut(12));
+        root.add(buildTemplates());
+
         f.setContentPane(new JScrollPane(root));
         f.pack(); f.setSize(Math.max(f.getWidth(), 1200), Math.min(f.getHeight(), 800));
         f.setLocationRelativeTo(null); f.setVisible(true);
+    }
+
+    /** P4-E：阴影三态对比 + 无头卡片 + 图片/列表/统计模板。 */
+    private static JComponent buildTemplates() {
+        JPanel sec = new JPanel();
+        sec.setLayout(new BoxLayout(sec, BoxLayout.Y_AXIS));
+
+        // 阴影三态对比（同内容并排）
+        JPanel shadows = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
+        shadows.setBorder(new TitledBorder("阴影三态：ALWAYS / HOVER / NEVER（悬停中间卡片对比）"));
+        String desc = "Element UI Card 的 shadow 属性。\nALWAYS 恒定投影，HOVER 悬停时出现，NEVER 无。";
+        for (AstCard.Shadow s : new AstCard.Shadow[]{AstCard.Shadow.ALWAYS, AstCard.Shadow.HOVER, AstCard.Shadow.NEVER}) {
+            AstCard card = new AstCard("shadow=" + s, true, s);
+            JTextArea ta = new JTextArea(desc);
+            ta.setEditable(false); ta.setLineWrap(true); ta.setWrapStyleWord(true);
+            ta.setOpaque(false); ta.setForeground(new Color(0x606266));
+            card.setContent(ta);
+            JPanel w = new JPanel(new BorderLayout());
+            w.setPreferredSize(new Dimension(300, 190));
+            w.add(card, BorderLayout.CENTER);
+            shadows.add(w);
+        }
+        sec.add(shadows);
+
+        // 模板行：图片卡片 / 列表卡片 / 统计卡片
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
+        row.setBorder(new TitledBorder("卡片模板：图片卡片 / 列表卡片 / 统计卡片 / 无头卡片"));
+
+        // 1) 图片卡片（AstAvatar 大图 + 标题 + 描述 + 操作）
+        AstCard pic = new AstCard("图片卡片", true, AstCard.Shadow.HOVER);
+        JPanel picBody = new JPanel();
+        picBody.setLayout(new BoxLayout(picBody, BoxLayout.Y_AXIS));
+        picBody.setOpaque(false);
+        AstAvatar cover = new AstAvatar('山', AstAvatar.SIZE_LARGE, AstAvatar.CIRCLE);
+        cover.setPreferredSize(new Dimension(120, 120));
+        JPanel coverWrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 4));
+        coverWrap.setOpaque(false);
+        coverWrap.add(cover);
+        picBody.add(coverWrap);
+        JLabel picTitle = new JLabel("西湖十景", SwingConstants.CENTER);
+        picTitle.setFont(picTitle.getFont().deriveFont(Font.BOLD, 15f));
+        picTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        picBody.add(picTitle);
+        JLabel picDesc = new JLabel("欲把西湖比西子，淡妆浓抹总相宜");
+        picDesc.setForeground(new Color(0x909399));
+        picDesc.setAlignmentX(Component.CENTER_ALIGNMENT);
+        picBody.add(picDesc);
+        pic.setContent(picBody);
+        pic.addHeaderAction(new AstButton("收藏", AstButton.PRIMARY, false));
+        row.add(wrapFixed(pic, 280, 300));
+
+        // 2) 列表卡片（无头 + 条目列表）
+        AstCard list = new AstCard("", true, AstCard.Shadow.ALWAYS);
+        JPanel listBody = new JPanel();
+        listBody.setLayout(new BoxLayout(listBody, BoxLayout.Y_AXIS));
+        listBody.setOpaque(false);
+        String[] items = {"处理订单 #1024", "审核退款申请", "回复客户咨询", "更新库存清单", "发布新版本"};
+        for (String it : items) {
+            JPanel line = new JPanel(new BorderLayout());
+            line.setOpaque(false);
+            line.add(new JLabel(it), BorderLayout.CENTER);
+            org.swelement.ui.AstIcon dot = new org.swelement.ui.AstIcon(org.swelement.ui.AstIcon.Type.STAR_FILLED,
+                org.swelement.core.ElementTheme.WARNING, 14);
+            line.add(dot, BorderLayout.EAST);
+            line.setBorder(new EmptyBorder(6, 2, 6, 2));
+            listBody.add(line);
+        }
+        list.setContent(listBody);
+        row.add(wrapFixed(list, 260, 260));
+
+        // 3) 统计卡片（大数字 + 标签 + 趋势）
+        JPanel stats = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 8));
+        String[][] data = {{"12,890", "今日访问", "↑ 12%", "0x67C23A"}, {"3,204", "今日订单", "↓ 3%", "0xF56C6C"},
+            {"98%", "好评率", "↑ 1.2%", "0x67C23A"}};
+        for (String[] d : data) {
+            AstCard sc = new AstCard("", false, AstCard.Shadow.HOVER);
+            JPanel sb = new JPanel();
+            sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
+            sb.setOpaque(false);
+            JLabel num = new JLabel(d[0]);
+            num.setFont(num.getFont().deriveFont(Font.BOLD, 26f));
+            num.setForeground(new Color(0x303133));
+            num.setAlignmentX(Component.CENTER_ALIGNMENT);
+            sb.add(num);
+            JLabel lb = new JLabel(d[1]);
+            lb.setForeground(new Color(0x909399));
+            lb.setAlignmentX(Component.CENTER_ALIGNMENT);
+            sb.add(lb);
+            JLabel trend = new JLabel(d[2]);
+            trend.setForeground(new Color(Integer.decode(d[3])));
+            trend.setAlignmentX(Component.CENTER_ALIGNMENT);
+            sb.add(trend);
+            sc.setContent(sb);
+            stats.add(wrapFixed(sc, 170, 180));
+        }
+        row.add(stats);
+        sec.add(row);
+        return sec;
+    }
+
+    private static JPanel wrapFixed(AstCard card, int w, int h) {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setPreferredSize(new Dimension(w, h));
+        p.add(card, BorderLayout.CENTER);
+        return p;
     }
 
     private static JLabel newFieldLabel(String s) {
