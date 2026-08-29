@@ -52,6 +52,19 @@ public class AstLoading extends JComponent {
     private boolean visible = false;
     private String text = "";
 
+    // --- F3: 可定制遮罩 / 指示器 / 延迟显示 ---
+    /** 默认遮罩底色：FULLSCREEN 半透明浅灰，WRAP 纯白。 */
+    private static final Color MASK_FULLSCREEN = new Color(0xE9, 0xEB, 0xEF, 0xA0);
+    private static final Color MASK_WRAP = Color.WHITE;
+    /** 默认指示器外径（半径 28 + 线长 12 → 外径 68），与 Element UI 环形进度一致。 */
+    public static final int DEFAULT_SPINNER_SIZE = 68;
+
+    private Color bgColor;                       // null = 用模式默认色
+    private int spinnerSize = DEFAULT_SPINNER_SIZE;
+    private int showDelay;                       // 0 = 立即显示
+    private Timer delayTimer;                     // 延迟显示计时器（非重复）
+    private boolean pendingShow;                  // 已 showLoading 但延迟未到（尚未淡入）
+
     /**
      * 冻结层：loading 激活期间拦截鼠标/键盘事件。
      * FULLSCREEN：消费窗口内一切鼠标与键盘事件（用户明确要求"冻结屏幕，防止用户操作"）。
@@ -112,10 +125,59 @@ public class AstLoading extends JComponent {
     public boolean isLoadingVisible() { return visible; }
     public float getOverlayAlpha() { return overlay; }
 
+    /** 遮罩底色（含 alpha）。传 null 恢复模式默认；调用 setBgColor 后以自定义色为准。 */
+    public void setBgColor(Color c) { bgColor = c; repaint(); }
+
+    /** 返回实际生效的遮罩底色（未自定义时为模式默认色）。 */
+    public Color getBgColor() {
+        return bgColor != null ? bgColor : (mode == Mode.FULLSCREEN ? MASK_FULLSCREEN : MASK_WRAP);
+    }
+
+    /** 环形指示器外径（px）。弧线长度按默认比例缩放，最小 16。 */
+    public void setSpinnerSize(int px) {
+        if (px < 16) throw new IllegalArgumentException("spinner size must be >= 16: " + px);
+        spinnerSize = px;
+        repaint();
+    }
+
+    public int getSpinnerSize() { return spinnerSize; }
+
+    /** 延迟显示毫秒数：请求在 delay 内结束时完全不显示遮罩，避免短请求闪烁。 */
+    public void setDelay(int ms) {
+        if (ms < 0) throw new IllegalArgumentException("delay must be >= 0: " + ms);
+        showDelay = ms;
+    }
+
+    public int getDelay() { return showDelay; }
+
     public void showLoading(String loadingText) {
         if (loadingText == null) loadingText = "";
         this.text = loadingText;
         this.visible = true;
+        cancelDelay();
+        if (showDelay > 0) {
+            // 延迟期内不落笔；到期仍 visible 才开始淡入
+            pendingShow = true;
+            delayTimer = new Timer(showDelay, new ActionListener() { public void actionPerformed(ActionEvent e) {
+                ((Timer) e.getSource()).stop();
+                delayTimer = null;
+                if (!visible) { pendingShow = false; return; }
+                pendingShow = false;
+                beginShow();
+            }});
+            delayTimer.setRepeats(false);
+            delayTimer.start();
+            return;
+        }
+        beginShow();
+    }
+
+    private void cancelDelay() {
+        if (delayTimer != null) { delayTimer.stop(); delayTimer = null; }
+        pendingShow = false;
+    }
+
+    private void beginShow() {
         // ensure parent sizing in wrap mode (target size + overlay same size)
         if (mode == Mode.WRAP) {
             setSize(getParent() != null ? getParent().getSize() : getPreferredSize());
@@ -147,6 +209,7 @@ public class AstLoading extends JComponent {
     }
 
     public void hideLoading() {
+        cancelDelay();
         this.visible = false;
         if (mode == Mode.WRAP && target != null && !target.isVisible()) {
             // 恢复 target：遮罩尚在（将淡出），先画回来再渐隐，无闪空帧。
@@ -203,14 +266,18 @@ public class AstLoading extends JComponent {
         // Wrap mode: component itself has no background; target is painted in paintChildren
     }
 
+    /** 铺遮罩底色：自定义 setBgColor 优先，否则用模式默认色，alpha 再乘淡入进度。 */
+    private void paintMask(Graphics2D g2, int w, int h) {
+        Color base = getBgColor();
+        g2.setColor(new Color(base.getRed(), base.getGreen(), base.getBlue(),
+                Math.round(base.getAlpha() * overlay)));
+        g2.fillRect(0, 0, w, h);
+    }
+
     private void paintOverlayBgOnly(Graphics g) {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        Color bg = mode == Mode.FULLSCREEN
-                ? new Color(0xE9, 0xEB, 0xEF, Math.round(0xA0 * overlay))  // 255,0.95→full white mask
-                : new Color(0xFF, 0xFF, 0xFF, Math.round(0xFF * overlay)); // pure white overlay for wrap
-        g2.setColor(bg);
-        g2.fillRect(0, 0, getWidth(), getHeight());
+        paintMask(g2, getWidth(), getHeight());
         g2.dispose();
     }
 
@@ -221,11 +288,7 @@ public class AstLoading extends JComponent {
         int W = getWidth(), H = getHeight();
 
         // Background mask
-        Color bg = mode == Mode.FULLSCREEN
-                ? new Color(0xE9, 0xEB, 0xEF, Math.round(0xA0 * overlay))
-                : new Color(0xFF, 0xFF, 0xFF, Math.round(0xFF * overlay));
-        g2.setColor(bg);
-        g2.fillRect(0, 0, W, H);
+        paintMask(g2, W, H);
 
         // Compute centered 360×360 card for spinner + text (Element UI look)
         int cardW = 220, cardH = 160;
@@ -252,8 +315,10 @@ public class AstLoading extends JComponent {
         // Spinner: 12-segment rotating arcs (Element UI ring indicator)
         int cx = W / 2;
         int cyBase = (mode == Mode.FULLSCREEN) ? cardY + 56 : H / 2 - (text.isEmpty() ? 0 : 14);
-        int r = 28; // radius to arc midpoint
-        int lineLen = 12;
+        float scale = spinnerSize / (float) DEFAULT_SPINNER_SIZE;
+        int lineLen = Math.max(4, Math.round(spinnerSize * 12f / DEFAULT_SPINNER_SIZE));
+        int r = Math.max(lineLen / 2 + 1, spinnerSize / 2 - lineLen / 2); // 半径按外径反推，含线长补偿
+        float strokeW = Math.max(2f, 4.5f * scale); // 弧线粗细同步缩放，小尺寸不至于糊成一团
         float spinOffset = angle;
 
         for (int i = 0; i < 12; i++) {
@@ -268,7 +333,7 @@ public class AstLoading extends JComponent {
             // segment color = PRIMARY (lighter via alpha)
             Color segC = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), Math.min(255, a));
             g2.setColor(segC);
-            g2.setStroke(new BasicStroke(4.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.setStroke(new BasicStroke(strokeW, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             double cos = Math.cos(theta), sin = Math.sin(theta);
             int x1 = (int) Math.round(cx + (r - lineLen/2f) * cos);
             int y1 = (int) Math.round(cyBase + (r - lineLen/2f) * sin);
@@ -291,6 +356,50 @@ public class AstLoading extends JComponent {
             g2.drawString(text, tx, tb);
         }
         g2.dispose();
+    }
+
+    /** 离屏渲染遮罩（强制 overlay=1 且停掉淡入动画），用于绘制级断言。 */
+    private static java.awt.image.BufferedImage renderOverlay(AstLoading l, int w, int h) {
+        l.setSize(w, h);
+        l.doLayout();
+        l.fadeAnim.stop();
+        l.overlay = 1f;
+        java.awt.image.BufferedImage img =
+            new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        try { l.paint(g); } finally { g.dispose(); }
+        return img;
+    }
+
+    /** 色相像素外接框宽度：hue 0=蓝（PRIMARY 指示器），1=红。 */
+    private static int hueBoxWidth(java.awt.image.BufferedImage img, int hue) {
+        int minX = Integer.MAX_VALUE, maxX = -1;
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                if (!isHue(img.getRGB(x, y), hue)) continue;
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+            }
+        }
+        return maxX < 0 ? 0 : (maxX - minX + 1);
+    }
+
+    /** 色相像素总数，用于判断弧线粗细/长度的整体变化。 */
+    private static int countHue(java.awt.image.BufferedImage img, int hue) {
+        int n = 0;
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                if (isHue(img.getRGB(x, y), hue)) n++;
+            }
+        }
+        return n;
+    }
+
+    private static boolean isHue(int p, int hue) {
+        int a = (p >>> 24) & 0xFF;
+        if (a < 40) return false;
+        int r = (p >>> 16) & 0xFF, g = (p >>> 8) & 0xFF, b = p & 0xFF;
+        return hue == 1 ? (r > g + 40 && r > b + 40) : (b > r + 40 && b > g + 20);
     }
 
     static void selfCheck() {
@@ -371,7 +480,77 @@ public class AstLoading extends JComponent {
                 wrap.fadeAnim.stop();
                 assert wrap.getPreferredSize() != null;
                 assert wrap.getMinimumSize() != null;
+
+                // --- F3: setBgColor（绘制级）---
+                assert wrap.getBgColor().equals(Color.WHITE) : "WRAP default mask is white, got " + wrap.getBgColor();
+                java.awt.image.BufferedImage plain = renderOverlay(wrap, 320, 240);
+                int plainPx = plain.getRGB(6, 6);
+                assert ((plainPx >>> 16) & 0xFF) > 240 && ((plainPx >>> 8) & 0xFF) > 240 && (plainPx & 0xFF) > 240
+                    : "default WRAP mask should be white at (6,6), got " + Integer.toHexString(plainPx);
+                wrap.setBgColor(new Color(255, 0, 0));
+                java.awt.image.BufferedImage red = renderOverlay(wrap, 320, 240);
+                int redPx = red.getRGB(6, 6);
+                assert ((redPx >>> 16) & 0xFF) > 240 && ((redPx >>> 8) & 0xFF) < 20 && (redPx & 0xFF) < 20
+                    : "custom bg color must paint red mask at (6,6), got " + Integer.toHexString(redPx);
+                wrap.setBgColor(null);
+                assert wrap.getBgColor().equals(Color.WHITE) : "setBgColor(null) restores mode default";
+                boolean threwSize = false;
+                try { wrap.setSpinnerSize(8); } catch (IllegalArgumentException iae) { threwSize = true; }
+                assert threwSize : "spinner size < 16 must throw";
+
+                // --- F3: setSpinnerSize（绘制级：外径随设置变化）---
+                wrap.setBgColor(Color.WHITE);
+                wrap.setSpinnerSize(DEFAULT_SPINNER_SIZE);
+                java.awt.image.BufferedImage bigImg = renderOverlay(wrap, 320, 240);
+                wrap.setSpinnerSize(34);
+                java.awt.image.BufferedImage smallImg = renderOverlay(wrap, 320, 240);
+                int wBig = hueBoxWidth(bigImg, 0);
+                int wSmall = hueBoxWidth(smallImg, 0);
+                int pxBig = countHue(bigImg, 0);
+                int pxSmall = countHue(smallImg, 0);
+                assert wBig > 10 : "default spinner should paint visible blue arcs, got " + wBig;
+                assert wBig > wSmall + 15 : "spinner 68 must be much wider than 34, got " + wBig + " vs " + wSmall;
+                // 半径之外：线段长度与描边粗细也必须随之缩小（否则小尺寸只是变矮、弧线仍又长又粗）
+                assert pxBig > pxSmall * 2.2f
+                    : "spinner 68 must paint far more arc pixels than 34, got " + pxBig + " vs " + pxSmall;
+                wrap.setSpinnerSize(DEFAULT_SPINNER_SIZE);
             }});
+        } catch (Throwable t) { throw new RuntimeException(t); }
+
+        // --- F3: setDelay（需跨线程等待真实 Timer）---
+        final AstLoading[] dref = new AstLoading[1];
+        try {
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+                dref[0] = new AstLoading(Mode.WRAP, new JLabel("t"));
+                dref[0].setDelay(300);
+                dref[0].showLoading("延迟显示");
+            }});
+            Thread.sleep(120);
+            final float[] mid = new float[1];
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() { mid[0] = dref[0].getOverlayAlpha(); }});
+            assert mid[0] == 0f : "before delay elapses overlay must stay 0, got " + mid[0];
+            Thread.sleep(500);
+            final float[] after = new float[1];
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() { after[0] = dref[0].getOverlayAlpha(); }});
+            assert after[0] > 0.05f : "after delay elapses overlay must fade in, got " + after[0];
+
+            // 延迟期内 hideLoading → 全程不落笔（防短请求闪烁）
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+                dref[0].hideLoading();
+                dref[0].fadeAnim.stop();
+                dref[0].overlay = 0f;
+                dref[0].setDelay(300);
+                dref[0].showLoading("延迟显示2");
+            }});
+            Thread.sleep(120);
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() { dref[0].hideLoading(); }});
+            Thread.sleep(500);
+            final float[] cancelled = new float[1];
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() { cancelled[0] = dref[0].getOverlayAlpha(); }});
+            assert cancelled[0] == 0f : "cancel within delay must never fade in, got " + cancelled[0];
+            boolean threwDelay = false;
+            try { dref[0].setDelay(-1); } catch (IllegalArgumentException iae) { threwDelay = true; }
+            assert threwDelay : "negative delay must throw";
         } catch (Throwable t) { throw new RuntimeException(t); }
         assert checks[0] : "wrap mode != WRAP";
         assert checks[1] : "wrap target mismatch";

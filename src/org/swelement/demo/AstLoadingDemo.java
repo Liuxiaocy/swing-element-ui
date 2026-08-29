@@ -199,9 +199,57 @@ public class AstLoadingDemo {
             progressEcho.setText("任务状态：⏹ 已取消");
         }});
 
+        // ========= Demo Section E: 自定义遮罩色 / 指示器尺寸 / 延迟显示 =========
+        JPanel customPanel = new JPanel(new BorderLayout(8, 8));
+        customPanel.setBorder(new TitledBorder("定制：setBgColor 遮罩色 · setSpinnerSize 指示器尺寸 · setDelay 延迟显示"));
+
+        JPanel cards = new JPanel(new GridLayout(1, 3, 12, 12));
+        final AstLoading[] customLoaders = new AstLoading[3];
+        final String[] customText = {"深色遮罩 + 大号指示器", "浅色遮罩 + 小号指示器", "延迟 800ms 显示（短请求不闪烁）"};
+        for (int i = 0; i < 3; i++) {
+            final int idx = i;
+            JLabel body = new JLabel(customText[i], JLabel.CENTER);
+            body.setFont(body.getFont().deriveFont(13f));
+            body.setPreferredSize(new Dimension(220, 120));
+            body.setBorder(BorderFactory.createLineBorder(new Color(0xDCDFE6)));
+            final AstLoading cl = new AstLoading(AstLoading.Mode.WRAP, body);
+            customLoaders[i] = cl;
+            cards.add(cl);
+        }
+        customLoaders[0].setBgColor(new Color(0x30, 0x31, 0x33, 0xB0)); // 深色半透明遮罩
+        customLoaders[0].setSpinnerSize(AstLoading.DEFAULT_SPINNER_SIZE + 28);
+        customLoaders[1].setBgColor(new Color(0xFF, 0xFF, 0xFF, 0xE6));
+        customLoaders[1].setSpinnerSize(34);
+        customLoaders[2].setDelay(800);
+
+        JPanel customCtrl = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        JButton showAll = new JButton("▶ 全部显示");
+        final JCheckBox delayCancel = new JCheckBox("800ms 内立即取消（验证不闪遮罩）", true);
+        showAll.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
+            for (int i = 0; i < customLoaders.length; i++) {
+                customLoaders[i].showLoading(customText[i]);
+            }
+            if (delayCancel.isSelected()) {
+                // 延迟未到就取消：遮罩全程不出现
+                new Timer(200, new ActionListener() { public void actionPerformed(ActionEvent ev) {
+                    ((Timer) ev.getSource()).stop();
+                    customLoaders[2].hideLoading();
+                }}).start();
+            }
+            new Timer(3000, new ActionListener() { public void actionPerformed(ActionEvent ev) {
+                ((Timer) ev.getSource()).stop();
+                for (AstLoading cl : customLoaders) cl.hideLoading();
+            }}).start();
+        }});
+        customCtrl.add(showAll);
+        customCtrl.add(delayCancel);
+        customPanel.add(customCtrl, BorderLayout.NORTH);
+        customPanel.add(cards, BorderLayout.CENTER);
+
         // assemble root
         root.add(wrapPanel); root.add(Box.createVerticalStrut(12));
         root.add(fsPanel); root.add(Box.createVerticalStrut(12));
+        root.add(customPanel); root.add(Box.createVerticalStrut(12));
         JPanel progWrapPanel = new JPanel(new BorderLayout());
         progWrapPanel.add(progWrap, BorderLayout.CENTER);
         progWrapPanel.add(topRow, BorderLayout.NORTH); // 控制行在 wrap 外
