@@ -128,9 +128,33 @@ public class AstP2P3Demo {
             for (int i = 0; i < sel.size(); i++) { if (i > 0) sb.append("、"); sb.append(sel.get(i).label); }
             echo.setText("穿梭框：已选 " + sel.size() + " 项 — " + sb.toString());
         });
+        transfer.setTitles("可选水果", "已选水果");
+        transfer.setButtonTexts("添加 →", "← 移除");
         JPanel transferPanel = new JPanel(new BorderLayout(0, 8));
-        transferPanel.setBorder(new TitledBorder("AstTransfer 穿梭框（搜索 + 勾选转移）"));
+        transferPanel.setBorder(new TitledBorder("AstTransfer 穿梭框（搜索 + 勾选转移 + 自定义文案/空态）"));
         transferPanel.add(transfer, BorderLayout.CENTER);
+        JPanel tfCtrl = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        JButton tfEn = new JButton("英文文案 + 空态 No data");
+        JButton tfZh = new JButton("恢复中文默认文案");
+        JButton tfNoHint = new JButton("关闭空态提示");
+        tfEn.addActionListener(e -> {
+            transfer.setTitles("Available", "Selected");
+            transfer.setButtonTexts("Add →", "← Remove");
+            transfer.setEmptyText("No data");
+            echo.setText("穿梭框：切换英文文案，空态改为 No data（清空一侧即可见）");
+        });
+        tfZh.addActionListener(e -> {
+            transfer.setTitles("可选水果", "已选水果");
+            transfer.setButtonTexts("添加 →", "← 移除");
+            transfer.setEmptyText("无数据");
+            echo.setText("穿梭框：恢复中文文案与空态");
+        });
+        tfNoHint.addActionListener(e -> {
+            transfer.setEmptyText("");
+            echo.setText("穿梭框：空态提示已关闭（setEmptyText(\"\")）");
+        });
+        tfCtrl.add(tfEn); tfCtrl.add(tfZh); tfCtrl.add(tfNoHint);
+        transferPanel.add(tfCtrl, BorderLayout.SOUTH);
 
         // --- 三列并排 ---
         JPanel row1 = new JPanel(new GridBagLayout());
