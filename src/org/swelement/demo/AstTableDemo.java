@@ -95,8 +95,8 @@ public class AstTableDemo {
             t.addRow("员工" + i, depts[i % depts.length],
                 "上海市浦东新区张江高科技园区博云路 " + i + " 号", "138001380" + (i % 10), "编辑 删除");
         t.setPreferredSize(new Dimension(430, 210)); // 窄于总宽(740) → 可横向滚动
-        return section("C2 左/右冻结列 — 总宽 740px 但视口仅 430px；<b>Shift+滚轮</b> 横向滚动，"
-            + "「姓名」列左冻结、「操作」列右冻结，始终固定可见。", t);
+        return section("C2 左/右冻结列 — 总宽 740px 而视口仅 430px：底部出现<b>横向滚动条</b>（可直接拖拽滑块），"
+            + "也可 <b>Shift+滚轮</b> 滚动；「姓名」列左冻结、「操作」列右冻结，滚动时始终固定可见。", t);
     }
 
     // ============ C3 多级表头 ============
@@ -200,7 +200,7 @@ public class AstTableDemo {
         for (int i = 0; i < names.length; i++) t.addRow(names[i], depts[i], ages[i]);
         t.setRowExpandText(raw -> "第 " + (raw + 1) + " 行详情 — " + names[raw] + " · " + depts[raw]
             + " · 年龄 " + ages[raw] + " · 工位 A-" + (100 + raw) + " · 直属上级：部门负责人");
-        final JLabel info = tipLabel("双击任意行展开/收起详情；展开区块整行宽、浅色底。");
+        final JLabel info = tipLabel("点击第一列行首的 ▶ 按钮（或双击行）展开/收起详情；展开区块整行宽、浅色底。");
         AstButton expandBtn = new AstButton("展开第 1 行", AstButton.PRIMARY, false);
         expandBtn.addActionListener(e -> { t.getModel().toggleExpanded(0); t.revalidate(); t.repaint(); });
         AstButton collapseBtn = new AstButton("全部收起", AstButton.DEFAULT, false);
@@ -208,8 +208,8 @@ public class AstTableDemo {
             for (int i = 0; i < t.getModel().rawRowCount(); i++) if (t.getModel().isExpanded(i)) t.getModel().toggleExpanded(i);
             t.revalidate(); t.repaint();
         });
-        return section("C7 展开行 — 双击行切换；展开时该行下方插入 80px 详情区块，"
-            + "滚动高度与视图行数同步扩展。", t, info, buttonRow(expandBtn, collapseBtn));
+        return section("C7 展开行 — 每行第一列行首有 ▶/▼ 展开按钮，点击即切换（也可双击行）；"
+            + "展开时该行下方插入 80px 详情区块，滚动高度与视图行数同步扩展。", t, info, buttonRow(expandBtn, collapseBtn));
     }
 
     // ============ C8 表尾合计行 ============
@@ -280,7 +280,7 @@ public class AstTableDemo {
         t.setRowExpandText(raw -> "综合示例 · 第 " + (raw + 1) + " 行：支持冻结列 / 多级表头 / 多选 / 排序 / 筛选 / 展开 / 合计");
         t.setRowStatus(2, AstTableModel.Status.INFO);      // C9
 
-        final JLabel info = tipLabel("已启用：左冻结姓名 + 多级表头 + 多选 + 年龄排序 + 城市筛选 + 双击展开 + 月薪合计 + 状态行。");
+        final JLabel info = tipLabel("已启用：左冻结姓名 + 多级表头 + 多选 + 年龄排序 + 城市筛选 + 行首 ▶ 展开 + 月薪合计 + 状态行。");
         t.setRowClickListener(row -> info.setText("点击第 " + (row + 1) + " 行「" + t.getValueAt(row, 0)
             + "」，已选 " + t.getModel().getSelectedViewRows().size() + " 行，月薪合计 " + t.getModel().getSummary(3)));
         AstButton ascBtn = new AstButton("年龄升序", AstButton.PRIMARY, false);
@@ -335,8 +335,10 @@ public class AstTableDemo {
         l.setBorder(new EmptyBorder(0, 0, 4, 0));
         p.add(l, BorderLayout.NORTH);
 
-        JPanel holder = new JPanel(new BorderLayout());
-        holder.add(table, BorderLayout.NORTH); // NORTH：保持表格自身（或设定）的高度
+        // FlowLayout 保持表格自身 preferred 尺寸；BorderLayout 会拉伸宽度，
+        // 使冻结列示例的视口宽于内容，反而看不到横向滚动条与冻结效果。
+        JPanel holder = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        holder.add(table);
         p.add(holder, BorderLayout.CENTER);
 
         if (extras.length > 0) {

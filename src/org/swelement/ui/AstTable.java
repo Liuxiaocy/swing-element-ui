@@ -71,6 +71,17 @@ public class AstTable extends JPanel {
     private static final int SELECT_COL_W = 44;
     /** 展开行区块高度（C7）。 */
     private static final int EXPAND_H = 80;
+    /** 展开行按钮宽度（第一列行首三角）。 */
+    private static final int EXPAND_BTN_W = 16;
+    /** 横向滚动条高度。 */
+    private static final int HSCROLL_H = 8;
+    /** 三段式 clip 的列过滤器：每个冻结带只画自己那一类列，避免同一列被重复绘制。 */
+    private static final java.util.function.Predicate<AstTableColumn> PRED_LEFT =
+        c -> c.fixed == AstTableColumn.Fixed.LEFT;
+    private static final java.util.function.Predicate<AstTableColumn> PRED_NONE =
+        c -> c.fixed == AstTableColumn.Fixed.NONE;
+    private static final java.util.function.Predicate<AstTableColumn> PRED_RIGHT =
+        c -> c.fixed == AstTableColumn.Fixed.RIGHT;
     private boolean multiSelect() { return model.getSelectionMode() == AstTableModel.SelectionMode.MULTIPLE; }
     private int selectColW() { return multiSelect() ? SELECT_COL_W : 0; }
 
@@ -150,11 +161,17 @@ public class AstTable extends JPanel {
         if (m == null) throw new IllegalArgumentException("mode must not be null");
         model.setSelectionMode(m); revalidate(); repaint();
     }
-    /** 按叶子列排序（升/降/无）；切换会清空选择。 */
+    /**
+     * 按叶子列排序（升/降/无）；切换会清空选择。
+     * 必须走本方法（而非直接 model.sort）以保证整表重绘 —— 只 repaint HeaderView 时数据行不会刷新。
+     */
     public void setSort(int leafCol, AstTableModel.SortDir dir) {
         if (dir == null) throw new IllegalArgumentException("dir must not be null");
+        sortApplyCount++;
         model.sort(leafCol, dir); revalidate(); repaint();
     }
+    /** 经 {@link #setSort} 应用的排序次数（selfCheck 用于锁定「点击表头必须整表刷新」）。 */
+    int sortApplyCount = 0;
     /** 按叶子列文本子串筛选；空查询清空该列筛选。 */
     public void setFilter(int leafCol, String query) {
         if (leafCol < 0 || leafCol >= model.leafCount()) throw new IndexOutOfBoundsException("leafCol " + leafCol);
@@ -264,8 +281,7 @@ public class AstTable extends JPanel {
                             if (model.getSortLeaf() != leaf || cur == AstTableModel.SortDir.NONE) next = AstTableModel.SortDir.ASC;
                             else if (cur == AstTableModel.SortDir.ASC) next = AstTableModel.SortDir.DESC;
                             else next = AstTableModel.SortDir.NONE;
-                            model.sort(leaf, next);
-                            repaint();
+                            setSort(leaf, next); // 含 revalidate + 整表 repaint（只 repaint 表头不会刷新数据行）
                         }
                     }
                 }
@@ -298,13 +314,12 @@ public class AstTable extends JPanel {
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int w = getWidth(), hh = getPreferredHeight();
+            int w = getWidth(), hh = getPreferredHeight(), depth = getDepth();
+            Color sep = ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f);
             g2.setColor(ElementTheme.PRIMARY);
             g2.fillRect(0, 0, w, hh);
-            g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f));
+            g2.setColor(sep);
             g2.drawLine(0, hh - 1, w, hh - 1);
-            g2.setColor(Color.WHITE); g2.setFont(hf);
-            FontMetrics fm = g2.getFontMetrics();
             int scw = selectColW(), flw = frozenLeftW(), frw = frozenRightW(), tlw = totalLeafW();
             int leftBand = scw + flw;
             int sx = bodyView.scrollX;
@@ -314,54 +329,79 @@ public class AstTable extends JPanel {
                 boolean all = model.viewRowCount() > 0 && model.getSelectedViewRows().size() == model.viewRowCount();
                 drawCheckbox(g2, scw / 2, hh / 2, all);
                 g2.setClip(null);
-                g2.drawLine(scw, 0, scw, hh);
+                g2.setColor(sep); g2.drawLine(scw, 0, scw, hh);
             }
-            if (w - leftBand - frw > 0) { g2.clipRect(leftBand, 0, w - leftBand - frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), -sx, 0); g2.setClip(null); }
-            if (leftBand > 0) { g2.clipRect(0, 0, leftBand, hh); paintHeaderGroups(g2, fm, model.getColumns(), scw, 0); g2.setClip(null); g2.drawLine(leftBand, 0, leftBand, hh); }
-            if (frw > 0) { g2.clipRect(w - frw, 0, frw, hh); paintHeaderGroups(g2, fm, model.getColumns(), w - tlw - scw, 0); g2.setClip(null); g2.drawLine(w - frw, 0, w - frw, hh); }
+            // 三个冻结带：各只画本带的列，避免同一列被重复绘制（视口宽于内容时会重复）
+            drawHeaderBand(g2, hh, depth, leftBand, w - frw, -sx, AstTableColumn.Fixed.NONE);
+            drawHeaderBand(g2, hh, depth, 0, leftBand, scw, AstTableColumn.Fixed.LEFT);
+            drawHeaderBand(g2, hh, depth, w - frw, w, w - tlw - scw, AstTableColumn.Fixed.RIGHT);
+            if (leftBand > 0) { g2.setColor(sep); g2.drawLine(leftBand, 0, leftBand, hh); }
+            if (frw > 0) { g2.setColor(sep); g2.drawLine(w - frw, 0, w - frw, hh); }
             g2.dispose();
         }
-        /** 递归绘制多级表头：父列跨其子列宽度居中，叶子列位于其层级行。 */
-        private void paintHeaderGroups(Graphics2D g2, FontMetrics fm, List<AstTableColumn> cols, int xOffset, int level) {
+        /** 在 [x0,x1) 带内绘制表头（只画 fixed==which 的叶子列）。 */
+        private void drawHeaderBand(Graphics2D g2, int hh, int depth, int x0, int x1, int xOffset, AstTableColumn.Fixed which) {
+            if (x1 - x0 <= 0) return;
+            g2.clipRect(x0, 0, x1 - x0, hh);
+            g2.setFont(hf);
+            FontMetrics fm = g2.getFontMetrics();
+            paintHeaderGroups(g2, fm, model.getColumns(), xOffset, 0, depth, which);
+            g2.setClip(null);
+        }
+        /**
+         * 递归绘制多级表头：只绘制 fixed==which 的叶子；
+         * 父列标题跟随其第一个叶子的带，避免跨带重复。
+         */
+        private void paintHeaderGroups(Graphics2D g2, FontMetrics fm, List<AstTableColumn> cols, int xOffset, int level, int depth, AstTableColumn.Fixed which) {
             int x = xOffset;
             for (AstTableColumn col : cols) {
-                drawHeaderCell(g2, fm, col, x, col.width, level);
-                if (col.isLeaf()) x += col.width;
-                else { paintHeaderGroups(g2, fm, col.children, x, level + 1); x += col.width; }
+                if (col.isLeaf()) {
+                    if (col.fixed == which) drawHeaderCell(g2, fm, col, x, col.width, level, depth);
+                } else {
+                    if (col.getLeafColumns().get(0).fixed == which)
+                        drawHeaderCell(g2, fm, col, x, col.width, level, depth);
+                    paintHeaderGroups(g2, fm, col.children, x, level + 1, depth, which);
+                }
+                x += col.width;
             }
         }
-        private void drawHeaderCell(Graphics2D g2, FontMetrics fm, AstTableColumn col, int x, int groupW, int level) {
+        /** 表头单元格：叶子列纵向跨到最底层，父列只占当前层。 */
+        private void drawHeaderCell(Graphics2D g2, FontMetrics fm, AstTableColumn col, int x, int groupW, int level, int depth) {
+            int rows = col.isLeaf() ? Math.max(1, depth - level) : 1;
+            int cellH = rows * hH, top = level * hH, bottom = top + cellH;
+            Color sep = ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f);
+            g2.setColor(Color.WHITE);
             String text = clipText(g2, col.title, groupW - 2 * CELL_PAD_X);
             int tx = x + (groupW - fm.stringWidth(text)) / 2;
-            int ty = level * hH + (hH - fm.getHeight()) / 2 + fm.getAscent();
+            int ty = top + (cellH - fm.getHeight()) / 2 + fm.getAscent();
             g2.drawString(text, tx, ty);
-            // 可排序叶子：右侧画方向箭头（若有筛选漏斗则左移避让）
+            int ayc = top + cellH / 2;
+            // 可排序叶子：右侧方向箭头（若有筛选漏斗则左移避让）
             if (col.isLeaf() && col.sortable) {
                 int li = model.getLeafColumns().indexOf(col);
                 AstTableModel.SortDir d = (li == model.getSortLeaf()) ? model.getSortDir() : AstTableModel.SortDir.NONE;
-                int ax = x + groupW - (col.filterable ? 28 : 16), ayc = level * hH + hH / 2;
+                int ax = x + groupW - (col.filterable ? 28 : 16);
                 g2.setColor(Color.WHITE);
                 if (d == AstTableModel.SortDir.ASC) { g2.drawLine(ax - 4, ayc + 3, ax, ayc - 3); g2.drawLine(ax, ayc - 3, ax + 4, ayc + 3); }
                 else if (d == AstTableModel.SortDir.DESC) { g2.drawLine(ax - 4, ayc - 3, ax, ayc + 3); g2.drawLine(ax, ayc + 3, ax + 4, ayc - 3); }
                 else { g2.drawLine(ax - 5, ayc - 2, ax - 1, ayc + 2); g2.drawLine(ax - 1, ayc + 2, ax + 3, ayc - 2); }
             }
-            // 可筛选叶子：最右画漏斗图标
+            // 可筛选叶子：最右漏斗图标
             if (col.isLeaf() && col.filterable) {
-                int fx = x + groupW - 11, fy = level * hH + hH / 2;
-                g2.setColor(model.getFilterActive() && model.getSortLeaf() < 0 ? Color.WHITE : Color.WHITE);
-                g2.drawLine(fx - 4, fy - 4, fx + 4, fy - 4);
-                g2.drawLine(fx - 4, fy - 4, fx, fy + 2);
-                g2.drawLine(fx + 4, fy - 4, fx, fy + 2);
-                g2.drawLine(fx, fy + 2, fx, fy + 5);
+                int fx = x + groupW - 11;
+                g2.setColor(Color.WHITE);
+                g2.drawLine(fx - 4, ayc - 4, fx + 4, ayc - 4);
+                g2.drawLine(fx - 4, ayc - 4, fx, ayc + 2);
+                g2.drawLine(fx + 4, ayc - 4, fx, ayc + 2);
+                g2.drawLine(fx, ayc + 2, fx, ayc + 5);
             }
-            // 该行底部分隔线
-            g2.drawLine(x, level * hH + hH - 1, x + groupW, level * hH + hH - 1);
-            // 叶子列右侧竖分隔
+            // 单元格底边框：叶子列画在最底层，保证表头底部一行边框连续
+            g2.setColor(sep);
+            g2.drawLine(x, bottom - 1, x + groupW, bottom - 1);
+            // 叶子列右侧竖分隔（跨整个单元格高度）
             if (col.isLeaf() && (x + col.width) < getWidth()) {
-                Color saved = g2.getColor();
                 g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
-                g2.drawLine(x + col.width - 1, level * hH + 4, x + col.width - 1, level * hH + hH - 4);
-                g2.setColor(saved);
+                g2.drawLine(x + col.width - 1, top + 4, x + col.width - 1, bottom - 4);
             }
         }
         /** 叶子列当前左缘 X（自然坐标，不含横滚）。 */
@@ -383,6 +423,10 @@ public class AstTable extends JPanel {
         private final Animator hoverAnim;
         /** 被合并单元格覆盖的格（C9），每次绘制前重算。 */
         private java.util.Set<Long> coveredCells = java.util.Collections.emptySet();
+        /** 横向滚动条拖拽状态。 */
+        private boolean hScrollDrag = false;
+        /** 非空时记录每次 drawCells 实际落笔的 (视图行, 叶子列)；仅 selfCheck 使用。 */
+        java.util.List<int[]> paintLog = null;
 
         BodyView() {
             setOpaque(false);
@@ -393,13 +437,30 @@ public class AstTable extends JPanel {
                     hoverRow = -1; hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
                 }
                 @Override public void mousePressed(MouseEvent e) {
+                    // 1) 底部横向滚动条：开始拖拽
+                    if (hScrollHit(e.getPoint())) {
+                        hScrollDrag = true;
+                        setScrollXFromThumb(e.getX());
+                        return;
+                    }
                     int idx = viewRowAtPoint(e.getPoint());
                     if (idx < 0 || idx >= model.viewRowCount()) return;
+                    // 2) 第一列行首展开按钮
+                    if (expandable()) {
+                        int bx = leafXOnScreen(0);
+                        if (e.getX() >= bx && e.getX() <= bx + EXPAND_BTN_W) {
+                            model.toggleExpanded(model.rawRowOf(idx));
+                            AstTable.this.revalidate(); AstTable.this.repaint();
+                            return;
+                        }
+                    }
+                    // 3) 选中
                     if (model.getSelectionMode() == AstTableModel.SelectionMode.MULTIPLE) model.toggleSelectedViewRow(idx);
                     else model.setSelectedViewRow(idx);
                     repaint();
                     fireRowClick(idx);
                 }
+                @Override public void mouseReleased(MouseEvent e) { hScrollDrag = false; }
                 @Override public void mouseClicked(MouseEvent e) {
                     // 双击行切换展开（C7）；未设置展开内容时忽略
                     if (e.getClickCount() != 2) return;
@@ -418,6 +479,9 @@ public class AstTable extends JPanel {
                         hoverAnim.stop(); hoverAnim.go(hoverAlpha, idx >= 0 ? 1f : 0f);
                     }
                 }
+                @Override public void mouseDragged(MouseEvent e) {
+                    if (hScrollDrag) setScrollXFromThumb(e.getX());
+                }
             });
             addMouseWheelListener(new MouseWheelListener() {
                 @Override public void mouseWheelMoved(MouseWheelEvent e) {
@@ -425,24 +489,59 @@ public class AstTable extends JPanel {
                     if (e.isShiftDown()) {
                         int max = maxScrollX();
                         scrollX = Math.max(0, Math.min(scrollX + d, max));
+                        AstTable.this.repaint(); // 横滚需同步重绘表头
                     } else {
                         int max = maxScrollY();
                         scrollY = Math.max(0, Math.min(scrollY + d, max));
+                        repaint();
                     }
-                    repaint();
                 }
             });
         }
         void applyTier(int h, Font f) { this.rH = h; this.cf = f; }
 
-        int viewportH() { return getHeight(); }
         int viewportW() { return getWidth(); }
+        /** 是否有横向滚动条（内容宽于视口）。 */
+        boolean hasHScroll() { return maxScrollX() > 0; }
+        /** 数据行可用高度（排除底部横向滚动条）。 */
+        int viewportH() { return getHeight() - (hasHScroll() ? HSCROLL_H : 0); }
         int maxScrollY() {
             int total = 0;
             for (int v = 0; v < model.viewRowCount(); v++) { total += rH; if (model.isExpandedView(v)) total += EXPAND_H; }
             return Math.max(0, total - viewportH());
         }
         int maxScrollX() { return Math.max(0, totalLeafW() + selectColW() - viewportW()); }
+
+        // --- 横向滚动条（自绘，底部 HSCROLL_H 区域）---
+        private int hScrollTrackW() { return Math.max(1, getWidth() - 2); }
+        private int hScrollThumbW() {
+            int contentW = totalLeafW() + selectColW();
+            if (contentW <= 0) return hScrollTrackW();
+            int tw = (int) ((double) viewportW() / contentW * hScrollTrackW());
+            return Math.max(24, Math.min(tw, hScrollTrackW()));
+        }
+        private int hScrollThumbX() {
+            int max = maxScrollX(), tw = hScrollThumbW(), usable = hScrollTrackW() - tw;
+            if (max <= 0 || usable <= 0) return 1;
+            return 1 + (int) Math.round((double) scrollX / max * usable);
+        }
+        private boolean hScrollHit(Point p) { return hasHScroll() && p.y >= getHeight() - HSCROLL_H; }
+        /** 按滑块中心对齐鼠标位置换算 scrollX，并同步重绘表头。 */
+        private void setScrollXFromThumb(int mouseX) {
+            int max = maxScrollX(), tw = hScrollThumbW(), usable = hScrollTrackW() - tw;
+            int rel = mouseX - 1 - tw / 2;
+            scrollX = usable <= 0 ? 0 : Math.max(0, Math.min(max, (int) Math.round((double) rel / usable * max)));
+            AstTable.this.repaint();
+        }
+        private void paintHScrollBar(Graphics2D g2) {
+            int w = getWidth(), y = getHeight() - HSCROLL_H;
+            g2.setColor(ElementTheme.FILL_BASE);
+            g2.fillRect(0, y, w, HSCROLL_H);
+            g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.4f));
+            g2.drawLine(0, y, w, y);
+            g2.setColor(ElementTheme.lerp(ElementTheme.TEXT_PLACEHOLDER, Color.WHITE, 0.25f));
+            g2.fillRoundRect(hScrollThumbX(), y + 1, hScrollThumbW(), HSCROLL_H - 3, 4, 4);
+        }
         void scrollToRow(int v) {
             int yy = 0;
             for (int i = 0; i < v && i < model.viewRowCount(); i++) { yy += rH; if (model.isExpandedView(i)) yy += EXPAND_H; }
@@ -498,7 +597,7 @@ public class AstTable extends JPanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-            int h = getHeight();
+            int h = viewportH(); // 数据行可用高度（底部留给横向滚动条）
             List<AstTableColumn> leaves = model.getLeafColumns();
             computeCovered(leaves.size());
             // Pass A：行背景（整行宽）。先铺满再画内容，合并单元格跨行才不会被后画的行覆盖。
@@ -518,6 +617,7 @@ public class AstTable extends JPanel {
                 y += rH;
                 if (model.isExpandedView(v)) y += EXPAND_H;
             }
+            if (hasHScroll()) paintHScrollBar(g2);
             g2.dispose();
         }
         /** 行背景：选中 / 状态 / 斑马 / hover（C9 状态行）。 */
@@ -563,7 +663,7 @@ public class AstTable extends JPanel {
             else if (isHovered) textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha * 0.7f);
             if (leftBand > 0) {
                 g2.clipRect(0, y, leftBand, spanH);
-                drawCells(g2, v, y, w, leaves, scw, c -> c.fixed == AstTableColumn.Fixed.LEFT, textColor);
+                drawCells(g2, v, y, w, leaves, scw, PRED_LEFT, textColor);
                 g2.setClip(null); g2.drawLine(leftBand, y, leftBand, y + rH);
             }
             if (scw > 0) {
@@ -573,12 +673,13 @@ public class AstTable extends JPanel {
             }
             if (w - leftBand - frw > 0) {
                 g2.clipRect(leftBand, y, w - leftBand - frw, spanH);
-                drawCells(g2, v, y, w, leaves, -scrollX, null, textColor);
+                // 只画未冻结列（原为 null 会画全部，视口宽于内容时冻结列会被重复绘制）
+                drawCells(g2, v, y, w, leaves, -scrollX, PRED_NONE, textColor);
                 g2.setClip(null);
             }
             if (frw > 0) {
                 g2.clipRect(w - frw, y, frw, spanH);
-                drawCells(g2, v, y, w, leaves, w - tlw - scw, c -> c.fixed == AstTableColumn.Fixed.RIGHT, textColor);
+                drawCells(g2, v, y, w, leaves, w - tlw - scw, PRED_RIGHT, textColor);
                 g2.setClip(null); g2.drawLine(w - frw, y, w - frw, y + rH);
             }
         }
@@ -592,13 +693,18 @@ public class AstTable extends JPanel {
             for (int c = 0; c < leaves.size(); c++) {
                 AstTableColumn col = leaves.get(c);
                 if ((filter == null || filter.test(col)) && !coveredCells.contains(cellKey(v, c))) {
+                    if (paintLog != null) paintLog.add(new int[]{v, c});
                     int[] sp = model.getSpan(raw, c);
                     int cs = Math.max(1, sp[1]), rs = Math.max(1, sp[0]);
                     int mw = col.width;
                     for (int k = 1; k < cs && c + k < leaves.size(); k++) mw += leaves.get(c + k).width;
                     int mh = rs * rH;
-                    String text = clipText(g2, String.valueOf(model.getValueAtView(v, c)), mw - 2 * CELL_PAD_X);
-                    int tx = alignX(x, mw, fm.stringWidth(text), col.align, CELL_PAD_X);
+                    // 第一列行首：展开/收起三角按钮
+                    boolean drawExpandBtn = expandable() && c == 0;
+                    if (drawExpandBtn) drawExpandButton(g2, x + 2, y + rH / 2, model.isExpandedView(v), textColor);
+                    int indent = drawExpandBtn ? EXPAND_BTN_W : 0;
+                    String text = clipText(g2, String.valueOf(model.getValueAtView(v, c)), mw - 2 * CELL_PAD_X - indent);
+                    int tx = alignX(x + indent, mw - indent, fm.stringWidth(text), col.align, CELL_PAD_X);
                     int ty = y + (mh - fm.getHeight()) / 2 + fm.getAscent();
                     g2.drawString(text, tx, ty);
                     if (x + mw < w) {
@@ -740,6 +846,21 @@ public class AstTable extends JPanel {
         String t = text;
         while (t.length() > 0 && fm.stringWidth(t) + ellW > maxW) t = t.substring(0, t.length() - 1);
         return t + ell;
+    }
+    /** 是否配置了展开内容（决定行首是否显示展开按钮）。 */
+    private boolean expandable() { return expandTextFn != null || expandRenderer != null; }
+    /** 绘制展开/收起三角：展开为 ▼，收起为 ▶。 */
+    private void drawExpandButton(Graphics2D g2, int x, int cy, boolean expanded, Color color) {
+        g2.setColor(color);
+        if (expanded) {
+            g2.drawLine(x, cy - 3, x + 8, cy - 3);
+            g2.drawLine(x, cy - 3, x + 4, cy + 3);
+            g2.drawLine(x + 8, cy - 3, x + 4, cy + 3);
+        } else {
+            g2.drawLine(x, cy - 4, x + 6, cy);
+            g2.drawLine(x + 6, cy, x, cy + 4);
+            g2.drawLine(x, cy - 4, x, cy + 4);
+        }
     }
     /** 行状态 → 主题色（C9）。 */
     private static Color statusColor(AstTableModel.Status st) {
@@ -1106,6 +1227,141 @@ public class AstTable extends JPanel {
         threw = false;
         try { t9.getModel().setRowStatus(0, null); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "C9 null status 应抛异常";
+
+        // --- Bugfix 回归：7 个表格问题 ---
+        final Throwable[] errB = {null};
+        try { SwingUtilities.invokeAndWait(new Runnable(){ public void run(){
+            JFrame jf = new JFrame("AstTable bugfix"); jf.setSize(700, 300); jf.setVisible(true);
+            try {
+                JPanel cp = (JPanel) jf.getContentPane(); cp.setLayout(new BorderLayout());
+
+                // (1) 排序：点击表头应真正刷新数据行序
+                AstTable ts = new AstTable(new AstTableColumn[]{
+                    new AstTableColumn("姓名", 120),
+                    new AstTableColumn("年龄", 100, Align.CENTER, true, AstTableColumn.Fixed.NONE, false, null)});
+                ts.addRow("王", 22); ts.addRow("张", 34); ts.addRow("李", 28);
+                cp.add(ts, BorderLayout.CENTER); jf.validate();
+                int ageX = ts.getHeaderView().leafX(1) + 40;
+                int sac = ts.sortApplyCount;
+                ts.getHeaderView().dispatchEvent(new MouseEvent(ts.getHeaderView(), MouseEvent.MOUSE_PRESSED,
+                    System.currentTimeMillis(), 0, ageX, ts.getHeaderHeight() / 2, 1, false));
+                // 关键：必须走 AstTable.setSort（整表重绘）；若只 repaint 表头，数据行不会刷新
+                assert ts.sortApplyCount == sac + 1 : "bugfix1 点击表头应触发 AstTable.setSort（整表刷新）";
+                assert ts.getModel().getSortDir() == AstTableModel.SortDir.ASC : "bugfix1 点击表头应置 ASC";
+                assert (Integer) ts.getValueAt(0, 1) == 22 : "bugfix1 升序首行年龄=22, got " + ts.getValueAt(0, 1);
+                ts.getHeaderView().dispatchEvent(new MouseEvent(ts.getHeaderView(), MouseEvent.MOUSE_PRESSED,
+                    System.currentTimeMillis(), 0, ageX, ts.getHeaderHeight() / 2, 1, false));
+                assert (Integer) ts.getValueAt(0, 1) == 34 : "bugfix1 再点应为 DESC 首行=34, got " + ts.getValueAt(0, 1);
+
+                // (2) 冻结列：中列过滤器不得包含冻结列（否则视口宽于内容时重复绘制）
+                AstTableColumn opCol = new AstTableColumn("操作", 110, Align.CENTER, false, AstTableColumn.Fixed.RIGHT, null);
+                AstTableColumn nmCol = new AstTableColumn("姓名", 100, Align.LEFT, false, AstTableColumn.Fixed.LEFT, null);
+                assert !PRED_NONE.test(opCol) && !PRED_NONE.test(nmCol) : "bugfix2 中列过滤器不得匹配冻结列";
+                assert PRED_LEFT.test(nmCol) && PRED_RIGHT.test(opCol) : "bugfix2 冻结列应分别匹配左/右过滤器";
+                assert !PRED_LEFT.test(opCol) && !PRED_RIGHT.test(nmCol) : "bugfix2 冻结过滤器应互斥";
+                // 绘制级验证：视口宽于内容时，冻结列每行只能被画 1 次（不能在中列带里再画一次）
+                cp.removeAll();
+                AstTable tf = new AstTable(new AstTableColumn[]{
+                    nmCol, new AstTableColumn("年龄", 80), opCol});
+                tf.addRow("张三", 28, "编辑"); tf.addRow("李四", 34, "编辑");
+                cp.add(tf, BorderLayout.CENTER); jf.setSize(900, 200); jf.validate();
+                assert tf.getBodyView().getWidth() > tf.totalLeafW() + tf.selectColW()
+                    : "bugfix2 前提：视口应宽于内容, got " + tf.getBodyView().getWidth() + "/" + (tf.totalLeafW() + tf.selectColW());
+                java.awt.image.BufferedImage fimg = new java.awt.image.BufferedImage(
+                    Math.max(1, tf.getBodyView().getWidth()), Math.max(1, tf.getBodyView().getHeight()),
+                    java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D fg = fimg.createGraphics();
+                tf.getBodyView().paintLog = new java.util.ArrayList<int[]>();
+                try { tf.getBodyView().paint(fg); } finally { fg.dispose(); }
+                int opHits = 0, nmHits = 0;
+                for (int[] e : tf.getBodyView().paintLog) {
+                    if (e[0] != 0) continue;
+                    if (e[1] == 2) opHits++;
+                    if (e[1] == 0) nmHits++;
+                }
+                tf.getBodyView().paintLog = null;
+                assert opHits == 1 : "bugfix2 右冻结列「操作」每行应只绘制 1 次, got " + opHits;
+                assert nmHits == 1 : "bugfix2 左冻结列「姓名」每行应只绘制 1 次, got " + nmHits;
+
+                // (3) 横向滚动条：内容宽于视口时出现，且行区高度排除滚动条
+                cp.removeAll();
+                AstTable tb = new AstTable(new AstTableColumn[]{
+                    new AstTableColumn("A", 200), new AstTableColumn("B", 200), new AstTableColumn("C", 200)});
+                for (int i = 0; i < 3; i++) tb.addRow("a" + i, i, "c" + i);
+                cp.add(tb, BorderLayout.CENTER); jf.setSize(300, 200); jf.validate();
+                assert tb.getBodyView().hasHScroll() : "bugfix3 内容宽于视口时应有横向滚动条";
+                assert tb.getBodyView().viewportH() == tb.getBodyView().getHeight() - HSCROLL_H
+                    : "bugfix3 行区高度应排除滚动条, got " + tb.getBodyView().viewportH() + "/" + tb.getBodyView().getHeight();
+                int sxBefore = tb.getBodyView().scrollX;
+                int barY = tb.getBodyView().getHeight() - 4;
+                tb.getBodyView().dispatchEvent(new MouseEvent(tb.getBodyView(), MouseEvent.MOUSE_PRESSED,
+                    System.currentTimeMillis(), 0, 260, barY, 1, false));
+                assert tb.getBodyView().scrollX > sxBefore : "bugfix3 点击滚动条右侧应增大 scrollX";
+
+                // (4) 多级表头：未分多级的叶子列跨多行，其底部应有边框
+                cp.removeAll();
+                AstTableColumn mc = new AstTableColumn("城市", 120), mst = new AstTableColumn("街道", 160);
+                AstTable tm = new AstTable(new AstTableColumn[]{
+                    new AstTableColumn("姓名", 100), new AstTableColumn("地址", Arrays.asList(mc, mst)),
+                    new AstTableColumn("年龄", 80)});
+                tm.addRow("张三", "上海", "浦东", 28);
+                cp.add(tm, BorderLayout.CENTER); jf.setSize(700, 240); jf.validate();
+                int mh = tm.getHeaderView().getPreferredHeight();
+                java.awt.image.BufferedImage mimg = new java.awt.image.BufferedImage(
+                    Math.max(1, tm.getHeaderView().getWidth()), mh, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D mg = mimg.createGraphics();
+                try { tm.getHeaderView().paint(mg); } finally { mg.dispose(); }
+                // 「姓名」是未分多级的叶子列，应纵向跨 2 行 → level0/level1 的分界处不应有横线。
+                // 采样点取列左缘内侧（避开居中文字的抗锯齿像素）。
+                int pr = ElementTheme.PRIMARY.getRed(), pg = ElementTheme.PRIMARY.getGreen(), pb = ElementTheme.PRIMARY.getBlue();
+                int midY = tm.getHeaderHeight() - 1;
+                int bpx = mimg.getRGB(tm.getHeaderView().leafX(0) + 8, midY);
+                boolean isBg = ((bpx >> 16) & 0xFF) == pr && ((bpx >> 8) & 0xFF) == pg && (bpx & 0xFF) == pb;
+                assert isBg : "bugfix4 多级表头：未分多级的叶子列应跨多行，层级分界处不应有分隔线";
+
+                // (5) 多选全选后，表头文字仍应可见（白色像素）
+                cp.removeAll();
+                AstTable tk = new AstTable(new AstTableColumn[]{
+                    new AstTableColumn("姓名", 140), new AstTableColumn("部门", 160)});
+                for (int i = 0; i < 3; i++) tk.addRow("u" + i, "d" + i);
+                tk.setSelectionMode(AstTable.SELECTION_MULTIPLE);
+                cp.add(tk, BorderLayout.CENTER); jf.setSize(500, 240); jf.validate();
+                tk.getModel().toggleSelectAll();
+                assert tk.getModel().getSelectedViewRows().size() == 3 : "bugfix5 全选 3 行";
+                int kh = tk.getHeaderView().getPreferredHeight();
+                java.awt.image.BufferedImage kimg = new java.awt.image.BufferedImage(
+                    Math.max(1, tk.getHeaderView().getWidth()), kh, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D kg = kimg.createGraphics();
+                try { tk.getHeaderView().paint(kg); } finally { kg.dispose(); }
+                boolean hasWhite = false;
+                for (int yy = 0; yy < kimg.getHeight() && !hasWhite; yy++)
+                    for (int xx = SELECT_COL_W + 2; xx < kimg.getWidth(); xx++) {
+                        int rgb = kimg.getRGB(xx, yy);
+                        if (((rgb >> 16) & 0xFF) > 230 && ((rgb >> 8) & 0xFF) > 230 && (rgb & 0xFF) > 230) { hasWhite = true; break; }
+                    }
+                assert hasWhite : "bugfix5 全选后表头文字应仍为白色可见（原被 drawCheckbox 的颜色覆盖）";
+
+                // (6) 展开按钮：点击第一列行首切换展开，且不触发选中
+                cp.removeAll();
+                AstTable te = new AstTable(new AstTableColumn[]{
+                    new AstTableColumn("姓名", 120), new AstTableColumn("详情", 160)});
+                te.addRow("张", "x"); te.addRow("李", "y");
+                te.setRowExpandText(r -> "详情#" + r);
+                cp.add(te, BorderLayout.CENTER); jf.setSize(500, 240); jf.validate();
+                int reh = te.getRowHeight(), baseRows = te.getRowCount();
+                int btnX = te.getBodyView().leafXOnScreen(0) + 6;
+                te.getBodyView().dispatchEvent(new MouseEvent(te.getBodyView(), MouseEvent.MOUSE_PRESSED,
+                    System.currentTimeMillis(), 0, btnX, reh / 2, 1, false));
+                assert te.getRowCount() == baseRows + 1 : "bugfix6 点击行首展开按钮应 +1 行, got " + te.getRowCount();
+                assert te.getSelectedRow() == -1 : "bugfix6 点击展开按钮不应选中该行";
+                // 展开后整表离屏绘制不抛异常（含滚动条/展开区）
+                java.awt.image.BufferedImage eimg = new java.awt.image.BufferedImage(
+                    te.getPreferredSize().width, 200, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                Graphics2D eg = eimg.createGraphics();
+                try { te.paint(eg); } finally { eg.dispose(); }
+            } finally { jf.dispose(); }
+        }}); } catch (Throwable t){ errB[0] = t; }
+        if (errB[0] != null) throw new RuntimeException(errB[0]);
 
         System.out.println("AstTable self-check OK");
     }

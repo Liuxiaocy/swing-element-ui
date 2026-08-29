@@ -1,7 +1,15 @@
 @echo off
 setlocal enabledelayedexpansion
+rem ---- 只允许原生 Java 8 编译/运行（项目目标 JDK 1.8）----
+set "JAVA8=C:\Program Files\Java\jdk1.8.0_311"
 set "JAVAC=javac"
-if exist "C:\Program Files\Java\jdk1.8.0_311\bin\javac.exe" set "JAVAC=C:\Program Files\Java\jdk1.8.0_311\bin\javac.exe"
+set "JRUN=java"
+if exist "%JAVA8%\bin\javac.exe" (
+  set "JAVAC=%JAVA8%\bin\javac.exe"
+  set "JRUN=%JAVA8%\bin\java.exe"
+) else (
+  echo WARN: 未找到 JDK 1.8，回退使用 PATH 上的 javac/java
+)
 "%JAVAC%" -version >nul 2>nul || (echo ERROR: javac not found & exit /b 1)
 if not exist out mkdir out
 
@@ -82,146 +90,147 @@ src\org\swelement\ui\AstTimeline.java ^
 src\org\swelement\ui\AstCalendar.java ^
 src\org\swelement\ui\AstCarousel.java
 
-"%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
+rem JDK 1.8 直接编译即可（默认 -source/-target 8）；若回退到高版本 JDK 则用 --release 8 兜底
+"%JAVAC%" -encoding UTF-8 -d out %SOURCES%
 if errorlevel 1 (
-  echo --release 8 not supported, retrying with -source/-target 8
-  "%JAVAC%" -encoding UTF-8 -source 8 -target 8 -d out %SOURCES%
+  echo retry with --release 8
+  "%JAVAC%" -encoding UTF-8 --release 8 -d out %SOURCES%
 )
 if errorlevel 1 (echo BUILD FAILED & exit /b 1)
 echo BUILD OK
 
 echo --- CloseButton self-check ---
-java -ea -cp out org.swelement.ui.AstCloseButton
+"%JRUN%" -ea -cp out org.swelement.ui.AstCloseButton
 if %ERRORLEVEL% NEQ 0 ( echo CloseButton self-check FAILED & exit /b 1 )
 
 echo --- Tag self-check ---
-java -ea -cp out org.swelement.ui.AstTag
+"%JRUN%" -ea -cp out org.swelement.ui.AstTag
 if %ERRORLEVEL% NEQ 0 ( echo Tag self-check FAILED & exit /b 1 )
 
 echo --- Alert self-check ---
-java -ea -cp out org.swelement.ui.AstAlert
+"%JRUN%" -ea -cp out org.swelement.ui.AstAlert
 if %ERRORLEVEL% NEQ 0 ( echo Alert self-check FAILED & exit /b 1 )
 
 echo --- Input self-check ---
-java -ea -cp out org.swelement.ui.AstInput
+"%JRUN%" -ea -cp out org.swelement.ui.AstInput
 if %ERRORLEVEL% NEQ 0 ( echo Input self-check FAILED & exit /b 1 )
 
 echo --- TextArea self-check ---
-java -ea -cp out org.swelement.ui.AstTextArea
+"%JRUN%" -ea -cp out org.swelement.ui.AstTextArea
 if %ERRORLEVEL% NEQ 0 ( echo TextArea self-check FAILED & exit /b 1 )
 
 echo --- AstContainer self-check ---
-java -ea -cp out org.swelement.ui.AstContainer
+"%JRUN%" -ea -cp out org.swelement.ui.AstContainer
 if %ERRORLEVEL% NEQ 0 ( echo AstContainer self-check FAILED & exit /b 1 )
 
 echo --- AstAvatar self-check ---
-java -ea -cp out org.swelement.ui.AstAvatar
+"%JRUN%" -ea -cp out org.swelement.ui.AstAvatar
 if %ERRORLEVEL% NEQ 0 ( echo AstAvatar self-check FAILED & exit /b 1 )
 
 echo --- AstCard self-check ---
-java -ea -cp out org.swelement.ui.AstCard
+"%JRUN%" -ea -cp out org.swelement.ui.AstCard
 if %ERRORLEVEL% NEQ 0 ( echo AstCard self-check FAILED & exit /b 1 )
 
 echo --- AstLoading self-check ---
-java -ea -cp out org.swelement.ui.AstLoading
+"%JRUN%" -ea -cp out org.swelement.ui.AstLoading
 if %ERRORLEVEL% NEQ 0 ( echo AstLoading self-check FAILED & exit /b 1 )
 
 echo --- AstTooltip self-check ---
-java -ea -cp out org.swelement.ui.AstTooltip
+"%JRUN%" -ea -cp out org.swelement.ui.AstTooltip
 if %ERRORLEVEL% NEQ 0 ( echo AstTooltip self-check FAILED & exit /b 1 )
 
 echo --- AstDropdown self-check ---
-java -ea -cp out org.swelement.ui.AstDropdown
+"%JRUN%" -ea -cp out org.swelement.ui.AstDropdown
 if %ERRORLEVEL% NEQ 0 ( echo AstDropdown self-check FAILED & exit /b 1 )
 
 echo --- AstDialog self-check ---
-java -ea -cp out org.swelement.ui.AstDialog
+"%JRUN%" -ea -cp out org.swelement.ui.AstDialog
 if %ERRORLEVEL% NEQ 0 ( echo AstDialog self-check FAILED & exit /b 1 )
 
 echo --- AstMessageBox self-check ---
-java -ea -cp out org.swelement.ui.AstMessageBox
+"%JRUN%" -ea -cp out org.swelement.ui.AstMessageBox
 if %ERRORLEVEL% NEQ 0 ( echo AstMessageBox self-check FAILED & exit /b 1 )
 
 echo --- AstMessage self-check ---
-java -ea -cp out org.swelement.ui.AstMessage
+"%JRUN%" -ea -cp out org.swelement.ui.AstMessage
 if %ERRORLEVEL% NEQ 0 ( echo AstMessage self-check FAILED & exit /b 1 )
 
 echo --- AstCascader self-check ---
-java -ea -cp out org.swelement.ui.AstCascader
+"%JRUN%" -ea -cp out org.swelement.ui.AstCascader
 if %ERRORLEVEL% NEQ 0 ( echo AstCascader self-check FAILED & exit /b 1 )
 
 echo --- AstDatePicker self-check ---
-java -ea -cp out org.swelement.ui.AstDatePicker
+"%JRUN%" -ea -cp out org.swelement.ui.AstDatePicker
 if %ERRORLEVEL% NEQ 0 ( echo AstDatePicker self-check FAILED & exit /b 1 )
 
 echo --- AstForm self-check ---
-java -ea -cp out org.swelement.ui.AstForm
+"%JRUN%" -ea -cp out org.swelement.ui.AstForm
 if %ERRORLEVEL% NEQ 0 ( echo AstForm self-check FAILED & exit /b 1 )
 
 echo --- AstTree self-check ---
-java -ea -cp out org.swelement.ui.AstTree
+"%JRUN%" -ea -cp out org.swelement.ui.AstTree
 if %ERRORLEVEL% NEQ 0 ( echo AstTree self-check FAILED & exit /b 1 )
 
 echo --- AstTable self-check ---
-java -ea -cp out org.swelement.ui.AstTable
+"%JRUN%" -ea -cp out org.swelement.ui.AstTable
 if %ERRORLEVEL% NEQ 0 ( echo AstTable self-check FAILED & exit /b 1 )
 
 echo --- AstTableDemo self-check ---
-java -ea -cp out org.swelement.demo.AstTableDemo --selfcheck
+"%JRUN%" -ea -cp out org.swelement.demo.AstTableDemo --selfcheck
 if %ERRORLEVEL% NEQ 0 ( echo AstTableDemo self-check FAILED & exit /b 1 )
 
 echo --- AstDivider self-check ---
-java -ea -cp out org.swelement.ui.AstDivider
+"%JRUN%" -ea -cp out org.swelement.ui.AstDivider
 if %ERRORLEVEL% NEQ 0 ( echo AstDivider self-check FAILED & exit /b 1 )
 
 echo --- AstIcon self-check ---
-java -ea -cp out org.swelement.ui.AstIcon
+"%JRUN%" -ea -cp out org.swelement.ui.AstIcon
 if %ERRORLEVEL% NEQ 0 ( echo AstIcon self-check FAILED & exit /b 1 )
 
 echo --- AstRate self-check ---
-java -ea -cp out org.swelement.ui.AstRate
+"%JRUN%" -ea -cp out org.swelement.ui.AstRate
 if %ERRORLEVEL% NEQ 0 ( echo AstRate self-check FAILED & exit /b 1 )
 
 echo --- AstBreadcrumb self-check ---
-java -ea -cp out org.swelement.ui.AstBreadcrumb
+"%JRUN%" -ea -cp out org.swelement.ui.AstBreadcrumb
 if %ERRORLEVEL% NEQ 0 ( echo AstBreadcrumb self-check FAILED & exit /b 1 )
 
 echo --- AstSteps self-check ---
-java -ea -cp out org.swelement.ui.AstSteps
+"%JRUN%" -ea -cp out org.swelement.ui.AstSteps
 if %ERRORLEVEL% NEQ 0 ( echo AstSteps self-check FAILED & exit /b 1 )
 
 echo --- AstCollapse self-check ---
-java -ea -cp out org.swelement.ui.AstCollapse
+"%JRUN%" -ea -cp out org.swelement.ui.AstCollapse
 if %ERRORLEVEL% NEQ 0 ( echo AstCollapse self-check FAILED & exit /b 1 )
 
 echo --- AstInputNumber self-check ---
-java -ea -cp out org.swelement.ui.AstInputNumber
+"%JRUN%" -ea -cp out org.swelement.ui.AstInputNumber
 if %ERRORLEVEL% NEQ 0 ( echo AstInputNumber self-check FAILED & exit /b 1 )
 
 echo --- AstPopover self-check ---
-java -ea -cp out org.swelement.ui.AstPopover
+"%JRUN%" -ea -cp out org.swelement.ui.AstPopover
 if %ERRORLEVEL% NEQ 0 ( echo AstPopover self-check FAILED & exit /b 1 )
 
 echo --- AstDrawer self-check ---
-java -ea -cp out org.swelement.ui.AstDrawer
+"%JRUN%" -ea -cp out org.swelement.ui.AstDrawer
 if %ERRORLEVEL% NEQ 0 ( echo AstDrawer self-check FAILED & exit /b 1 )
 
 echo --- AstTimePicker self-check ---
-java -ea -cp out org.swelement.ui.AstTimePicker
+"%JRUN%" -ea -cp out org.swelement.ui.AstTimePicker
 if %ERRORLEVEL% NEQ 0 ( echo AstTimePicker self-check FAILED & exit /b 1 )
 
 echo --- AstTransfer self-check ---
-java -ea -cp out org.swelement.ui.AstTransfer
+"%JRUN%" -ea -cp out org.swelement.ui.AstTransfer
 if %ERRORLEVEL% NEQ 0 ( echo AstTransfer self-check FAILED & exit /b 1 )
 
 echo --- AstTimeline self-check ---
-java -ea -cp out org.swelement.ui.AstTimeline
+"%JRUN%" -ea -cp out org.swelement.ui.AstTimeline
 if %ERRORLEVEL% NEQ 0 ( echo AstTimeline self-check FAILED & exit /b 1 )
 
 echo --- AstCalendar self-check ---
-java -ea -cp out org.swelement.ui.AstCalendar
+"%JRUN%" -ea -cp out org.swelement.ui.AstCalendar
 if %ERRORLEVEL% NEQ 0 ( echo AstCalendar self-check FAILED & exit /b 1 )
 
 echo --- AstCarousel self-check ---
-java -ea -cp out org.swelement.ui.AstCarousel
+"%JRUN%" -ea -cp out org.swelement.ui.AstCarousel
 if %ERRORLEVEL% NEQ 0 ( echo AstCarousel self-check FAILED & exit /b 1 )
