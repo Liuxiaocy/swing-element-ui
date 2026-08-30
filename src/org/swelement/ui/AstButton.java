@@ -1,16 +1,17 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.core.theme.Theme;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.geom.RoundRectangle2D;
+import javax.swing.event.EventListenerList;
 
-public class AstButton extends JButton {
+public class AstButton extends AstInteractiveComponent {
     public static final int DEFAULT = 0, PRIMARY = 1, SUCCESS = 2, WARNING = 3, DANGER = 4, INFO = 5;
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     public static final int ICON_LEFT = 0, ICON_RIGHT = 1;
@@ -20,83 +21,99 @@ public class AstButton extends JButton {
     private static final int[] SIZE_HPAD = {24, 20, 12};
     private static final int[] SIZE_ICON_GAP = {10, 8, 6};
 
-    private static final Color WHITE = Color.WHITE;
-    private static final Color FILL_BLANK = ElementTheme.FILL_BLANK;
-    private static final Color PRIMARY_COLOR = ElementTheme.PRIMARY;
-    private static final Color SUCCESS_COLOR = ElementTheme.SUCCESS;
-    private static final Color WARNING_COLOR = ElementTheme.WARNING;
-    private static final Color DANGER_COLOR  = ElementTheme.DANGER;
-    private static final Color INFO_COLOR    = ElementTheme.INFO;
-    private static final Color BORDER_BASE = ElementTheme.BORDER_BASE;
-
-    private static final Color[] BASE_BG  = {FILL_BLANK, PRIMARY_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR, INFO_COLOR};
-    private static final Color[] HOVER_BG = {new Color(0xECF5FF), new Color(0x66B1FF), new Color(0x85CE61), new Color(0xEBB563), new Color(0xF78989), new Color(0xA6A9AD)};
-    private static final Color[] ACTIVE_BG= {new Color(0xD2E4FF), new Color(0x3A8EE6), new Color(0x5DAF32), new Color(0xCF9236), new Color(0xDD6161), new Color(0x82848A)};
-    private static final Color[] BASE_FG  = {new Color(0x606266), WHITE, WHITE, WHITE, WHITE, WHITE};
-    private static final Color[] HOVER_FG = {PRIMARY_COLOR, WHITE, WHITE, WHITE, WHITE, WHITE};
-    private static final Color[] BORDER   = {BORDER_BASE, PRIMARY_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR, INFO_COLOR};
-    private static final Color[] TYPE_FG  = {new Color(0x606266), PRIMARY_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR, INFO_COLOR};
-    private static final Color[] PLAIN_BG = {FILL_BLANK, new Color(0xECF5FF), new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xFEF0F0), new Color(0xF4F4F5)};
-    // Darker text variants for plain mode — ensures WCAG 4.5:1 contrast on light backgrounds
-    private static final Color[] PLAIN_FG = {new Color(0x606266), new Color(0x1d6fb5), new Color(0x2d6b18), new Color(0x955d12), new Color(0xb83232), new Color(0x606266)};
-    // 朴素按钮状态底色：hover/active 逐级加深。文字恒为 PLAIN_FG，底色只会更深，
-    // 对比度单调上升——任何动画过渡帧都满足 AA（避免半白字半深底的中间态）。
-    private static final Color[] PLAIN_HOVER_BG = new Color[6];
-    private static final Color[] PLAIN_ACTIVE_BG = new Color[6];
-    /** active 时文字同步加深：底色 shade 0.84 后深字对比会跌破 4.5，需配合更深的文字。 */
-    private static final Color[] PLAIN_ACTIVE_FG = new Color[6];
-    static {
-        for (int i = 0; i < 6; i++) {
-            PLAIN_HOVER_BG[i] = shade(PLAIN_BG[i], 0.93f);
-            PLAIN_ACTIVE_BG[i] = shade(PLAIN_BG[i], 0.84f);
-            PLAIN_ACTIVE_FG[i] = shade(PLAIN_FG[i], 0.75f);
-        }
-    }
-    private static Color shade(Color c, float f) {
-        return new Color(Math.round(c.getRed() * f), Math.round(c.getGreen() * f), Math.round(c.getBlue() * f));
-    }
-
-    private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
-    private final Animator activeAnim = new Animator(120, Easing::easeInOut, v -> { active = v; repaint(); });
-    private final Animator loadAnim = new Animator(800, Easing::linear, v -> { loadAngle = v; repaint(); });
-    private float hover, active;
+    private String text;
+    private Icon icon;
+    private int iconPosition = ICON_LEFT;
+    private int type;
     private int size = SIZE_DEFAULT;
+    private boolean plain;
+    private boolean textStyle;
     private boolean round = false;
     private boolean circle = false;
-    private String icon = null;
-    private int iconPosition = ICON_LEFT;
     private boolean loading = false;
     private String loadingText = null;
-    private float loadAngle = 0f;
     private boolean savedEnabled;
     private String savedText;
-    private boolean textButton = false;
-    private final int type;
-    private final boolean plain;
+    private final EventListenerList actionListenerList = new EventListenerList();
 
-    public AstButton(String text) { this(text, DEFAULT, false); }
+    // ==================== 构造方法 ====================
+
+    public AstButton(String text) {
+        this(text, DEFAULT, false);
+    }
 
     public AstButton(String text, int type, boolean plain) {
-        super(text);
+        super();
+        this.text = text;
         this.type = type;
         this.plain = plain;
-        setOpaque(false);
-        setContentAreaFilled(false);
-        setFocusPainted(false);
-        setBorder(BorderFactory.createEmptyBorder(9, 20, 9, 20));
-        setFont(ElementTheme.FONT);
-        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { if (isEnabled()) hoverAnim.go(hover, 1f); }
-            public void mouseExited(MouseEvent e)  { hoverAnim.go(hover, 0f); activeAnim.go(active, 0f); }
-            public void mousePressed(MouseEvent e) { if (isEnabled()) activeAnim.go(active, 1f); }
-            public void mouseReleased(MouseEvent e){ activeAnim.go(active, 0f); }
-        });
+        setFocusable(true);
+    }
+
+    // ==================== 初始化 ====================
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("load", 800, Easing::linear);
+    }
+
+    // ==================== 模式 ====================
+
+    @Override
+    protected boolean isToggleMode() {
+        return false;
+    }
+
+    @Override
+    protected void onActionPerformed() {
+        super.onActionPerformed();
+        if (!isEnabled() || loading) return;
+        fireActionPerformed();
+    }
+
+    // ==================== 属性访问 ====================
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+        revalidate();
+        repaint();
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+        repaint();
     }
 
     public void setSize(int size) {
         this.size = size;
         revalidate();
+        repaint();
+    }
+
+    public boolean isPlain() {
+        return plain;
+    }
+
+    public void setPlain(boolean plain) {
+        this.plain = plain;
+        repaint();
+    }
+
+    public boolean isTextStyle() {
+        return textStyle;
+    }
+
+    public void setTextStyle(boolean textStyle) {
+        this.textStyle = textStyle;
         repaint();
     }
 
@@ -111,10 +128,14 @@ public class AstButton extends JButton {
         repaint();
     }
 
-    public void setIcon(String icon) {
+    public void setIcon(Icon icon) {
         this.icon = icon;
         revalidate();
         repaint();
+    }
+
+    public Icon getIcon() {
+        return icon;
     }
 
     public void setIconPosition(int pos) {
@@ -122,20 +143,24 @@ public class AstButton extends JButton {
         repaint();
     }
 
+    public boolean isLoading() {
+        return loading;
+    }
+
     public void setLoading(boolean loading) {
         if (this.loading == loading) return;
         this.loading = loading;
         if (loading) {
             savedEnabled = isEnabled();
-            savedText = getText();
+            savedText = text;
             setEnabled(false);
-            setText(loadingText != null ? loadingText : "加载中");
-            loadAngle = 0f;
-            startLoadLoop();
+            text = loadingText != null ? loadingText : "加载中";
+            anim.setProgress("load", 0f);
+            anim.go("load", 0f, 1f);
         } else {
-            loadAnim.stop();
+            anim.stop("load");
             setEnabled(savedEnabled);
-            setText(savedText);
+            text = savedText;
         }
         revalidate();
         repaint();
@@ -143,86 +168,226 @@ public class AstButton extends JButton {
 
     public void setLoadingText(String text) {
         this.loadingText = text;
-        if (loading) setText(text != null ? text : "加载中");
+        if (loading) {
+            this.text = text != null ? text : "加载中";
+            repaint();
+        }
     }
 
-    private void startLoadLoop() {
-        loadAnim.go(0f, 1f, () -> { if (loading) startLoadLoop(); });
+    // ==================== ActionListener 支持 ====================
+
+    public void addActionListener(ActionListener l) {
+        actionListenerList.add(ActionListener.class, l);
     }
 
-    public void setTextButton(boolean textBtn) {
-        this.textButton = textBtn;
-        repaint();
+    public void removeActionListener(ActionListener l) {
+        actionListenerList.remove(ActionListener.class, l);
     }
+
+    protected void fireActionPerformed() {
+        ActionEvent e = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, text != null ? text : "");
+        for (ActionListener l : actionListenerList.getListeners(ActionListener.class)) {
+            l.actionPerformed(e);
+        }
+    }
+
+    /** 以编程方式触发点击，等效于用户点击。 */
+    public void doClick() {
+        if (!isEnabled() || loading) return;
+        fireActionPerformed();
+    }
+
+    // ==================== 颜色计算方法 ====================
+
+    private Color typeColor(int type) {
+        Theme t = theme();
+        switch (type) {
+            case PRIMARY: return t.getPrimary();
+            case SUCCESS: return t.getSuccess();
+            case WARNING: return t.getWarning();
+            case DANGER: return t.getDanger();
+            case INFO: return t.getInfo();
+            default: return t.getTextRegular(); // DEFAULT
+        }
+    }
+
+    private Color baseBg(int type) {
+        Theme t = theme();
+        switch (type) {
+            case PRIMARY: return t.getPrimary();
+            case SUCCESS: return t.getSuccess();
+            case WARNING: return t.getWarning();
+            case DANGER: return t.getDanger();
+            case INFO: return t.getInfo();
+            default: return t.getFillBlank(); // DEFAULT
+        }
+    }
+
+    private Color hoverBg(int type) {
+        if (type == DEFAULT) {
+            return mixWithWhite(theme().getPrimary(), 0.9f);
+        }
+        return mixWithWhite(baseBg(type), 0.2f);
+    }
+
+    private Color activeBg(int type) {
+        if (type == DEFAULT) {
+            return mixWithWhite(theme().getPrimary(), 0.8f);
+        }
+        return shade(baseBg(type), 0.9f);
+    }
+
+    private Color baseFg(int type) {
+        if (type == DEFAULT) {
+            return theme().getTextRegular();
+        }
+        return Color.WHITE;
+    }
+
+    private Color hoverFg(int type) {
+        if (type == DEFAULT) {
+            return theme().getPrimary();
+        }
+        return Color.WHITE;
+    }
+
+    private Color borderColor(int type) {
+        Theme t = theme();
+        switch (type) {
+            case PRIMARY: return t.getPrimary();
+            case SUCCESS: return t.getSuccess();
+            case WARNING: return t.getWarning();
+            case DANGER: return t.getDanger();
+            case INFO: return t.getInfo();
+            default: return t.getBorderBase(); // DEFAULT
+        }
+    }
+
+    private Color plainBg(int type) {
+        if (type == DEFAULT) {
+            return theme().getFillBlank();
+        }
+        return mixWithWhite(typeColor(type), 0.9f);
+    }
+
+    private Color plainFg(int type) {
+        if (type == DEFAULT || type == INFO) {
+            return theme().getTextRegular();
+        }
+        return shade(typeColor(type), 0.65f);
+    }
+
+    private Color plainHoverBg(int type) {
+        return shade(plainBg(type), 0.93f);
+    }
+
+    private Color plainActiveBg(int type) {
+        return shade(plainBg(type), 0.84f);
+    }
+
+    private Color plainActiveFg(int type) {
+        return shade(plainFg(type), 0.75f);
+    }
+
+    /** RGB 通道按比例缩放（变暗）。 */
+    private static Color shade(Color c, float f) {
+        return new Color(
+                Math.round(c.getRed() * f),
+                Math.round(c.getGreen() * f),
+                Math.round(c.getBlue() * f));
+    }
+
+    /** 与白色混合。amount 为白色占比 [0,1]。 */
+    private static Color mixWithWhite(Color c, float amount) {
+        float baseAmt = 1f - amount;
+        return new Color(
+                Math.round(c.getRed() * baseAmt + 255 * amount),
+                Math.round(c.getGreen() * baseAmt + 255 * amount),
+                Math.round(c.getBlue() * baseAmt + 255 * amount));
+    }
+
+    // ==================== 绘制 ====================
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
+
+        // loading 动画循环
+        if (loading) {
+            float p = anim.getProgress("load");
+            if (p >= 0.99f) {
+                anim.setProgress("load", 0f);
+                anim.go("load", 0f, 1f);
+            }
+        }
+
+        float hover = hoverProgress();
+        float active = activeProgress();
 
         Color bg, fg, border;
-        if (textButton) {
+        if (textStyle) {
             if (!isEnabled()) {
                 bg = new Color(0, 0, 0, 0);
-                fg = new Color(0x606266);
+                fg = theme().getTextRegular();
                 border = new Color(0, 0, 0, 0);
             } else {
                 int alpha = Math.round(255 * hover);
                 bg = new Color(0xEC, 0xF5, 0xFF, alpha);
-                fg = ElementTheme.PRIMARY;
+                fg = theme().getPrimary();
                 border = new Color(0, 0, 0, 0);
             }
         } else if (loading) {
             // loading: use normal colors with reduced opacity so text stays visible
-            bg = ElementTheme.lerp(ElementTheme.lerp(BASE_BG[type], HOVER_BG[type], hover), ACTIVE_BG[type], active);
-            fg = ElementTheme.lerp(BASE_FG[type], HOVER_FG[type], hover);
-            border = plain ? BORDER[type] : bg;
+            bg = lerp(lerp(baseBg(type), hoverBg(type), hover), activeBg(type), active);
+            fg = lerp(baseFg(type), hoverFg(type), hover);
+            border = plain ? borderColor(type) : bg;
             if (plain) {
-                bg = PLAIN_BG[type];
-                fg = PLAIN_FG[type];
+                bg = plainBg(type);
+                fg = plainFg(type);
             }
-            if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
+            if (plain && type == DEFAULT) {
+                border = lerp(theme().getBorderBase(), new Color(0xC6E2FF), hover);
+            }
             bg = new Color(bg.getRed(), bg.getGreen(), bg.getBlue(), 200);
             fg = new Color(fg.getRed(), fg.getGreen(), fg.getBlue(), 230);
         } else if (!isEnabled()) {
-            bg = plain ? FILL_BLANK : new Color(0xF5F7FA);
-            fg = new Color(0x606266);
-            border = plain ? BORDER_BASE : new Color(0xE4E7ED);
+            bg = plain ? theme().getFillBlank() : new Color(0xF5F7FA);
+            fg = theme().getTextRegular();
+            border = plain ? theme().getBorderBase() : new Color(0xE4E7ED);
         } else {
-            bg = ElementTheme.lerp(ElementTheme.lerp(BASE_BG[type], HOVER_BG[type], hover), ACTIVE_BG[type], active);
-            fg = ElementTheme.lerp(BASE_FG[type], HOVER_FG[type], hover);
-            border = plain ? BORDER[type] : bg;
+            bg = lerp(lerp(baseBg(type), hoverBg(type), hover), activeBg(type), active);
+            fg = lerp(baseFg(type), hoverFg(type), hover);
+            border = plain ? borderColor(type) : bg;
             if (plain) {
-                // Bug 修复：朴素按钮此前无视 hover/active，所有状态同色。
-                bg = ElementTheme.lerp(PLAIN_BG[type], PLAIN_HOVER_BG[type], hover);
-                bg = ElementTheme.lerp(bg, PLAIN_ACTIVE_BG[type], active);
-                // 底色加深会压缩对比度，文字同步加深（更深更快）保证任何过渡帧 ≥ 4.5:1
-                fg = ElementTheme.lerp(PLAIN_FG[type], PLAIN_ACTIVE_FG[type], Math.max(hover, active));
-                // 边框随状态向深主色收敛，强化反馈（边框不承载文字，不受 AA 约束）
-                border = ElementTheme.lerp(BORDER[type], PLAIN_FG[type], Math.max(hover, active));
+                bg = lerp(plainBg(type), plainHoverBg(type), hover);
+                bg = lerp(bg, plainActiveBg(type), active);
+                fg = lerp(plainFg(type), plainActiveFg(type), Math.max(hover, active));
+                border = lerp(borderColor(type), plainFg(type), Math.max(hover, active));
             }
-            if (plain && type == DEFAULT) border = ElementTheme.lerp(BORDER_BASE, new Color(0xC6E2FF), hover);
+            if (plain && type == DEFAULT) {
+                border = lerp(theme().getBorderBase(), new Color(0xC6E2FF), hover);
+            }
         }
 
-        float arc = (round || circle) ? getHeight() / 2f : ElementTheme.RADIUS * 2;
+        float arc = (round || circle) ? getHeight() / 2f : theme().getRadiusBase() * 2f;
         Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
-        if (!textButton || hover > 0) {
+        if (!textStyle || hover > 0) {
             g2.setColor(bg);
             g2.fill(shape);
         }
-        if (!textButton) {
+        if (!textStyle) {
             g2.setColor(border);
             g2.setStroke(new BasicStroke(1f));
             g2.draw(shape);
         }
 
         g2.setColor(fg);
-        Font btnFont = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+        Font btnFont = theme().getFontBase().deriveFont(SIZE_FONT[size]);
         g2.setFont(btnFont);
         FontMetrics fm = g2.getFontMetrics(btnFont);
-        String text = getText();
-        int textW = fm.stringWidth(text);
-        int iconW = (!loading && icon != null) ? fm.stringWidth(icon) : 0;
+        String displayText = text != null ? text : "";
+        int textW = fm.stringWidth(displayText);
+        int iconW = (!loading && icon != null) ? icon.getIconWidth() : 0;
         int loadW = loading ? 16 + SIZE_ICON_GAP[size] : 0;
         int gap = (iconW > 0 && textW > 0) ? SIZE_ICON_GAP[size] : 0;
         int contentW = textW + iconW + gap + loadW;
@@ -236,34 +401,47 @@ public class AstButton extends JButton {
             lg2.setStroke(new BasicStroke(2f));
             int cx = Math.round(cursorX + 8);
             int cy = getHeight() / 2;
-            double angle = loadAngle * 2 * Math.PI;
+            double angle = anim.getProgress("load") * 2 * Math.PI;
             lg2.drawArc(cx - 7, cy - 7, 14, 14, (int) Math.toDegrees(angle), 270);
             lg2.dispose();
             cursorX += loadW;
         }
 
         if (!loading && icon != null) {
+            int iy = (getHeight() - icon.getIconHeight()) / 2;
             if (iconPosition == ICON_LEFT) {
-                g2.drawString(icon, cursorX, baseY);
+                paintButtonIcon(g2, icon, fg, Math.round(cursorX), iy);
                 cursorX += iconW + gap;
-                g2.drawString(text, cursorX, baseY);
+                g2.drawString(displayText, cursorX, baseY);
             } else {
-                g2.drawString(text, cursorX, baseY);
+                g2.drawString(displayText, cursorX, baseY);
                 cursorX += textW + gap;
-                g2.drawString(icon, cursorX, baseY);
+                paintButtonIcon(g2, icon, fg, Math.round(cursorX), iy);
             }
         } else {
-            g2.drawString(text, cursorX, baseY);
+            g2.drawString(displayText, cursorX, baseY);
         }
         g2.dispose();
     }
 
+    private void paintButtonIcon(Graphics2D g2, Icon ic, Color c, int x, int y) {
+        if (ic instanceof AstIcon) {
+            AstIcon ai = (AstIcon) ic;
+            AstIcon.paintIcon(g2, ai.getTypeEnum(), c, ai.getSizeValue(), ai.getSpinPhase());
+        } else {
+            ic.paintIcon(this, g2, x, y);
+        }
+    }
+
+    // ==================== 布局 ====================
+
     @Override
     public Dimension getPreferredSize() {
-        Font font = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+        Font font = theme().getFontBase().deriveFont(SIZE_FONT[size]);
         FontMetrics fm = getFontMetrics(font);
-        int textW = fm.stringWidth(getText());
-        int iconW = (!loading && icon != null) ? fm.stringWidth(icon) : 0;
+        String displayText = text != null ? text : "";
+        int textW = fm.stringWidth(displayText);
+        int iconW = (!loading && icon != null) ? icon.getIconWidth() : 0;
         int loadW = loading ? 16 + SIZE_ICON_GAP[size] : 0;
         int gap = (iconW > 0 && textW > 0) ? SIZE_ICON_GAP[size] : 0;
         int w = SIZE_HPAD[size] * 2 + textW + iconW + gap + loadW;
@@ -275,7 +453,10 @@ public class AstButton extends JButton {
         return new Dimension(w, h);
     }
 
-    static void selfCheck() {
+    // ==================== 自检 ====================
+
+    @Override
+    protected void selfCheck() {
         AstButton b = new AstButton("测试");
         b.setSize(AstButton.SIZE_LARGE);
         assert b.getPreferredSize().height > new AstButton("测试").getPreferredSize().height
@@ -291,16 +472,38 @@ public class AstButton extends JButton {
         rc.setRound(true);
         assert pd.width == pd.height : "round+circle still square";
 
+        Color iconColor = theme().getPrimary();
         AstButton ib = new AstButton("");
-        ib.setIcon("\u2713");
+        ib.setIcon(new AstIcon(AstIcon.Type.CHECK, iconColor, 16));
         assert ib.getPreferredSize().width > 0 : "icon-only button should have positive width";
         AstButton ib2 = new AstButton("确定");
-        ib2.setIcon("\u2713");
+        ib2.setIcon(new AstIcon(AstIcon.Type.CHECK, iconColor, 16));
         assert ib2.getPreferredSize().width > new AstButton("确定").getPreferredSize().width
                 : "button with icon should be wider than text-only";
         ib2.setIconPosition(AstButton.ICON_RIGHT);
         assert ib2.getPreferredSize().width > new AstButton("确定").getPreferredSize().width
                 : "icon-right button should also be wider";
+
+        // 原生 ImageIcon（Icon 接口路径）
+        java.awt.image.BufferedImage bi = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D ig = bi.createGraphics();
+        ig.setColor(java.awt.Color.RED);
+        ig.fillRect(0, 0, 16, 16);
+        ig.dispose();
+        ImageIcon nativeIcon = new ImageIcon(bi);
+        AstButton nb = new AstButton("原生");
+        nb.setIcon(nativeIcon);
+        assert nb.getPreferredSize().width > 0 : "native image icon button positive width";
+
+        // 渲染均不抛异常（AstIcon 颜色跟随路径 + ImageIcon 路径）
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(200, 60, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        try {
+            ib.paint(g);   // AstIcon 图标
+            nb.paint(g);   // ImageIcon 图标
+        } finally {
+            g.dispose();
+        }
 
         AstButton lb = new AstButton("提交", AstButton.PRIMARY, false);
         assert lb.isEnabled() : "button should be enabled initially";
@@ -317,20 +520,33 @@ public class AstButton extends JButton {
         lb2.setLoading(false);
 
         AstButton tb = new AstButton("文本按钮");
-        tb.setTextButton(true);
+        tb.setTextStyle(true);
         assert tb.getPreferredSize().width > 0 : "text button should have positive width";
 
         // Contrast checks: text must be readable against background in all states
         for (int t = 0; t < 6; t++) {
-            ElementTheme.assertContrast(PLAIN_FG[t], PLAIN_BG[t], "plain type=" + t);
-            ElementTheme.assertContrast(PLAIN_ACTIVE_FG[t], PLAIN_HOVER_BG[t], "plain hover fg type=" + t);
-            ElementTheme.assertContrast(PLAIN_ACTIVE_FG[t], PLAIN_ACTIVE_BG[t], "plain active fg type=" + t);
+            assertContrast(plainFg(t), plainBg(t), "plain type=" + t);
+            assertContrast(plainActiveFg(t), plainHoverBg(t), "plain hover fg type=" + t);
+            assertContrast(plainActiveFg(t), plainActiveBg(t), "plain active fg type=" + t);
         }
-        ElementTheme.assertContrast(new Color(0x606266), new Color(0xF5F7FA), "disabled on gray");
-        ElementTheme.assertContrast(new Color(0x606266), Color.WHITE, "disabled on white");
+        assertContrast(new Color(0x606266), new Color(0xF5F7FA), "disabled on gray");
+        assertContrast(new Color(0x606266), Color.WHITE, "disabled on white");
+
+        // ActionListener test
+        final boolean[] fired = {false};
+        AstButton ab = new AstButton("动作");
+        ab.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                fired[0] = true;
+            }
+        });
+        ab.onActionPerformed();
+        assert fired[0] : "ActionListener should fire onActionPerformed";
 
         System.out.println("Button self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstButton("测试").selfCheck();
+    }
 }
