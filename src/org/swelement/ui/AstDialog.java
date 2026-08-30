@@ -1,9 +1,9 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
 import org.swelement.core.GlassPane;
+import org.swelement.core.theme.ThemeManager;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -54,8 +54,8 @@ public class AstDialog {
             rpc.getRootPane().putClientProperty(GP_KEY, tempGp);
         }
         final GlassPane gp = tempGp;
-        final JPanel[] cardHolder = new JPanel[1];
-        final JPanel card = makeCard(title, okText, cancelText, body, cb, new Runnable() { public void run() {
+        final JComponent[] cardHolder = new JComponent[1];
+        final JComponent card = makeCard(title, okText, cancelText, body, cb, new Runnable() { public void run() {
             // Called once card fade exits; remove from glass pane + deactivate modal glass
             gp.setActive(false);
             gp.remove(cardHolder[0]);
@@ -84,20 +84,27 @@ public class AstDialog {
     }
 
     /** Package/public helper used by AstMessageBox. */
-    public static JPanel makeCard(String title, String okText, String cancelText, JComponent body, final ResultCallback cb, final Runnable onClosed) {
+    public static JComponent makeCard(String title, String okText, String cancelText, JComponent body, final ResultCallback cb, final Runnable onClosed) {
         return new DialogCardPanel(title, okText, cancelText, body, cb, onClosed);
     }
 
     // --- Inner classes -----------------------------------------------------
 
-    public static final class DialogCardPanel extends JPanel {
-        private final Animator fade; // 0 hidden → 1 fully shown
-        float cardAlpha;
+    public static final class DialogCardPanel extends AstAbstractComponent {
         private final String title;
         final JComponent body;
         final Runnable onClosed;
         final ResultCallback resultCallback;
         private final String okText, cancelText;
+
+        @Override
+        protected void initComponent() {
+            super.initComponent();
+            anim.register("fade", 220, Easing::easeOut);
+        }
+
+        @Override
+        protected void selfCheck() {}
 
         DialogCardPanel(final String title, final String okText, final String cancelText, JComponent body, final ResultCallback cb, final Runnable onClosed) {
             this.title = title;
@@ -106,21 +113,18 @@ public class AstDialog {
             this.body = body == null ? new JPanel() : body;
             this.resultCallback = cb;
             this.onClosed = onClosed;
-            this.setOpaque(false);
-            this.cardAlpha = 0f;
-            this.fade = new Animator(220, new Easing() { public float apply(float t) { return Easing.easeOut(t); }},
-                new Animator.Listener() { public void update(float v) { cardAlpha = v; repaint(); }});
             buildLayout();
         }
 
+        void setCardAlpha(float v) { anim.setProgress("fade", v); }
+        float getCardAlpha() { return anim.getProgress("fade"); }
+
         void startFadeIn() {
-            fade.stop();
-            fade.go(cardAlpha, 1f);
+            anim.go("fade", anim.getProgress("fade"), 1f);
         }
 
         void startFadeOut(final Runnable after) {
-            fade.stop();
-            fade.go(cardAlpha, 0f, new Runnable() { public void run() {
+            anim.get("fade").go(anim.getProgress("fade"), 0f, new Runnable() { public void run() {
                 if (after != null) after.run();
             }});
         }
@@ -133,16 +137,15 @@ public class AstDialog {
             closeX.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { finish(RESULT_CANCEL); }});
             final JPanel titleBar = new JPanel() {
                 @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    Graphics2D g2 = createGraphics(g);
                     // Paint the 48px top section of the card background (rounded corners handled by outer card)
                     g2.setColor(Color.WHITE);
                     g2.fillRect(0, 0, getWidth(), getHeight());
-                    g2.setColor(ElementTheme.BORDER_BASE);
+                    g2.setColor(theme().getBorderBase());
                     g2.drawLine(0, getHeight()-1, getWidth(), getHeight()-1);
-                    g2.setColor(ElementTheme.TEXT_MAIN);
-                    ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstDialog title");
-                    g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+                    g2.setColor(theme().getTextPrimary());
+                    assertContrast(theme().getTextPrimary(), Color.WHITE, "AstDialog title");
+                    g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 16f));
                     FontMetrics fm = g2.getFontMetrics();
                     int baseY = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
                     g2.drawString(title, 24, baseY);
@@ -171,9 +174,8 @@ public class AstDialog {
             // Footer: SOUTH, height 64, right-aligned buttons, separator line at top, 24px right pad
             final JPanel footer = new JPanel() {
                 @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(ElementTheme.BORDER_BASE);
+                    Graphics2D g2 = createGraphics(g);
+                    g2.setColor(theme().getBorderBase());
                     g2.drawLine(0, 0, getWidth(), 0);
                     g2.dispose();
                 }
@@ -220,14 +222,13 @@ public class AstDialog {
         @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            Graphics2D g2 = createGraphics(g);
             int a = 255; // 整卡透明度由 paint() 的 AlphaComposite 统一控制，避免页头/按钮最后消失
             Color cardBg = new Color(0xFF, 0xFF, 0xFF, a);
-            Color borderC = new Color(ElementTheme.BORDER_BASE.getRed(), ElementTheme.BORDER_BASE.getGreen(), ElementTheme.BORDER_BASE.getBlue(), a);
-            ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstDialog body on card bg");
-            int r = ElementTheme.RADIUS * 2;
+            Color borderBase = theme().getBorderBase();
+            Color borderC = new Color(borderBase.getRed(), borderBase.getGreen(), borderBase.getBlue(), a);
+            assertContrast(theme().getTextRegular(), Color.WHITE, "AstDialog body on card bg");
+            int r = theme().getRadiusBase() * 2;
             RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, getWidth()-1.5f, getHeight()-1.5f, r, r);
             g2.setColor(cardBg);
             g2.fill(rect);
@@ -239,6 +240,7 @@ public class AstDialog {
 
         /** 整卡（标题栏/正文/页脚/按钮）随 cardAlpha 统一淡入淡出，避免各部分消失不同步。 */
         @Override public void paint(Graphics g) {
+            float cardAlpha = anim.getProgress("fade");
             if (cardAlpha >= 0.999f) { super.paint(g); return; }
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setComposite(AlphaComposite.SrcOver.derive(Math.max(0f, Math.min(1f, cardAlpha))));
@@ -272,7 +274,7 @@ public class AstDialog {
         if (c == null) return null;
         for (int i = 0; i < c.getComponentCount(); i++) {
             Component ch = c.getComponent(i);
-            if (ch instanceof JPanel && ((JPanel) ch).getComponentCount() > 0) return ch;
+            if (ch instanceof Container && ((Container) ch).getComponentCount() > 0) return ch;
         }
         return null;
     }
@@ -284,15 +286,18 @@ public class AstDialog {
             try { Thread.sleep(70); } catch (Throwable ignore) {}
             return;
         }
-        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
+        int x = Math.min(10, c.getWidth()/2);
+        int y = Math.min(10, c.getHeight()/2);
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), InputEvent.BUTTON1_DOWN_MASK, x, y, 1, false, MouseEvent.BUTTON1));
         try { Thread.sleep(15); } catch (Throwable ignore) {}
-        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_RELEASED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_RELEASED, System.currentTimeMillis(), 0, x, y, 1, false, MouseEvent.BUTTON1));
         try { Thread.sleep(15); } catch (Throwable ignore) {}
-        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, x, y, 1, false, MouseEvent.BUTTON1));
         try { Thread.sleep(15); } catch (Throwable ignore) {}
     }
 
     static void selfCheck() {
+        ThemeManager.ensureDefaultTheme();
         // Constructor argument validation: null owner → IAE, null title → IAE, owner not RPC → IAE
         boolean threw = false;
         try { AstDialog.show(null, "T", new JPanel(), null); } catch (IllegalArgumentException iae) { threw = true; }
@@ -308,7 +313,7 @@ public class AstDialog {
             JFrame jf = new JFrame("Dialog self-check"); jf.setSize(800, 600); jf.setVisible(true);
             JPanel body = new JPanel(new BorderLayout());
             JLabel info = new JLabel("<html>内容区<br>多行文字信息<br>第三行</html>", JLabel.CENTER);
-            info.setFont(info.getFont().deriveFont(13f)); info.setForeground(ElementTheme.TEXT_REGULAR);
+            info.setFont(info.getFont().deriveFont(13f)); info.setForeground(ThemeManager.getCurrent().getTextRegular());
             body.add(info, BorderLayout.CENTER);
             AstDialog.show(jf, "对话框标题", "保存", "取消", body, new AstDialog.ResultCallback() {
                 public void onResult(int resultCode) { res[0] = resultCode; }
@@ -370,9 +375,9 @@ public class AstDialog {
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         // makeCard public: test offscreen paint
-        JPanel card = AstDialog.makeCard("X", "A", "B", new JLabel("body"), null, null);
+        JComponent card = AstDialog.makeCard("X", "A", "B", new JLabel("body"), null, null);
         card.setSize(480, 240);
-        ((DialogCardPanel)card).cardAlpha = 1f; // skip fade animation directly to 1
+        ((DialogCardPanel)card).setCardAlpha(1f); // skip fade animation directly to 1
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(480, 240, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         Graphics2D gg = img.createGraphics();
         try { card.paint(gg); } finally { gg.dispose(); }

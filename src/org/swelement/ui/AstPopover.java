@@ -1,7 +1,7 @@
 package org.swelement.ui;
 
 import org.swelement.core.AnimatedPopup;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -31,7 +31,7 @@ import java.awt.geom.RoundRectangle2D;
  *  - 触发方式：CLICK（默认）/ HOVER。HOVER 模式参考 Tooltip 延时 200ms 显示，离开后 120ms 隐藏。
  *  - 关闭：再次点击触发器、点击卡片外部（AnimatedPopup 内置 AWT dismiss）、或调用 hidePopover()。
  */
-public class AstPopover extends JComponent {
+public class AstPopover extends AstAbstractComponent {
     public enum Trigger { CLICK, HOVER }
 
     private String title;
@@ -65,7 +65,6 @@ public class AstPopover extends JComponent {
         installInvoker(invokerBtn, true);
         setLayout(new BorderLayout());
         add(invokerBtn, BorderLayout.CENTER);
-        setOpaque(false);
     }
 
     /** 使用既有 JComponent 作为触发器（hover/click 由本组件接管监听）。 */
@@ -195,14 +194,13 @@ public class AstPopover extends JComponent {
     }
 
     // --- 卡片面板：标题 + 分隔线 + body ---
-    private static final class CardPanel extends JPanel {
+    private static final class CardPanel extends AstAbstractComponent {
         private final String title;
         private final JComponent body;
 
         CardPanel(String title, JComponent body) {
             this.title = title;
             this.body = body;
-            setOpaque(false);
             setLayout(new BorderLayout());
             add(new TitleBar(title), BorderLayout.NORTH);
             JPanel bodyWrap = new JPanel(new BorderLayout());
@@ -211,6 +209,8 @@ public class AstPopover extends JComponent {
             bodyWrap.add(body, BorderLayout.CENTER);
             add(bodyWrap, BorderLayout.CENTER);
         }
+
+        @Override protected void selfCheck() {}
 
         @Override public Dimension getPreferredSize() {
             Dimension bp = body.getPreferredSize();
@@ -222,35 +222,33 @@ public class AstPopover extends JComponent {
         @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-            int r = ElementTheme.RADIUS * 2;
+            Graphics2D g2 = createGraphics(g);
+            int r = theme().getRadiusBase() * 2;
             RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, getWidth()-1.5f, getHeight()-1.5f, r, r);
             g2.setColor(Color.WHITE);
             g2.fill(rect);
-            g2.setColor(ElementTheme.BORDER_BASE);
+            g2.setColor(theme().getBorderBase());
             g2.setStroke(new BasicStroke(1f));
             g2.draw(rect);
             g2.dispose();
         }
 
-        private static final class TitleBar extends JPanel {
+        private static final class TitleBar extends AstAbstractComponent {
             private final String title;
-            TitleBar(String title) { this.title = title; setOpaque(false); }
+            TitleBar(String title) { this.title = title; }
+            @Override protected void selfCheck() {}
             @Override public Dimension getPreferredSize() { return new Dimension(240, 36); }
             @Override public Dimension getMinimumSize() { return new Dimension(120, 36); }
             @Override public boolean isOptimizedDrawingEnabled() { return false; }
             @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Graphics2D g2 = createGraphics(g);
                 g2.setColor(Color.WHITE);
                 g2.fillRect(0, 0, getWidth(), getHeight()-1);
-                g2.setColor(ElementTheme.BORDER_BASE);
+                g2.setColor(theme().getBorderBase());
                 g2.drawLine(0, getHeight()-1, getWidth(), getHeight()-1);
-                g2.setColor(ElementTheme.TEXT_MAIN);
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstPopover title");
-                g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 14f));
+                g2.setColor(theme().getTextPrimary());
+                assertContrast(theme().getTextPrimary(), Color.WHITE, "AstPopover title");
+                g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 14f));
                 FontMetrics fm = g2.getFontMetrics();
                 int baseY = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
                 String t = title; int maxW = getWidth() - 24;
@@ -265,7 +263,8 @@ public class AstPopover extends JComponent {
         }
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstPopover(null, new JPanel(), AnimatedPopup.Direction.BELOW); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null title must throw"; threw = false;
@@ -292,7 +291,7 @@ public class AstPopover extends JComponent {
         try {
             SwingUtilities.invokeAndWait(new Runnable() { public void run() {
                 JFrame jf = new JFrame("AstPopover SC"); jf.setSize(800, 600); jf.setVisible(true);
-                JLabel info = new JLabel("卡片正文"); info.setForeground(ElementTheme.TEXT_REGULAR);
+                JLabel info = new JLabel("卡片正文"); info.setForeground(theme().getTextRegular());
                 AstPopover pop = new AstPopover("提示标题", info, AnimatedPopup.Direction.BELOW, "点我");
                 JPanel cp = (JPanel) jf.getContentPane(); cp.setLayout(new FlowLayout()); cp.add(pop); jf.pack();
                 pop.showPopover();
@@ -339,7 +338,7 @@ public class AstPopover extends JComponent {
         if (err[0] != null) throw new RuntimeException(err[0]);
 
         // 离屏绘制 CardPanel 校验对比度断言
-        JLabel info = new JLabel("正文"); info.setForeground(ElementTheme.TEXT_REGULAR);
+        JLabel info = new JLabel("正文"); info.setForeground(theme().getTextRegular());
         CardPanel card = new CardPanel("标题", info);
         card.setSize(card.getPreferredSize());
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
@@ -350,5 +349,7 @@ public class AstPopover extends JComponent {
         assert a > 120 : "CardPanel 绘制不透明 alpha=" + a;
         System.out.println("AstPopover self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstPopover("test", new JLabel("body"), AnimatedPopup.Direction.BELOW).selfCheck();
+    }
 }

@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
 import org.swelement.core.AnimatedPopup;
-import org.swelement.core.ElementTheme;
 import org.swelement.core.PopupPositioner;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -26,19 +26,18 @@ public class AstTooltip {
     private static final IdentityHashMap<JComponent, MouseAdapter> mouseAdapters = new IdentityHashMap<JComponent, MouseAdapter>();
     private static final IdentityHashMap<JComponent, Timer> pendingTimers = new IdentityHashMap<JComponent, Timer>();
     private static final AnimatedPopup sharedPopup;
-    private static final JPanel balloon;
+    private static final AstAbstractComponent balloon;
     private static String currentText;
     private static Effect currentEffect;
     private static JComponent currentInvoker;
 
     static {
         sharedPopup = new AnimatedPopup();
-        balloon = new JPanel() {
+        balloon = new AstAbstractComponent() {
+            @Override protected void selfCheck() {}
             @Override public boolean isOptimizedDrawingEnabled() { return false; }
             @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+                Graphics2D g2 = createGraphics(g);
                 Effect eff = currentEffect;
                 Color bg; Color fg; Color borderC;
                 if (eff == Effect.DARK) {
@@ -47,11 +46,11 @@ public class AstTooltip {
                     borderC = null;
                 } else {
                     bg = Color.WHITE;
-                    fg = ElementTheme.TEXT_MAIN;
-                    borderC = ElementTheme.BORDER_BASE;
+                    fg = theme().getTextPrimary();
+                    borderC = theme().getBorderBase();
                 }
-                ElementTheme.assertContrast(fg, bg, "AstTooltip balloon text");
-                int r = ElementTheme.RADIUS;
+                assertContrast(fg, bg, "AstTooltip balloon text");
+                int r = theme().getRadiusBase();
                 RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, getWidth()-1.5f, getHeight()-1.5f, r, r);
                 g2.setColor(bg); g2.fill(rect);
                 if (borderC != null) {
@@ -61,7 +60,7 @@ public class AstTooltip {
                 }
                 // Centered single-line text at x=12, y=height/2 baseline
                 g2.setColor(fg);
-                g2.setFont(ElementTheme.FONT.deriveFont(14f));
+                g2.setFont(theme().getFontBase().deriveFont(14f));
                 FontMetrics fm = g2.getFontMetrics();
                 int baseY = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
                 String t = currentText == null ? "" : currentText;
@@ -78,7 +77,7 @@ public class AstTooltip {
                 g2.dispose();
             }
             @Override public Dimension getPreferredSize() {
-                Font f = ElementTheme.FONT.deriveFont(14f);
+                Font f = theme().getFontBase().deriveFont(14f);
                 FontMetrics fm = getFontMetrics(f);
                 int w = 24 + fm.stringWidth(currentText == null ? "" : currentText);
                 int h = fm.getHeight() + 12;
@@ -87,7 +86,6 @@ public class AstTooltip {
             }
             @Override public Dimension getMinimumSize() { return getPreferredSize(); }
         };
-        balloon.setOpaque(false);
         sharedPopup.getContent().setLayout(new BorderLayout());
         sharedPopup.getContent().add(balloon, BorderLayout.CENTER);
         AnimatedPopup.registerGlobal(sharedPopup, AnimatedPopup.PopupLayer.TOOL);

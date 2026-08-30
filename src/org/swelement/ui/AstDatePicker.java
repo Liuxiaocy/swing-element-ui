@@ -1,7 +1,7 @@
 package org.swelement.ui;
 
 import org.swelement.core.AnimatedPopup;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,7 +19,7 @@ import java.util.function.Consumer;
  *   dp.setDate(LocalDate.of(2026, 8, 21));
  *   dp.setDateChangeListener(date -> System.out.println("选中: " + date));
  */
-public class AstDatePicker extends JComponent implements FormValueProvider, FormInvalidMarker {
+public class AstDatePicker extends AstAbstractComponent implements FormValueProvider, FormInvalidMarker {
     private LocalDate selectedDate;
     private LocalDate viewMonth;    // 当前显示的月份 (1st of month)
     private String placeholder = "选择日期";
@@ -50,7 +50,8 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
     public AstDatePicker(LocalDate initial) {
         this.selectedDate = initial;
         this.viewMonth = (initial == null ? LocalDate.now() : initial).withDayOfMonth(1);
-        this.invoker = new AstButton((initial == null ? placeholder : formatDate(initial)) + "  📅", AstButton.DEFAULT, false);
+        this.invoker = new AstButton((initial == null ? placeholder : formatDate(initial)), AstButton.DEFAULT, false);
+        invoker.setIcon(new AstIcon(AstIcon.Type.CALENDAR));
         this.popup = new AnimatedPopup();
         popup.setDismissListener(new Runnable() { public void run() { open = false; }});
         this.calendarPanel = new CalendarPanel();
@@ -58,8 +59,12 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
         this.invoker.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { toggle(); }});
         setLayout(new BorderLayout());
         add(invoker, BorderLayout.CENTER);
-        setOpaque(false);
         applyTier();
+    }
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
     }
 
     public void setDate(LocalDate date) {
@@ -87,7 +92,7 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
     }
     @Override public void setInvalid(boolean inv) {
         this.invalid = inv;
-        setBorder(inv ? BorderFactory.createLineBorder(ElementTheme.DANGER, 1) : null);
+        setBorder(inv ? BorderFactory.createLineBorder(theme().getDanger(), 1) : null);
         repaint();
     }
 
@@ -137,8 +142,8 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
     public boolean isOpen() { return open; }
 
     private void updateInvokerText() {
-        if (selectedDate != null) invoker.setText(formatDate(selectedDate) + "  📅");
-        else invoker.setText(placeholder + "  📅");
+        if (selectedDate != null) invoker.setText(formatDate(selectedDate));
+        else invoker.setText(placeholder);
     }
 
     private static String formatDate(LocalDate d) {
@@ -154,6 +159,11 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
         CalendarPanel() {
             setOpaque(false);
             setLayout(new BorderLayout());
+            addMouseListener(new MouseAdapter() {
+                @Override public void mouseClicked(MouseEvent e) {
+                    handleClick(e.getX(), e.getY());
+                }
+            });
         }
 
         void updateView() { repaint(); }
@@ -169,8 +179,8 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
             int W = getWidth(), H = getHeight();
             // Card background: white with border
             Color bg = Color.WHITE;
-            Color borderC = ElementTheme.BORDER_BASE;
-            int r = ElementTheme.RADIUS * 2;
+            Color borderC = AstDatePicker.this.theme().getBorderBase();
+            int r = AstDatePicker.this.theme().getRadiusBase() * 2;
             RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, W-1.5f, H-1.5f, r, r);
             g2.setColor(bg); g2.fill(rect);
             g2.setColor(borderC); g2.setStroke(new BasicStroke(1f)); g2.draw(rect);
@@ -178,29 +188,29 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
             // Header: year-month centered + left arrow + right arrow
             int headerY = 0;
             String headerText = viewMonth.getYear() + " 年 " + viewMonth.getMonthValue() + " 月";
-            g2.setColor(ElementTheme.TEXT_MAIN);
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstDatePicker header");
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 15f));
+            g2.setColor(AstDatePicker.this.theme().getTextPrimary());
+            AstDatePicker.this.assertContrast(AstDatePicker.this.theme().getTextPrimary(), Color.WHITE, "AstDatePicker header");
+            g2.setFont(AstDatePicker.this.theme().getFontBase().deriveFont(Font.BOLD, 15f));
             FontMetrics hfm = g2.getFontMetrics();
             int hx = (W - hfm.stringWidth(headerText)) / 2;
             int hy = headerY + (HEADER_H - hfm.getHeight()) / 2 + hfm.getAscent();
             g2.drawString(headerText, hx, hy);
 
             // Left/Right arrows: draw clickable regions
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+            g2.setFont(AstDatePicker.this.theme().getFontBase().deriveFont(Font.BOLD, 16f));
             FontMetrics afm = g2.getFontMetrics();
-            g2.setColor(ElementTheme.TEXT_REGULAR);
+            g2.setColor(AstDatePicker.this.theme().getTextRegular());
             g2.drawString("‹", 16, headerY + (HEADER_H - afm.getHeight()) / 2 + afm.getAscent());
             g2.drawString("›", W - 16 - afm.stringWidth("›"), headerY + (HEADER_H - afm.getHeight()) / 2 + afm.getAscent());
 
             // Weekday row
             int wky = HEADER_H;
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 12f));
+            g2.setFont(AstDatePicker.this.theme().getFontBase().deriveFont(Font.PLAIN, 12f));
             FontMetrics wfm = g2.getFontMetrics();
             for (int i = 0; i < 7; i++) {
                 int cx = 8 + i * CELL_W + (CELL_W - wfm.stringWidth(WEEKDAYS[i])) / 2;
                 int cy = wky + (WEEKDAY_H - wfm.getHeight()) / 2 + wfm.getAscent();
-                g2.setColor(ElementTheme.TEXT_PLACEHOLDER);
+                g2.setColor(AstDatePicker.this.theme().getTextPlaceholder());
                 g2.drawString(WEEKDAYS[i], cx, cy);
             }
 
@@ -211,7 +221,7 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
             LocalDate gridStart = firstOfMonth.minusDays(firstDayOfWeek);
             LocalDate today = LocalDate.now();
 
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 14f));
+            g2.setFont(AstDatePicker.this.theme().getFontBase().deriveFont(Font.PLAIN, 14f));
             FontMetrics dfm = g2.getFontMetrics();
             for (int row = 0; row < 6; row++) {
                 for (int col = 0; col < 7; col++) {
@@ -225,28 +235,28 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
 
                     if (isSelected) {
                         // Selected: PRIMARY bg + white text (Element UI standard, skip assertContrast — same as Button)
-                        g2.setColor(ElementTheme.PRIMARY);
+                        g2.setColor(AstDatePicker.this.theme().getPrimary());
                         g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
                         g2.setColor(Color.WHITE);
                     } else if (isToday) {
                         // Today: PRIMARY ring border + PRIMARY text
                         g2.setColor(Color.WHITE);
                         g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
-                        g2.setColor(ElementTheme.PRIMARY);
+                        g2.setColor(AstDatePicker.this.theme().getPrimary());
                         g2.setStroke(new BasicStroke(1.5f));
                         g2.draw(new RoundRectangle2D.Float(cellX + 2.5f, cellY + 2.5f, CELL_W - 5, CELL_H - 5, 4, 4));
-                        g2.setColor(ElementTheme.PRIMARY);
+                        g2.setColor(AstDatePicker.this.theme().getPrimary());
                     } else if (isCurrentMonth) {
                         // Normal day: TEXT_MAIN on WHITE
                         g2.setColor(Color.WHITE);
                         g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
-                        g2.setColor(ElementTheme.TEXT_MAIN);
-                        ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstDatePicker normal day");
+                        g2.setColor(AstDatePicker.this.theme().getTextPrimary());
+                        AstDatePicker.this.assertContrast(AstDatePicker.this.theme().getTextPrimary(), Color.WHITE, "AstDatePicker normal day");
                     } else {
                         // Other month: TEXT_PLACEHOLDER on WHITE (light gray, skip assertContrast)
                         g2.setColor(Color.WHITE);
                         g2.fill(new RoundRectangle2D.Float(cellX + 2, cellY + 2, CELL_W - 4, CELL_H - 4, 4, 4));
-                        g2.setColor(ElementTheme.TEXT_PLACEHOLDER);
+                        g2.setColor(AstDatePicker.this.theme().getTextPlaceholder());
                     }
                     // Draw day number centered
                     String dayStr = String.valueOf(cellDate.getDayOfMonth());
@@ -258,8 +268,8 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
 
             // Footer: "今天" button area
             int footY = wky + WEEKDAY_H + 6 * CELL_H + 4;
-            g2.setColor(ElementTheme.TEXT_REGULAR);
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 13f));
+            g2.setColor(AstDatePicker.this.theme().getTextRegular());
+            g2.setFont(AstDatePicker.this.theme().getFontBase().deriveFont(Font.PLAIN, 13f));
             FontMetrics ffm = g2.getFontMetrics();
             String footText = "点击今天: " + formatDate(today);
             int fx = (W - ffm.stringWidth(footText)) / 2;
@@ -271,35 +281,43 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
 
         @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
+        /**
+         * 命中检测：必须是纯判定，不能有任何副作用。
+         * Swing 在鼠标移动/进入时通过 findComponentAt → contains 逐层探测，
+         * 若在此执行业务逻辑，会令鼠标"移入"即触发动作（见 handleClick）。
+         */
         @Override public boolean contains(int x, int y) {
-            // Click handling
+            return x >= 0 && x < getWidth() && y >= 0 && y < getHeight();
+        }
+
+        /** 鼠标真正点击后处理：选中日期 / 翻月 / 今天。移入不会触达此处。 */
+        private void handleClick(int x, int y) {
             int W = getWidth();
             // Header arrows
             if (y < HEADER_H) {
                 if (x < 40) { // Left arrow
                     viewMonth = viewMonth.minusMonths(1);
                     repaint();
-                    return true;
+                    return;
                 }
                 if (x > W - 40) { // Right arrow
                     viewMonth = viewMonth.plusMonths(1);
                     repaint();
-                    return true;
+                    return;
                 }
-                return true; // header click, no action
+                return; // header click, no action
             }
             // Day grid
             int wky = HEADER_H;
-            int gridStart = 8;
             if (y >= wky + WEEKDAY_H && y < wky + WEEKDAY_H + 6 * CELL_H) {
-                int col = (x - gridStart) / CELL_W;
+                int col = (x - 8) / CELL_W;
                 int row = (y - wky - WEEKDAY_H) / CELL_H;
                 if (col >= 0 && col < 7 && row >= 0 && row < 6) {
                     LocalDate firstOfMonth = viewMonth.withDayOfMonth(1);
                     int firstDayOfWeek = firstOfMonth.getDayOfWeek().getValue() % 7;
                     LocalDate gridStartDate = firstOfMonth.minusDays(firstDayOfWeek);
                     LocalDate clicked = gridStartDate.plusDays(row * 7 + col);
-                    // AstSelect the clicked date
+                    // 选中点击的日期
                     selectedDate = clicked;
                     if (clicked.getMonth() != viewMonth.getMonth() || clicked.getYear() != viewMonth.getYear()) {
                         viewMonth = clicked.withDayOfMonth(1); // navigate to clicked month
@@ -308,7 +326,7 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
                     if (dateChangeListener != null) dateChangeListener.accept(clicked);
                     repaint();
                     hideDatePicker();
-                    return true;
+                    return;
                 }
             }
             // Footer "今天" click
@@ -320,14 +338,13 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
                 if (dateChangeListener != null) dateChangeListener.accept(selectedDate);
                 repaint();
                 hideDatePicker();
-                return true;
             }
-            return false;
         }
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // Constructor: null initial → empty (no selection) picker, not an error
         AstDatePicker empty = new AstDatePicker(null);
         assert empty.getFormValue().isEmpty() : "null initial → empty picker";
@@ -392,6 +409,14 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
             int dayPx = img.getRGB(8 + 3 * CELL_W + CELL_W / 2, HEADER_H + WEEKDAY_H + 2 * CELL_H + CELL_H / 2);
             int da = (dayPx >>> 24) & 0xFF;
             assert da > 100 : "day cell rendered; alpha=" + da;
+            // Regression: 移入(contains)不得选中；点击(handleClick)才选中
+            // row=2 col=3 对应 2026-08-12（网格起点 Jul 26 + 17 天）
+            LocalDate beforeRe = dp.getDate();
+            boolean hitRe = dp.calendarPanel.contains(134, 148);
+            assert hitRe : "day cell hit";
+            assert dp.getDate().equals(beforeRe) : "hover(contains) must NOT select; got " + dp.getDate();
+            dp.calendarPanel.handleClick(134, 148);
+            assert dp.getDate().equals(LocalDate.of(2026, 8, 12)) : "click(handleClick) should select 2026-08-12; got " + dp.getDate();
             // Close
             dp.hideDatePicker();
             jf.dispose();
@@ -419,5 +444,7 @@ public class AstDatePicker extends JComponent implements FormValueProvider, Form
 
         System.out.println("AstDatePicker self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstDatePicker().selfCheck();
+    }
 }

@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.core.theme.Theme;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,7 +11,7 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 
-public class AstAvatar extends JComponent {
+public class AstAvatar extends AstDisplayComponent {
     public static final int CIRCLE = 0, SQUARE = 1;
     public static final int SIZE_SMALL = 32, SIZE_DEFAULT = 40, SIZE_LARGE = 64;
     /** 角标外扩边距：组件边界比头像大一圈，给右上角角标完整的绘制空间，
@@ -23,12 +23,6 @@ public class AstAvatar extends JComponent {
     private final String text;
     private final ImageIcon icon;
     private final AstBadge badge;
-    private final Animator hoverAnim = new Animator(150, new Easing() {
-        public float apply(float t) { return Easing.easeInOut(t); }
-    }, new Animator.Listener() {
-        public void update(float v) { hover = v; repaint(); }
-    });
-    private float hover;
 
     public AstAvatar(char c, int size, int shape) {
         this(ColorFactory.pick(c), String.valueOf(c), null, size, shape);
@@ -43,7 +37,6 @@ public class AstAvatar extends JComponent {
         this.bg = bg; this.text = text == null ? "" : text; this.icon = icon;
         this.size = size; this.shape = shape;
         this.badge = new AstBadge();
-        setOpaque(false);
         setLayout(null);
         add(badge);
         JLabel ph = new JLabel();
@@ -51,9 +44,21 @@ public class AstAvatar extends JComponent {
         badge.setContent(ph);
         badge.setDot(false);
         badge.setCount(0);
+    }
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("hover", 150, Easing::easeInOut);
         addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 1f); } }
-            public void mouseExited(MouseEvent e)  { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
+            public void mouseEntered(MouseEvent e) {
+                if (isEnabled()) {
+                    anim.go("hover", anim.getProgress("hover"), 1f);
+                }
+            }
+            public void mouseExited(MouseEvent e) {
+                anim.go("hover", anim.getProgress("hover"), 0f);
+            }
         });
     }
 
@@ -61,14 +66,13 @@ public class AstAvatar extends JComponent {
     public void setBadgeDot(boolean b)  { badge.setDot(b); }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
+        Graphics2D g2 = createGraphics(g);
         g2.translate(BADGE_PAD, BADGE_PAD);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-        Color bgLift = ElementTheme.lerp(bg, ElementTheme.lerp(bg, Color.WHITE, 0.15f), hover * 0.5f);
+        float hover = anim.getProgress("hover");
+        Color bgLift = lerp(bg, lerp(bg, Color.WHITE, 0.15f), hover * 0.5f);
         Color bgPaint = new Color(bgLift.getRGB());
         Shape s;
-        int rad = ElementTheme.RADIUS * 2;
+        int rad = radius() * 2;
         if (shape == CIRCLE) {
             s = new Ellipse2D.Float(0.5f, 0.5f, size - 1f, size - 1f);
         } else {
@@ -77,19 +81,20 @@ public class AstAvatar extends JComponent {
         g2.setColor(bgPaint);
         g2.fill(s);
         if (hover > 0.01f) {
-            g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), Math.round(80*hover)));
+            Color primary = theme().getPrimary();
+            g2.setColor(new Color(primary.getRed(), primary.getGreen(), primary.getBlue(), Math.round(80 * hover)));
             g2.setStroke(new BasicStroke(2f));
             g2.draw(s);
         }
-        Color fg = ElementTheme.pickTextColorForBg(bgPaint);
-        ElementTheme.assertContrast(fg, bgPaint, "AstAvatar shape="+shape+" lum="+String.format("%.2f", ElementTheme.luminance(bgPaint)));
+        Color fg = pickTextColorForBg(bgPaint);
+        assertContrast(fg, bgPaint, "AstAvatar shape=" + shape + " lum=" + String.format("%.2f", luminance(bgPaint)));
         if (icon != null) {
             int iw = Math.min(icon.getIconWidth(), Math.max(4, size - 8));
             int ih = Math.min(icon.getIconHeight(), Math.max(4, size - 8));
             icon.paintIcon(this, g2, (size - iw) / 2, (size - ih) / 2);
         } else if (text.length() > 0) {
             g2.setColor(fg);
-            Font f = ElementTheme.FONT.deriveFont(Font.BOLD, Math.max(10f, size * 0.4f));
+            Font f = theme().getFontBase().deriveFont(Font.BOLD, Math.max(10f, size * 0.4f));
             g2.setFont(f);
             FontMetrics fm = g2.getFontMetrics(f);
             String txt = text.length() > 2 ? text.substring(0, 2) : text;
@@ -122,7 +127,7 @@ public class AstAvatar extends JComponent {
         static Color pick(char c) { return POOL[(c & 0x7fffffff) % POOL.length]; }
     }
 
-    static void selfCheck() {
+    @Override protected void selfCheck() {
         AstAvatar dark = new AstAvatar(new Color(0x111111), "X", 40, CIRCLE);
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(80, 80, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         Graphics2D gg = img.createGraphics();
@@ -161,7 +166,7 @@ public class AstAvatar extends JComponent {
             AstAvatar bad = new AstAvatar(new Color(0x888888), "A", 40, CIRCLE) {
                 @Override protected void paintComponent(Graphics g) {
                     Color same = new Color(0x888888);
-                    ElementTheme.assertContrast(same, same, "AstAvatar.sameColorTest");
+                    assertContrast(same, same, "AstAvatar.sameColorTest");
                 }
             };
             bad.paintComponent(null);
@@ -173,7 +178,11 @@ public class AstAvatar extends JComponent {
             AstAvatar ch = new AstAvatar('P', sz, CIRCLE);
             assert ch.getPreferredSize().width == sz + 2*BADGE_PAD;
         }
+        // 停掉 setBadgeCount 触发的 badge pop 动画 Timer，否则自检 JVM 无法退出
+        a2.removeNotify();
         System.out.println("AstAvatar self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstAvatar('A', SIZE_DEFAULT, CIRCLE).selfCheck();
+    }
 }

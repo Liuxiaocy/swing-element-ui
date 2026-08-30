@@ -1,13 +1,13 @@
 package org.swelement.ui;
 
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstContainerComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import java.awt.*;
 
-public class AstContainer extends JPanel {
+public class AstContainer extends AstContainerComponent {
     public static final int VERTICAL = 0, HORIZONTAL = 1;
     public static final int HEADER_H = 64, ASIDE_W = 220, FOOTER_H = 48;
 
@@ -18,8 +18,7 @@ public class AstContainer extends JPanel {
 
     public AstContainer(int direction) {
         this.direction = direction;
-        setOpaque(true);
-        setBackground(ElementTheme.FILL_BLANK);
+        setBackground(theme().getFillBlank());
         north = new JPanel(new BorderLayout()); north.setOpaque(false);
         south = new JPanel(new BorderLayout()); south.setOpaque(false);
         west  = new JPanel(new BorderLayout()); west.setOpaque(false);
@@ -42,10 +41,10 @@ public class AstContainer extends JPanel {
         if (h == null) throw new IllegalArgumentException("header must not be null");
         if (header != null) north.remove(header);
         header = h;
-        h.setBorder(new MatteBorder(0, 0, 1, 0, ElementTheme.BORDER_BASE));
+        h.setBorder(new MatteBorder(0, 0, 1, 0, theme().getBorderBase()));
         h.setPreferredSize(new Dimension(h.getPreferredSize().width, HEADER_H));
-        if (h.getBackground() == null || ElementTheme.FILL_BLANK.equals(h.getBackground()) || Color.WHITE.equals(h.getBackground())) {
-            h.setBackground(ElementTheme.FILL_BASE);
+        if (h.getBackground() == null || theme().getFillBlank().equals(h.getBackground()) || Color.WHITE.equals(h.getBackground())) {
+            h.setBackground(theme().getFillBase());
         }
         if (h.isOpaque() == false) h.setOpaque(true);
         north.add(h, BorderLayout.CENTER);
@@ -58,14 +57,14 @@ public class AstContainer extends JPanel {
         aside = a;
         if (direction == HORIZONTAL) {
             a.setPreferredSize(new Dimension(ASIDE_W, Math.max(a.getPreferredSize().height, 400)));
-            a.setBorder(new MatteBorder(0, 0, 0, 1, ElementTheme.BORDER_BASE));
+            a.setBorder(new MatteBorder(0, 0, 0, 1, theme().getBorderBase()));
         } else {
             a.setPreferredSize(new Dimension(Math.max(a.getPreferredSize().width, 400), 40));
-            a.setBorder(new MatteBorder(0, 0, 1, 0, ElementTheme.BORDER_BASE));
+            a.setBorder(new MatteBorder(0, 0, 1, 0, theme().getBorderBase()));
         }
         if (a.isOpaque() == false) a.setOpaque(true);
-        if (a.getBackground() == null || ElementTheme.FILL_BLANK.equals(a.getBackground()) || Color.WHITE.equals(a.getBackground())) {
-            a.setBackground(ElementTheme.FILL_BASE);
+        if (a.getBackground() == null || theme().getFillBlank().equals(a.getBackground()) || Color.WHITE.equals(a.getBackground())) {
+            a.setBackground(theme().getFillBase());
         }
         west.add(a, BorderLayout.CENTER);
         revalidate();
@@ -86,18 +85,19 @@ public class AstContainer extends JPanel {
         footer = f;
         f.setPreferredSize(new Dimension(f.getPreferredSize().width, FOOTER_H));
         if (f.isOpaque() == false) f.setOpaque(true);
-        if (f.getBackground() == null || ElementTheme.FILL_BLANK.equals(f.getBackground()) || Color.WHITE.equals(f.getBackground())) {
-            f.setBackground(ElementTheme.FILL_BASE);
+        if (f.getBackground() == null || theme().getFillBlank().equals(f.getBackground()) || Color.WHITE.equals(f.getBackground())) {
+            f.setBackground(theme().getFillBase());
         }
-        f.setBorder(new MatteBorder(1, 0, 0, 0, ElementTheme.BORDER_BASE));
+        f.setBorder(new MatteBorder(1, 0, 0, 0, theme().getBorderBase()));
         south.add(f, BorderLayout.CENTER);
         revalidate();
     }
 
     public int getDirection() { return direction; }
 
-    static void selfCheck() {
-        final AstContainer c = new AstContainer(HORIZONTAL);
+    @Override
+    protected void selfCheck() {
+        final AstContainer c = this;
         final JPanel h = new JPanel(); h.setBackground(Color.white);
         final JPanel a = new JPanel(); a.setBackground(Color.white);
         final JPanel m = new JPanel(); m.setBackground(Color.white);
@@ -151,5 +151,7 @@ public class AstContainer extends JPanel {
         assert vertHeights[1] >= 40 : "VERTICAL aside height >= 40, got "+vertHeights[1];
         System.out.println("AstContainer self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstContainer(HORIZONTAL).selfCheck();
+    }
 }

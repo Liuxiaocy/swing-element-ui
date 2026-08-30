@@ -21,7 +21,7 @@ public class RadioDemo {
             // 基础单选：支付方式
             JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 30, 8));
             p1.setBorder(new TitledBorder("支付方式（单选 - 观察内点缩放出现动画）"));
-            ButtonGroup pay = new ButtonGroup();
+            AstRadio.Group pay = new AstRadio.Group();
             AstRadio a = new AstRadio("💳 信用卡");
             AstRadio b = new AstRadio("🧧 支付宝");
             AstRadio c = new AstRadio("💚 微信支付");
@@ -37,7 +37,7 @@ public class RadioDemo {
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.anchor = GridBagConstraints.WEST;
             gbc.insets = new Insets(4, 14, 4, 24);
-            ButtonGroup ship = new ButtonGroup();
+            AstRadio.Group ship = new AstRadio.Group();
             String[][] opts = {
                     {"🚀 当天达（3小时内）", "¥ 20.00"},
                     {"📦 次日达（次日上午）", "¥ 10.00"},

@@ -1,8 +1,7 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,27 +24,28 @@ import java.util.function.Consumer;
  * 最后一段 TEXT_PLACEHOLDER（不可点）。分隔符 TEXT_PLACEHOLDER。
  * 文字超宽省略 …。
  */
-public class AstBreadcrumb extends JComponent {
+public class AstBreadcrumb extends AstAbstractComponent {
     private final List<String> items = new ArrayList<String>();
     private String separator = "/";
     private Consumer<Integer> itemClickListener;
     private int hoverIndex = -1;
-    private final Animator hoverAnim;
-    private float hoverAlpha;
 
     private static final int FONT_SIZE = 14;
     private static final int ITEM_PAD = 8;       // 文字左右内边距
     private static final int SEP_PAD = 6;        // 分隔符左右间距
     private static final int ROW_H = 24;
 
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("hover", 150, Easing::easeInOut);
+    }
+
     public AstBreadcrumb() { this(new ArrayList<String>()); }
     public AstBreadcrumb(List<String> items) { setItems0(items);
-        hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-            new Animator.Listener() { public void update(float v) { hoverAlpha = v; repaint(); }});
-        setOpaque(false);
         addMouseListener(new MouseAdapter() {
             @Override public void mouseExited(MouseEvent e) {
-                hoverIndex = -1; hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
+                hoverIndex = -1; anim.go("hover", anim.getProgress("hover"), 0f);
             }
             @Override public void mousePressed(MouseEvent e) {
                 int idx = itemIndexAt(e.getPoint());
@@ -60,7 +60,7 @@ public class AstBreadcrumb extends JComponent {
                     hoverIndex = idx;
                     // 末段不 hover 高亮
                     if (idx == items.size() - 1) idx = -1;
-                    hoverAnim.stop(); hoverAnim.go(hoverAlpha, idx >= 0 ? 1f : 0f);
+                    anim.go("hover", anim.getProgress("hover"), idx >= 0 ? 1f : 0f);
                 }
             }
         });
@@ -94,7 +94,7 @@ public class AstBreadcrumb extends JComponent {
 
     @Override public Dimension getPreferredSize() {
         Graphics g = getGraphics();
-        FontMetrics fm = (g == null) ? null : g.getFontMetrics(ElementTheme.FONT.deriveFont((float) FONT_SIZE));
+        FontMetrics fm = (g == null) ? null : g.getFontMetrics(theme().getFontBase().deriveFont((float) FONT_SIZE));
         int w = 0;
         for (int i = 0; i < items.size(); i++) {
             int itemW = (fm == null) ? items.get(i).length() * 14 + 2 * ITEM_PAD : fm.stringWidth(items.get(i)) + 2 * ITEM_PAD;
@@ -110,9 +110,9 @@ public class AstBreadcrumb extends JComponent {
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setFont(ElementTheme.FONT.deriveFont((float) FONT_SIZE));
+        Graphics2D g2 = createGraphics(g);
+        float hoverAlpha = anim.getProgress("hover");
+        g2.setFont(theme().getFontBase().deriveFont((float) FONT_SIZE));
         FontMetrics fm = g2.getFontMetrics();
         int x = 0;
         int y = (ROW_H - fm.getHeight()) / 2 + fm.getAscent();
@@ -121,13 +121,13 @@ public class AstBreadcrumb extends JComponent {
             boolean isHovered = (i == hoverIndex && !isLast && hoverAlpha > 0.01f);
             Color textColor;
             if (isLast) {
-                textColor = ElementTheme.TEXT_PLACEHOLDER;
+                textColor = theme().getTextPlaceholder();
             } else if (isHovered) {
-                textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha);
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstBreadcrumb idle item");
+                textColor = lerp(theme().getTextPrimary(), theme().getPrimary(), hoverAlpha);
+                assertContrast(theme().getTextPrimary(), Color.WHITE, "AstBreadcrumb idle item");
             } else {
-                textColor = ElementTheme.TEXT_MAIN;
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstBreadcrumb idle item");
+                textColor = theme().getTextPrimary();
+                assertContrast(theme().getTextPrimary(), Color.WHITE, "AstBreadcrumb idle item");
             }
             String label = items.get(i);
             int maxItemW = 200;
@@ -138,7 +138,8 @@ public class AstBreadcrumb extends JComponent {
             if (isHovered) {
                 int tw = fm.stringWidth(clipped);
                 int uy = y + 2;
-                Color under = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), Math.round(255 * hoverAlpha));
+                Color primary = theme().getPrimary();
+                Color under = new Color(primary.getRed(), primary.getGreen(), primary.getBlue(), Math.round(255 * hoverAlpha));
                 g2.setColor(under);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawLine(x + ITEM_PAD, uy, x + ITEM_PAD + tw, uy);
@@ -146,7 +147,7 @@ public class AstBreadcrumb extends JComponent {
             x += fm.stringWidth(clipped) + 2 * ITEM_PAD;
             // separator
             if (!isLast) {
-                g2.setColor(ElementTheme.TEXT_PLACEHOLDER);
+                g2.setColor(theme().getTextPlaceholder());
                 g2.drawString(separator, x + SEP_PAD, y);
                 x += fm.stringWidth(separator) + 2 * SEP_PAD;
             }
@@ -158,7 +159,7 @@ public class AstBreadcrumb extends JComponent {
         Graphics g = getGraphics();
         if (g == null) return -1;
         Graphics2D g2 = (Graphics2D) g.create();
-        g2.setFont(ElementTheme.FONT.deriveFont((float) FONT_SIZE));
+        g2.setFont(theme().getFontBase().deriveFont((float) FONT_SIZE));
         FontMetrics fm = g2.getFontMetrics();
         int x = 0;
         int idx = -1;
@@ -185,7 +186,8 @@ public class AstBreadcrumb extends JComponent {
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstBreadcrumb(null); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "null items"; threw = false;
@@ -200,6 +202,9 @@ public class AstBreadcrumb extends JComponent {
         assert bc.getItems().size() == 3 : "3 items";
         bc.setItems(Arrays.asList("a", "b"));
         assert bc.getItems().size() == 2 : "2 after setItems";
+
+        // 对比度
+        assertContrast(theme().getTextPrimary(), Color.WHITE, "breadcrumb text on white");
 
         // listener + paint + click on EDT
         final int[] clicked = {-99};
@@ -234,5 +239,7 @@ public class AstBreadcrumb extends JComponent {
         System.out.println("AstBreadcrumb self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstBreadcrumb().selfCheck();
+    }
 }

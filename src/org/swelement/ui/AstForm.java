@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstContainerComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -21,10 +21,10 @@ import java.util.List;
  *   form.addField("邮箱", emailField, new AstForm.RequiredRule(), new AstForm.EmailRule());
  *   if (form.validateForm()) { System.out.println("校验通过"); }
  *
- * 注意：因 JPanel 继承自 java.awt.Container，已存在 void validate() 方法，
+ * 注意：JPanel 继承自 java.awt.Container，已存在 void validate() 方法，
  * 故表单校验方法命名为 validateForm() 以避免返回类型冲突。
  */
-public class AstForm extends JPanel {
+public class AstForm extends AstContainerComponent {
     public static final int POS_LEFT = 0, POS_TOP = 1, POS_RIGHT = 2;
     private int labelPosition = POS_LEFT;
     private int labelWidth = 100;
@@ -188,59 +188,48 @@ public class AstForm extends JPanel {
     }
 
     private String extractValue(JComponent input) {
-        if (input instanceof FormValueProvider) return ((FormValueProvider) input).getFormValue();
-        if (input instanceof JTextField) return ((JTextField) input).getText();
-        if (input instanceof JTextArea) return ((JTextArea) input).getText();
-        if (input instanceof JComboBox) {
-            Object sel = ((JComboBox<?>) input).getSelectedItem();
-            return sel == null ? "" : sel.toString();
-        }
-        return "";
+        return extractValueStatic(input);
     }
 
     // --- FormField: one row with label + input + error ---
-    private final class FormField extends JPanel {
+    private final class FormField extends AstInteractiveComponent {
         final String label;
         final JComponent input;
         final ValidationRule[] rules;
         final JLabel errorLabel;
-        final Animator errorAnim;
-        float errorAlpha;
         int xOffset = 0;
-        final Animator shakeAnim = new Animator(300, Easing::easeInOut, v -> {
-            double t = v * Math.PI * 4;
-            xOffset = (int) (3 * (1 - v) * Math.sin(t));
-            repaint();
-        });
         String initialValue;
+        final JPanel labelCell;
+        final JLabel lbl;
+        final JLabel star;
 
         FormField(String label, JComponent input, ValidationRule[] rules) {
             this.label = label;
             this.input = input;
             this.rules = rules == null ? new ValidationRule[0] : rules;
             setLayout(new BorderLayout(12, 4));
-            setOpaque(false);
+            setFont(UIManager.getFont("Label.font"));
+
+            anim.register("error", 200, Easing::easeOut);
+            anim.register("shake", 300, Easing::easeInOut);
 
             boolean required = false;
             for (ValidationRule r : rules) if (r instanceof RequiredRule) { required = true; break; }
             int pos = AstForm.this.labelPosition;
             String suffix = (pos == POS_TOP) ? "" : "：";
 
-            JLabel star = null;
+            JLabel s = null;
             if (required) {
-                star = new JLabel("*");
-                star.setForeground(ElementTheme.DANGER);
-                star.setFont(ElementTheme.FONT.deriveFont(14f));
-                // NOTE: Element UI's required asterisk uses DANGER (#F56C6C) which yields only
-                // ~2.90:1 on white — below WCAG 1.4.11 (3.0:1) non-text contrast. This is a
-                // deliberate brand-accent choice in Element itself, so we do not enforce a
-                // contrast assertion here (it would only flag Element's own palette).
+                s = new JLabel("*");
+                s.setForeground(theme().getDanger());
+                s.setFont(getFont().deriveFont(14f));
             }
-            JLabel lbl = new JLabel(label + suffix);
-            lbl.setFont(ElementTheme.FONT.deriveFont(14f));
-            lbl.setForeground(ElementTheme.TEXT_REGULAR);
-            ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstForm label");
-            JPanel labelCell = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            star = s;
+            lbl = new JLabel(label + suffix);
+            lbl.setFont(getFont().deriveFont(14f));
+            lbl.setForeground(theme().getTextRegular());
+            assertContrast(theme().getTextRegular(), Color.WHITE, "AstForm label");
+            labelCell = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             labelCell.setOpaque(false);
             if (star != null) labelCell.add(star);
             labelCell.add(lbl);
@@ -250,19 +239,11 @@ public class AstForm extends JPanel {
             add(input, BorderLayout.CENTER);
             // Error label: SOUTH, hidden initially
             errorLabel = new JLabel(" ");
-            errorLabel.setFont(ElementTheme.FONT.deriveFont(12f));
-            errorLabel.setForeground(ElementTheme.DANGER);
+            errorLabel.setFont(getFont().deriveFont(12f));
+            errorLabel.setForeground(theme().getDanger());
             errorLabel.setPreferredSize(new Dimension(0, 0)); // collapsed
             errorLabel.setVisible(false);
             add(errorLabel, BorderLayout.SOUTH);
-            // Error fade-in animator
-            errorAnim = new Animator(200, new Easing() { public float apply(float t) { return Easing.easeOut(t); }},
-                new Animator.Listener() { public void update(float v) {
-                    errorAlpha = v;
-                    errorLabel.setPreferredSize(new Dimension(0, Math.round(20 * v)));
-                    errorLabel.setForeground(new Color(ElementTheme.DANGER.getRed(), ElementTheme.DANGER.getGreen(), ElementTheme.DANGER.getBlue(), Math.round(255 * v)));
-                    revalidate(); repaint();
-                }});
             // Place label according to position
             if (pos == POS_LEFT) add(labelCell, BorderLayout.WEST);
             else if (pos == POS_TOP) add(labelCell, BorderLayout.NORTH);
@@ -277,24 +258,47 @@ public class AstForm extends JPanel {
             if (xOffset != 0) g.translate(-xOffset, 0);
         }
 
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            // 更新 shake 动画的 xOffset
+            float shakeProgress = anim.getProgress("shake");
+            if (shakeProgress > 0) {
+                double t = shakeProgress * Math.PI * 4;
+                xOffset = (int) (3 * (1 - shakeProgress) * Math.sin(t));
+            } else {
+                xOffset = 0;
+            }
+            // 更新 error 动画
+            float errorProgress = anim.getProgress("error");
+            if (errorProgress > 0) {
+                errorLabel.setPreferredSize(new Dimension(0, Math.round(20 * errorProgress)));
+                Color d = theme().getDanger();
+                errorLabel.setForeground(new Color(d.getRed(), d.getGreen(), d.getBlue(), Math.round(255 * errorProgress)));
+            }
+        }
+
+        @Override
+        protected void selfCheck() { }
+
         void showError(String msg) {
             errorLabel.setText(msg);
             errorLabel.setVisible(true);
-            errorAnim.stop();
-            errorAnim.go(errorAlpha, 1f);
-            shakeAnim.go(0f, 1f);
+            anim.stop("error");
+            anim.go("error", anim.getProgress("error"), 1f);
+            anim.go("shake", 0f, 1f);
             if (input instanceof FormInvalidMarker) ((FormInvalidMarker) input).setInvalid(true);
             if (input instanceof JTextField) {
-                ((JTextField) input).setBorder(BorderFactory.createLineBorder(ElementTheme.DANGER, 1));
+                ((JTextField) input).setBorder(BorderFactory.createLineBorder(theme().getDanger(), 1));
             }
         }
 
         void clearError() {
-            errorAnim.stop();
-            errorAnim.go(errorAlpha, 0f);
+            anim.stop("error");
+            anim.go("error", anim.getProgress("error"), 0f);
             if (input instanceof FormInvalidMarker) ((FormInvalidMarker) input).setInvalid(false);
             if (input instanceof JTextField) {
-                ((JTextField) input).setBorder(BorderFactory.createLineBorder(ElementTheme.BORDER_BASE, 1));
+                ((JTextField) input).setBorder(BorderFactory.createLineBorder(theme().getBorderBase(), 1));
             }
         }
 
@@ -305,10 +309,11 @@ public class AstForm extends JPanel {
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // Null guards
         boolean threw = false;
-        AstForm f0 = new AstForm();
+        AstForm f0 = this;
         try { f0.addField(null, new JTextField(), new RequiredRule()); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "null label"; threw = false;
         try { f0.addField("x", null, new RequiredRule()); } catch (IllegalArgumentException e) { threw = true; }
@@ -416,5 +421,7 @@ public class AstForm extends JPanel {
         return "";
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstForm().selfCheck();
+    }
 }

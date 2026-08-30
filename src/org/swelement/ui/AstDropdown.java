@@ -1,9 +1,9 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.AnimatedPopup;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstDisplayComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,7 +14,7 @@ import java.util.ArrayList;
 /**
  * 下拉菜单组件 — 包装一个按钮作为 invoker，点击展开/收起菜单项。
  * 支持 BELOW/ABOVE/LEFT/RIGHT 四个方向（默认 BELOW）。
- * 菜单项支持 hover 高亮（Animator），8 项以内显示为纯列表；≥9 项自动包裹 JScrollPane。
+ * 菜单项支持 hover 高亮，8 项以内显示为纯列表；≥9 项自动包裹 JScrollPane。
  * 用法：
  *   AstDropdown.Item[] items = new AstDropdown.Item[]{
  *       new AstDropdown.Item("添加", e -> addAction()),
@@ -24,7 +24,7 @@ import java.util.ArrayList;
  *   AstDropdown dd = new AstDropdown("操作菜单", items);
  *   frame.add(dd);
  */
-public class AstDropdown extends JComponent {
+public class AstDropdown extends AstInteractiveComponent {
     public static final class Item {
         public final String label;
         public final ActionListener action;
@@ -75,7 +75,6 @@ public class AstDropdown extends JComponent {
         // Layout: invoker fills AstDropdown's size; simple BorderLayout; AstDropdown preferred size = button's pref
         setLayout(new BorderLayout());
         add(invoker, BorderLayout.CENTER);
-        setOpaque(false);
     }
 
     public void showDropdown() {
@@ -136,36 +135,35 @@ public class AstDropdown extends JComponent {
 
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
-    private final class Separator extends JComponent {
-        Separator() { setOpaque(false); }
+    private final class Separator extends AstDisplayComponent {
+        Separator() { }
         @Override public Dimension getPreferredSize() { return new Dimension(10, 1); }
         @Override public Dimension getMinimumSize() { return getPreferredSize(); }
         @Override public Dimension getMaximumSize() { return new Dimension(Integer.MAX_VALUE, 1); }
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(ElementTheme.BORDER_BASE);
+            Graphics2D g2 = createGraphics(g);
+            g2.setColor(theme().getBorderBase());
             g2.drawLine(12, 0, Math.max(13, getWidth()-12), 0);
             g2.dispose();
         }
+        @Override protected void selfCheck() { }
     }
 
-    private final class ItemRow extends JPanel {
+    final class ItemRow extends AstInteractiveComponent {
         final Item item;
-        float hover;
-        final Animator hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-            new Animator.Listener() { public void update(float v) { hover = v; repaint(); }});
+        private final JLabel lbl;
 
         ItemRow(final Item item) {
             this.item = item;
-            setOpaque(false);
             setLayout(new BorderLayout());
+            anim.register("hover", 150, Easing::easeInOut);
+            setFont(UIManager.getFont("Label.font"));
             addMouseListener(new MouseAdapter() {
                 @Override public void mouseEntered(MouseEvent e) {
-                    if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 1f); }
+                    if (isEnabled()) { anim.stop("hover"); anim.go("hover", anim.getProgress("hover"), 1f); }
                 }
                 @Override public void mouseExited(MouseEvent e) {
-                    if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
+                    if (isEnabled()) { anim.stop("hover"); anim.go("hover", anim.getProgress("hover"), 0f); }
                 }
                 @Override public void mousePressed(MouseEvent e) {
                     if (!isEnabled()) return;
@@ -176,8 +174,8 @@ public class AstDropdown extends JComponent {
                 }
             });
             // Label: left-padding via EmptyBorder
-            JLabel lbl = new JLabel(item.label);
-            lbl.setFont(ElementTheme.FONT.deriveFont(14f));
+            lbl = new JLabel(item.label);
+            lbl.setFont(getFont().deriveFont(14f));
             lbl.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 14));
             add(lbl, BorderLayout.CENTER);
         }
@@ -186,29 +184,30 @@ public class AstDropdown extends JComponent {
         @Override public Dimension getMinimumSize() { return new Dimension(100, ROW_H); }
 
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2 = createGraphics(g);
+            float hover = anim.getProgress("hover");
             Color bg = Color.WHITE;
-            Color textColor = ElementTheme.TEXT_MAIN;
+            Color textColor = theme().getTextPrimary();
             if (hover > 0.01f) {
                 // Primary tinted background, alpha based on hover
                 int a = Math.round(18 * hover);
-                bg = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a);
+                Color p = theme().getPrimary();
+                bg = new Color(p.getRed(), p.getGreen(), p.getBlue(), a);
                 // Blend text color toward PRIMARY by hover
-                textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hover);
+                textColor = lerp(theme().getTextPrimary(), theme().getPrimary(), hover);
             }
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstDropdown.ItemRow idle");
-            ElementTheme.assertContrast(textColor, Color.WHITE, "AstDropdown.ItemRow hover-text");
+            assertContrast(theme().getTextPrimary(), Color.WHITE, "AstDropdown.ItemRow idle");
+            assertContrast(textColor, Color.WHITE, "AstDropdown.ItemRow hover-text");
             g2.setColor(bg);
             g2.fillRect(0, 0, getWidth(), getHeight());
             // Update JLabel foreground so text matches hover lerp
-            if (getComponentCount() > 0 && getComponent(0) instanceof JLabel) {
-                ((JLabel) getComponent(0)).setForeground(textColor);
-            }
+            lbl.setForeground(textColor);
             g2.dispose();
         }
 
         @Override public boolean isOptimizedDrawingEnabled() { return false; }
+
+        @Override protected void selfCheck() { }
     }
 
     private static Component findChildByName(Container c, String namePart, int idx) {
@@ -246,7 +245,9 @@ public class AstDropdown extends JComponent {
         return null;
     }
 
-    static void selfCheck() {
+    // --- Self-check ---
+    @Override
+    protected void selfCheck() {
         // Constructor null guards
         boolean threw = false;
         try { new AstDropdown(null, new Item[]{ new Item("a", null) }); } catch (IllegalArgumentException iae) { threw = true; }
@@ -260,8 +261,8 @@ public class AstDropdown extends JComponent {
         try { new AstDropdown("x", new Item[]{ null }); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null item must throw";
         // setInvokerText/getInvokerText roundtrip
-        AstDropdown dd0 = new AstDropdown("初始", new Item[]{ new Item("i", null) });
-        assert "初始".equals(dd0.getInvokerText()) : "getInvokerText incorrect";
+        AstDropdown dd0 = this;
+        assert "菜单".equals(dd0.getInvokerText()) : "getInvokerText incorrect, got: " + dd0.getInvokerText();
         dd0.setInvokerText("新名称");
         assert "新名称".equals(dd0.getInvokerText()) : "setInvokerText incorrect";
 
@@ -280,7 +281,7 @@ public class AstDropdown extends JComponent {
             AnimatedPopup popup = null;
             for (int i = 0; i < lp.getComponentCount(); i++) if (lp.getComponent(i) instanceof AnimatedPopup) { popup = (AnimatedPopup) lp.getComponent(i); break; }
             assert popup != null : "popup found after showDropdown";
-            Component row = findChildByName(popup, "AstDropdown$ItemRow", 0);
+            Component row = findChildByName(popup, "ItemRow", 0);
             assert row != null : "row found";
             row.dispatchEvent(new MouseEvent(row, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, row.getWidth()/2, row.getHeight()/2, 1, false));
             try { Thread.sleep(20); } catch (Throwable ignore) {}
@@ -306,7 +307,6 @@ public class AstDropdown extends JComponent {
 
             // Off-screen paint an ItemRow to trigger assertContrast
             AstDropdown shortDd = new AstDropdown("T", new Item[]{ new Item("abcdefg", null) });
-            JPanel fakeView = new JPanel(); fakeView.setLayout(new BoxLayout(fakeView, BoxLayout.Y_AXIS));
             ItemRow r = shortDd.new ItemRow(new Item("Short Label", null));
             r.setBounds(0, 0, 240, ROW_H);
             java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(240, ROW_H, java.awt.image.BufferedImage.TYPE_INT_ARGB);
@@ -314,9 +314,9 @@ public class AstDropdown extends JComponent {
             try { r.paint(gg); } finally { gg.dispose(); }
             int px = img.getRGB(10, 18); int alphaPx = (px >>> 24) & 0xFF;
             assert alphaPx > 100 : "row painted opaque enough";
-            // hover row paint — force hover via manual animator go
-            r.hoverAnim.stop(); r.hoverAnim.go(0, 1f);
-            // run internal timer by waiting for anim frames
+            // hover row paint — trigger via mouse event
+            r.dispatchEvent(new MouseEvent(r, MouseEvent.MOUSE_ENTERED, System.currentTimeMillis(), 0, 120, 18, 0, false));
+            // wait for animation
             try { Thread.sleep(220); } catch (Throwable ignore) {}
             img = new java.awt.image.BufferedImage(240, ROW_H, java.awt.image.BufferedImage.TYPE_INT_ARGB);
             gg = img.createGraphics();
@@ -331,5 +331,7 @@ public class AstDropdown extends JComponent {
         if (err[0] != null) throw new RuntimeException(err[0]);
         System.out.println("AstDropdown self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstDropdown("菜单", new Item[]{ new Item("操作1", null), new Item("操作2", null) }).selfCheck();
+    }
 }

@@ -1,6 +1,7 @@
 package org.swelement.ui;
 
-import org.swelement.core.ElementTheme;
+import org.swelement.core.theme.ThemeManager;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -64,18 +65,18 @@ public class AstMessageBox {
     }
 
     /** Package-public helper used by self-check to test each icon paint. */
-    public static JPanel makeIconPanel(MessageBoxType t) { return new IconPanel(t); }
+    public static JComponent makeIconPanel(MessageBoxType t) { return new IconPanel(t); }
 
     private static JComponent buildBody(MessageBoxType type, String message) {
         JPanel wrap = new JPanel(new BorderLayout(24, 8));
         wrap.setOpaque(false);
-        JPanel icon = makeIconPanel(type);
+        JComponent icon = makeIconPanel(type);
         icon.setPreferredSize(new Dimension(64, 80));
         icon.setMinimumSize(new Dimension(64, 80));
         wrap.add(icon, BorderLayout.WEST);
         JLabel msg = new JLabel("<html><div style='width:360px;'>" + escapeHtml(message) + "</div></html>", JLabel.LEFT);
-        msg.setFont(ElementTheme.FONT.deriveFont(14f));
-        msg.setForeground(ElementTheme.TEXT_REGULAR);
+        msg.setFont(UIManager.getFont("Label.font").deriveFont(14f));
+        msg.setForeground(ThemeManager.getCurrent().getTextRegular());
         wrap.add(msg, BorderLayout.CENTER);
         return wrap;
     }
@@ -95,20 +96,18 @@ public class AstMessageBox {
     }
 
     // --- Icon panel: circle 48x48 centered, glyph drawn centered inside ---
-    static final class IconPanel extends JPanel {
+    static final class IconPanel extends AstDisplayComponent {
         final MessageBoxType type;
-        IconPanel(MessageBoxType t) { type = t; setOpaque(false); }
+        IconPanel(MessageBoxType t) { type = t; setFont(UIManager.getFont("Label.font")); }
 
         @Override public Dimension getPreferredSize() { return new Dimension(64, 80); }
         @Override public Dimension getMinimumSize() { return new Dimension(64, 80); }
 
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            Graphics2D g2 = createGraphics(g);
             Color bg = colorFor(type);
-            Color fg = ElementTheme.pickTextColorForBg(bg);
-            ElementTheme.assertContrast(fg, bg, "AstMessageBox icon "+type);
+            Color fg = pickTextColorForBg(bg);
+            assertContrast(fg, bg, "AstMessageBox icon "+type);
             int cx = getWidth() / 2;
             int topY = (getHeight() - 48) / 2;
             Ellipse2D circ = new Ellipse2D.Float(cx - 24, topY, 48, 48);
@@ -117,7 +116,7 @@ public class AstMessageBox {
             g2.setStroke(new BasicStroke(1f));
             g2.draw(circ);
             String glyph = glyphFor(type);
-            Font f = ElementTheme.FONT.deriveFont(Font.BOLD, 28f);
+            Font f = getFont().deriveFont(Font.BOLD, 28f);
             g2.setFont(f);
             FontMetrics fm = g2.getFontMetrics();
             int baseY = topY + (48 - fm.getHeight()) / 2 + fm.getAscent();
@@ -127,14 +126,14 @@ public class AstMessageBox {
             g2.dispose();
         }
 
-        static Color colorFor(MessageBoxType t) {
+        Color colorFor(MessageBoxType t) {
             switch (t) {
-                case INFO: case QUESTION: return ElementTheme.PRIMARY;
-                case SUCCESS: return ElementTheme.SUCCESS;
-                case WARNING: return ElementTheme.WARNING;
-                case ERROR: return ElementTheme.DANGER;
+                case INFO: case QUESTION: return theme().getPrimary();
+                case SUCCESS: return theme().getSuccess();
+                case WARNING: return theme().getWarning();
+                case ERROR: return theme().getDanger();
             }
-            return ElementTheme.PRIMARY;
+            return theme().getPrimary();
         }
         static String glyphFor(MessageBoxType t) {
             switch (t) {
@@ -146,6 +145,8 @@ public class AstMessageBox {
             }
             return "i";
         }
+
+        @Override protected void selfCheck() { }
     }
 
     // --- Helpers for self-check (same as AstDialog helpers; duplicated here for independent self-check main) ---
@@ -168,20 +169,25 @@ public class AstMessageBox {
         if (c == null) return null;
         for (int i = 0; i < c.getComponentCount(); i++) {
             Component ch = c.getComponent(i);
-            if (ch instanceof JPanel && ((JPanel) ch).getComponentCount() > 0) return ch;
+            if (ch instanceof Container && ((Container) ch).getComponentCount() > 0) return ch;
         }
         return null;
     }
     private static void clickComponent(Component c) {
         if (c == null) return;
         if (c instanceof AbstractButton) { ((AbstractButton) c).doClick(); return; }
-        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
+        int x = Math.min(10, c.getWidth()/2);
+        int y = Math.min(10, c.getHeight()/2);
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), InputEvent.BUTTON1_DOWN_MASK, x, y, 1, false, MouseEvent.BUTTON1));
         try { Thread.sleep(15); } catch (Throwable ignore) {}
-        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_RELEASED, System.currentTimeMillis(), 0, Math.min(10, c.getWidth()/2), Math.min(10, c.getHeight()/2), 1, false));
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_RELEASED, System.currentTimeMillis(), 0, x, y, 1, false, MouseEvent.BUTTON1));
+        try { Thread.sleep(15); } catch (Throwable ignore) {}
+        c.dispatchEvent(new MouseEvent(c, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, x, y, 1, false, MouseEvent.BUTTON1));
         try { Thread.sleep(15); } catch (Throwable ignore) {}
     }
 
     static void selfCheck() {
+        ThemeManager.ensureDefaultTheme();
         boolean threw = false;
         try { AstMessageBox.alert(null, AstMessageBox.MessageBoxType.INFO, "x"); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null owner alert"; threw = false;
@@ -226,7 +232,7 @@ public class AstMessageBox {
 
             // Off-screen paint icon panels for all 5 types
             for (MessageBoxType t : MessageBoxType.values()) {
-                JPanel icon = AstMessageBox.makeIconPanel(t);
+                JComponent icon = AstMessageBox.makeIconPanel(t);
                 icon.setSize(64, 80); icon.doLayout();
                 java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(64, 80, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                 Graphics2D gg = img.createGraphics();

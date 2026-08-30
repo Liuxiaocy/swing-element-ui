@@ -1,9 +1,9 @@
 package org.swelement.ui;
 
 import org.swelement.core.AnimatedPopup;
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstContainerComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,7 +34,7 @@ import java.util.function.Consumer;
  *   cascader.setPlaceholder("请选择城市");
  *   cascader.setSelectionListener(path -> System.out.println("选中: " + path));
  */
-public class AstCascader extends JComponent implements FormValueProvider, FormInvalidMarker {
+public class AstCascader extends AstContainerComponent implements FormValueProvider, FormInvalidMarker {
     // --- Option model ---
     public static final class Option {
         public final String label;
@@ -88,7 +88,6 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
         this.invoker.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) { toggle(); }});
         setLayout(new BorderLayout());
         add(invoker, BorderLayout.CENTER);
-        setOpaque(false);
         applyTier();
     }
 
@@ -153,7 +152,7 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
     @Override public void setFormValue(String v) { clear(); }
     @Override public void setInvalid(boolean inv) {
         this.invalid = inv;
-        setBorder(inv ? BorderFactory.createLineBorder(ElementTheme.DANGER, 1) : null);
+        setBorder(inv ? BorderFactory.createLineBorder(theme().getDanger(), 1) : null);
         repaint();
     }
 
@@ -248,7 +247,7 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     // --- ColumnPanel: one vertical list of options ---
-    private final class ColumnPanel extends JPanel {
+    private final class ColumnPanel extends AstContainerComponent {
         private final int level;
         private final List<Option> options;
 
@@ -256,7 +255,6 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
             this.level = level;
             this.options = opts;
             setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-            setOpaque(false);
             setPreferredSize(new Dimension(COL_W, Math.min(MAX_VISIBLE_ROWS, opts.size()) * ROW_H + 8));
             for (int i = 0; i < opts.size(); i++) {
                 add(new CascaderRow(this, opts.get(i), i));
@@ -276,31 +274,31 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
             for (int i = 0; i < options.size(); i++) if (options.get(i) == sel) return i;
             return -1;
         }
+
+        @Override protected void selfCheck() { }
     }
 
     // --- CascaderRow: single option row ---
-    private final class CascaderRow extends JPanel {
+    private final class CascaderRow extends AstInteractiveComponent {
         private final ColumnPanel parent;
         private final Option option;
         private final int index;
-        float hover;
-        final Animator hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-            new Animator.Listener() { public void update(float v) { hover = v; repaint(); }});
 
         CascaderRow(ColumnPanel parent, Option option, int index) {
             this.parent = parent;
             this.option = option;
             this.index = index;
-            setOpaque(false);
             setLayout(new BorderLayout());
             setPreferredSize(new Dimension(COL_W, ROW_H));
             setMaximumSize(new Dimension(COL_W, ROW_H));
+            anim.register("hover", 150, Easing::easeInOut);
+            setFont(UIManager.getFont("Label.font"));
             addMouseListener(new MouseAdapter() {
                 @Override public void mouseEntered(MouseEvent e) {
-                    if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 1f); }
+                    if (isEnabled()) { anim.stop("hover"); anim.go("hover", anim.getProgress("hover"), 1f); }
                 }
                 @Override public void mouseExited(MouseEvent e) {
-                    if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
+                    if (isEnabled()) { anim.stop("hover"); anim.go("hover", anim.getProgress("hover"), 0f); }
                 }
                 @Override public void mousePressed(MouseEvent e) {
                     if (!isEnabled()) return;
@@ -310,28 +308,28 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
         }
 
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            Graphics2D g2 = createGraphics(g);
+            float hover = anim.getProgress("hover");
             boolean selected = parent.isOptionSelected(option);
             Color bg = Color.WHITE;
-            Color textColor = ElementTheme.TEXT_MAIN;
+            Color textColor = theme().getTextPrimary();
             if (selected) {
-                bg = ElementTheme.PRIMARY;
+                bg = theme().getPrimary();
                 textColor = Color.WHITE;
             } else if (hover > 0.01f) {
                 int a = Math.round(18 * hover);
-                bg = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a);
-                textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hover);
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstCascader hover row");
+                Color p = theme().getPrimary();
+                bg = new Color(p.getRed(), p.getGreen(), p.getBlue(), a);
+                textColor = lerp(theme().getTextPrimary(), theme().getPrimary(), hover);
+                assertContrast(theme().getTextPrimary(), Color.WHITE, "AstCascader hover row");
             } else {
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstCascader idle row");
+                assertContrast(theme().getTextPrimary(), Color.WHITE, "AstCascader idle row");
             }
             g2.setColor(bg);
             g2.fillRect(0, 0, getWidth(), getHeight());
             // Label: left padding 16px, vertical center
             g2.setColor(textColor);
-            g2.setFont(ElementTheme.FONT.deriveFont(14f));
+            g2.setFont(getFont().deriveFont(14f));
             FontMetrics fm = g2.getFontMetrics();
             int baseY = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
             String label = option.label;
@@ -345,7 +343,7 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
             g2.drawString(label, 16, baseY);
             // If has children: draw right arrow ">" at right side
             if (option.hasChildren()) {
-                g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 12f));
+                g2.setFont(getFont().deriveFont(Font.BOLD, 12f));
                 FontMetrics fm2 = g2.getFontMetrics();
                 String arrow = ">";
                 int ax = getWidth() - fm2.stringWidth(arrow) - 12;
@@ -356,10 +354,13 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
         }
 
         @Override public boolean isOptimizedDrawingEnabled() { return false; }
+
+        @Override protected void selfCheck() { }
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // Constructor null guards
         boolean threw = false;
         try { new AstCascader(null, 3); } catch (IllegalArgumentException e) { threw = true; }
@@ -499,5 +500,7 @@ public class AstCascader extends JComponent implements FormValueProvider, FormIn
         try { Thread.sleep(20); } catch (Throwable ignore) {}
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstCascader(java.util.Arrays.asList(new Option("x")), 1).selfCheck();
+    }
 }

@@ -1,8 +1,7 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -32,7 +31,7 @@ import java.awt.geom.RoundRectangle2D;
  *   loader.showLoading("正在提交请求…");  // calls setVisible(true)
  *   loader.hideLoading();  // calls setVisible(false)
  */
-public class AstLoading extends JComponent {
+public class AstLoading extends AstAbstractComponent {
     public enum Mode { WRAP, FULLSCREEN }
 
     private final Mode mode;
@@ -43,11 +42,6 @@ public class AstLoading extends JComponent {
     private float angle;  // radians
     private static final int SPIN_INTERVAL = 30;  // ~33 fps
     private static final float SPIN_SPEED = 0.42f; // radians / tick → ~2 spins/sec
-
-    // Fade animator for overlay opacity
-    private float overlay = 0f; // 0 = hidden, 1 = fully visible
-    private final Animator fadeAnim = new Animator(220, new Easing() { public float apply(float t) { return Easing.easeOut(t); } },
-        new Animator.Listener() { public void update(float v) { overlay = v; setVisible(overlay > 0.01f && visible); repaint(); } });
 
     private boolean visible = false;
     private String text = "";
@@ -90,13 +84,19 @@ public class AstLoading extends JComponent {
     };
 
     /** 遮罩仍显著（含淡出过程）且逻辑上处于 loading 时视为冻结。 */
-    private boolean isFreezing() { return visible || overlay > 0.3f; }
+    private boolean isFreezing() { return visible || anim.getProgress("fade") > 0.3f; }
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("fade", 220, Easing::easeOut);
+    }
 
     public AstLoading(Mode mode, JComponent target) {
         if (mode == null) throw new IllegalArgumentException("mode must not be null");
         this.mode = mode;
         this.target = target;
-        setOpaque(false);
+        // setOpaque(false) handled by AstAbstractComponent
         // Initially not visible; caller shows via showLoading
         setVisible(false);
         if (mode == Mode.WRAP) {
@@ -107,7 +107,7 @@ public class AstLoading extends JComponent {
             setLayout(null);
         }
         spinTimer = new Timer(SPIN_INTERVAL, new ActionListener() { public void actionPerformed(ActionEvent e) {
-            if (overlay > 0.01f) {
+            if (anim.getProgress("fade") > 0.01f) {
                 angle = (angle + SPIN_SPEED) % (2f * (float) Math.PI);
                 repaint();
             }
@@ -123,7 +123,7 @@ public class AstLoading extends JComponent {
     public JComponent getTarget() { return target; }
     public String getText() { return text; }
     public boolean isLoadingVisible() { return visible; }
-    public float getOverlayAlpha() { return overlay; }
+    public float getOverlayAlpha() { return anim.getProgress("fade"); }
 
     /** 遮罩底色（含 alpha）。传 null 恢复模式默认；调用 setBgColor 后以自定义色为准。 */
     public void setBgColor(Color c) { bgColor = c; repaint(); }
@@ -182,19 +182,19 @@ public class AstLoading extends JComponent {
         if (mode == Mode.WRAP) {
             setSize(getParent() != null ? getParent().getSize() : getPreferredSize());
         }
-        fadeAnim.stop();
+        anim.get("fade").stop();
         if (mode == Mode.WRAP) {
             // 淡入完成后藏起 target：不透明子组件（如 AstProgress）的 paintImmediately
             // 会绕过 paintChildren 里的 overlay 直接上屏，动画透过遮罩闪烁的根因。
             // 遮罩此时已完全不透明，视觉无差别，但 target 不再产生 dirty region。
-            fadeAnim.go(overlay, 1f, new Runnable() { public void run() {
+            anim.get("fade").go(anim.getProgress("fade"), 1f, new Runnable() { public void run() {
                 if (visible && target != null && target.isVisible()) {
                     target.setVisible(false);
                     repaint();
                 }
             }});
         } else {
-            fadeAnim.go(overlay, 1f);
+            anim.go("fade", anim.getProgress("fade"), 1f);
         }
         if (!spinTimer.isRunning()) spinTimer.start();
         // For FULLSCREEN GlassPane usage: we become visible
@@ -219,8 +219,8 @@ public class AstLoading extends JComponent {
             doLayout();
         }
         if (spinTimer.isRunning()) spinTimer.stop();
-        fadeAnim.stop();
-        fadeAnim.go(overlay, 0f, new Runnable() { public void run() {
+        anim.get("fade").stop();
+        anim.get("fade").go(anim.getProgress("fade"), 0f, new Runnable() { public void run() {
             if (mode == Mode.FULLSCREEN) {
                 setVisible(false);
             }
@@ -251,7 +251,7 @@ public class AstLoading extends JComponent {
             super.paintChildren(g);
         }
         // Then paint overlay OVER the target / glass pane background
-        if (overlay > 0.01f) {
+        if (anim.getProgress("fade") > 0.01f) {
             paintOverlay(g);
         }
     }
@@ -259,7 +259,7 @@ public class AstLoading extends JComponent {
     @Override protected void paintComponent(Graphics g) {
         if (mode == Mode.FULLSCREEN) {
             // Fullscreen: paint background mask in paintComponent too (for when no children exist)
-            if (overlay > 0.01f) {
+            if (anim.getProgress("fade") > 0.01f) {
                 paintOverlayBgOnly(g);
             }
         }
@@ -269,23 +269,22 @@ public class AstLoading extends JComponent {
     /** 铺遮罩底色：自定义 setBgColor 优先，否则用模式默认色，alpha 再乘淡入进度。 */
     private void paintMask(Graphics2D g2, int w, int h) {
         Color base = getBgColor();
+        float overlay = anim.getProgress("fade");
         g2.setColor(new Color(base.getRed(), base.getGreen(), base.getBlue(),
                 Math.round(base.getAlpha() * overlay)));
         g2.fillRect(0, 0, w, h);
     }
 
     private void paintOverlayBgOnly(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
         paintMask(g2, getWidth(), getHeight());
         g2.dispose();
     }
 
     private void paintOverlay(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Graphics2D g2 = createGraphics(g);
         int W = getWidth(), H = getHeight();
+        float overlay = anim.getProgress("fade");
 
         // Background mask
         paintMask(g2, W, H);
@@ -293,7 +292,7 @@ public class AstLoading extends JComponent {
         // Compute centered 360×360 card for spinner + text (Element UI look)
         int cardW = 220, cardH = 160;
         if (!text.isEmpty()) {
-            FontMetrics fm = g2.getFontMetrics(ElementTheme.FONT.deriveFont(14f));
+            FontMetrics fm = g2.getFontMetrics(theme().getFontBase().deriveFont(14f));
             int tw = Math.min(200, fm.stringWidth(text) + 24);
             cardW = Math.max(220, tw + 40);
         }
@@ -304,12 +303,14 @@ public class AstLoading extends JComponent {
         if (mode == Mode.FULLSCREEN) {
             int aCard = Math.round(0xFF * overlay);
             g2.setColor(new Color(0xFF, 0xFF, 0xFF, aCard));
-            RoundRectangle2D card = new RoundRectangle2D.Float(cardX, cardY, cardW, cardH, ElementTheme.RADIUS*2, ElementTheme.RADIUS*2);
+            int radius = theme().getRadiusBase();
+            RoundRectangle2D card = new RoundRectangle2D.Float(cardX, cardY, cardW, cardH, radius * 2, radius * 2);
             g2.fill(card);
-            g2.setColor(new Color(ElementTheme.BORDER_BASE.getRed(), ElementTheme.BORDER_BASE.getGreen(), ElementTheme.BORDER_BASE.getBlue(), Math.round(0xFF * overlay)));
+            Color borderBase = theme().getBorderBase();
+            g2.setColor(new Color(borderBase.getRed(), borderBase.getGreen(), borderBase.getBlue(), Math.round(0xFF * overlay)));
             g2.setStroke(new BasicStroke(1f));
             g2.draw(card);
-            ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstLoading fullscreen card text on white bg");
+            assertContrast(theme().getTextRegular(), Color.WHITE, "AstLoading fullscreen card text on white bg");
         }
 
         // Spinner: 12-segment rotating arcs (Element UI ring indicator)
@@ -321,6 +322,7 @@ public class AstLoading extends JComponent {
         float strokeW = Math.max(2f, 4.5f * scale); // 弧线粗细同步缩放，小尺寸不至于糊成一团
         float spinOffset = angle;
 
+        Color primary = theme().getPrimary();
         for (int i = 0; i < 12; i++) {
             float baseT = (float) i / 12f;  // 0..1 going around
             float theta = spinOffset + baseT * 2f * (float) Math.PI;
@@ -331,7 +333,7 @@ public class AstLoading extends JComponent {
             int a = Math.round((0xFF * alphaSeg) * overlay);
             if (a < 2) continue;
             // segment color = PRIMARY (lighter via alpha)
-            Color segC = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), Math.min(255, a));
+            Color segC = new Color(primary.getRed(), primary.getGreen(), primary.getBlue(), Math.min(255, a));
             g2.setColor(segC);
             g2.setStroke(new BasicStroke(strokeW, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             double cos = Math.cos(theta), sin = Math.sin(theta);
@@ -345,9 +347,10 @@ public class AstLoading extends JComponent {
         // Text below spinner
         if (!text.isEmpty()) {
             int aText = Math.round(0xFF * 0.85f * overlay);
-            Color tc = new Color(ElementTheme.TEXT_REGULAR.getRed(), ElementTheme.TEXT_REGULAR.getGreen(), ElementTheme.TEXT_REGULAR.getBlue(), Math.min(255, Math.max(0, aText)));
+            Color textRegular = theme().getTextRegular();
+            Color tc = new Color(textRegular.getRed(), textRegular.getGreen(), textRegular.getBlue(), Math.min(255, Math.max(0, aText)));
             g2.setColor(tc);
-            Font f = ElementTheme.FONT.deriveFont(14f);
+            Font f = theme().getFontBase().deriveFont(14f);
             g2.setFont(f);
             FontMetrics fm = g2.getFontMetrics();
             int tb = cyBase + r + 22 + fm.getAscent();
@@ -362,8 +365,8 @@ public class AstLoading extends JComponent {
     private static java.awt.image.BufferedImage renderOverlay(AstLoading l, int w, int h) {
         l.setSize(w, h);
         l.doLayout();
-        l.fadeAnim.stop();
-        l.overlay = 1f;
+        l.anim.get("fade").stop();
+        l.anim.setProgress("fade", 1f);
         java.awt.image.BufferedImage img =
             new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
@@ -402,7 +405,8 @@ public class AstLoading extends JComponent {
         return hue == 1 ? (r > g + 40 && r > b + 40) : (b > r + 40 && b > g + 20);
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // Constructor null checks (can run outside EDT — pure argument validation)
         boolean threw = false;
         try { new AstLoading(Mode.WRAP, null); } catch (IllegalArgumentException iae) { threw = true; }
@@ -433,8 +437,8 @@ public class AstLoading extends JComponent {
                 wrap.doLayout();
                 wrap.showLoading("加载中…");
                 // Bypass fade animation: force overlay=1, stop anim timer
-                wrap.fadeAnim.stop();
-                wrap.overlay = 1f;
+                wrap.anim.get("fade").stop();
+                wrap.anim.setProgress("fade", 1f);
                 // Offscreen paint — translate graphics to simulate (0,0) origin
                 java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(640, 480, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                 Graphics2D gg = img.createGraphics();
@@ -447,16 +451,16 @@ public class AstLoading extends JComponent {
                 int topLeft = img.getRGB(10, 10);
                 int tlA = (topLeft >>> 24) & 0xFF;
                 assert tlA > 100 : "wrap overlay alpha should be opaqueish after showLoading, got " + tlA
-                    + " (W=" + wrap.getWidth() + " H=" + wrap.getHeight() + " overlay=" + wrap.overlay + ")";
+                    + " (W=" + wrap.getWidth() + " H=" + wrap.getHeight() + " overlay=" + wrap.getOverlayAlpha() + ")";
                 wrap.hideLoading();
-                wrap.fadeAnim.stop();
-                wrap.overlay = 0f;
+                wrap.anim.get("fade").stop();
+                wrap.anim.setProgress("fade", 0f);
 
                 // FULLSCREEN glass pane mode paint offscreen
                 fs.setSize(640, 480);
                 fs.showLoading("全屏加载");
-                fs.fadeAnim.stop();
-                fs.overlay = 1f;
+                fs.anim.get("fade").stop();
+                fs.anim.setProgress("fade", 1f);
                 img = new java.awt.image.BufferedImage(640, 480, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                 gg = img.createGraphics();
                 gg.setClip(0, 0, 640, 480);
@@ -467,17 +471,17 @@ public class AstLoading extends JComponent {
                 } finally { gg.dispose(); }
                 int bgPx = img.getRGB(320, 240); int bgA = (bgPx >>> 24) & 0xFF;
                 assert bgA > 120 : "fullscreen overlay bg mask should render opaque after showLoading, got " + bgA
-                    + " (W=" + fs.getWidth() + " H=" + fs.getHeight() + " overlay=" + fs.overlay + ")";
+                    + " (W=" + fs.getWidth() + " H=" + fs.getHeight() + " overlay=" + fs.getOverlayAlpha() + ")";
                 assert "全屏加载".equals(fs.getText());
                 fs.hideLoading();
-                fs.fadeAnim.stop();
-                fs.overlay = 0f;
+                fs.anim.get("fade").stop();
+                fs.anim.setProgress("fade", 0f);
 
                 // Additional WRAP API tests on EDT
                 wrap.showLoading(null);
                 assert "".equals(wrap.getText()) : "null text should default to empty string";
                 wrap.hideLoading();
-                wrap.fadeAnim.stop();
+                wrap.anim.get("fade").stop();
                 assert wrap.getPreferredSize() != null;
                 assert wrap.getMinimumSize() != null;
 
@@ -537,8 +541,8 @@ public class AstLoading extends JComponent {
             // 延迟期内 hideLoading → 全程不落笔（防短请求闪烁）
             SwingUtilities.invokeAndWait(new Runnable() { public void run() {
                 dref[0].hideLoading();
-                dref[0].fadeAnim.stop();
-                dref[0].overlay = 0f;
+                dref[0].anim.get("fade").stop();
+                dref[0].anim.setProgress("fade", 0f);
                 dref[0].setDelay(300);
                 dref[0].showLoading("延迟显示2");
             }});
@@ -560,5 +564,7 @@ public class AstLoading extends JComponent {
         assert checks[5] : "fs initial text should be empty";
         System.out.println("AstLoading self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstLoading(Mode.WRAP, new JLabel("test")).selfCheck();
+    }
 }

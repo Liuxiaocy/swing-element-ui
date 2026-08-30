@@ -1,16 +1,14 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.core.theme.Theme;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class AstBadge extends JComponent {
-    private final Animator popAnim = new Animator(200, Easing::easeOut, v -> { scale = v; repaint(); });
-    private float scale = 1f;
+public class AstBadge extends AstDisplayComponent {
     private int count;
     private boolean dot;
     private JComponent content;
@@ -53,11 +51,17 @@ public class AstBadge extends JComponent {
     };
 
     public AstBadge() {
-        setOpaque(false);
         setLayout(new FillLayout());
-        setFont(ElementTheme.FONT.deriveFont(Font.BOLD, TIER_FONT[SIZE_DEFAULT]));
+        setFont(theme().getFontBase().deriveFont(Font.BOLD, TIER_FONT[SIZE_DEFAULT]));
         setBorder(new EmptyBorder(PAD, 0, 0, PAD));
         add(overlay, 0); // index 0 = 最后绘制 = 最上层
+    }
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("pop", 200, Easing::easeOut);
+        anim.setProgress("pop", 1f); // 默认全显（对应原 scale=1f），dot/未触发 pop 时为满尺寸
     }
 
     @Override
@@ -74,8 +78,8 @@ public class AstBadge extends JComponent {
 
     public void setCount(int c) {
         count = c;
-        scale = 0.6f;
-        popAnim.go(scale, 1f);
+        // 从 0 弹出到 1，对应原 scale=0.6f→1f 的弹出动画（视觉 0.6→1.0）
+        anim.go("pop", 0f, 1f);
         repaint();
     }
 
@@ -109,7 +113,7 @@ public class AstBadge extends JComponent {
         tier = t;
         badgeH = TIER_BADGE_H[t];
         dotSize = TIER_DOT[t];
-        setFont(ElementTheme.FONT.deriveFont(Font.BOLD, TIER_FONT[t]));
+        setFont(theme().getFontBase().deriveFont(Font.BOLD, TIER_FONT[t]));
         repaint();
     }
 
@@ -120,23 +124,22 @@ public class AstBadge extends JComponent {
         return count > max ? (max + "+") : String.valueOf(count);
     }
 
-    private static Color colorOf(Type t) {
-        switch (t) {
-            case PRIMARY: return ElementTheme.PRIMARY;
-            case SUCCESS: return ElementTheme.SUCCESS;
-            case WARNING: return ElementTheme.WARNING;
-            case DANGER:  return ElementTheme.DANGER;
-            case INFO:    return ElementTheme.INFO;
-            default: throw new AssertionError("unhandled badge type " + t);
+    private Color colorOf(Type type) {
+        Theme t = theme();
+        switch (type) {
+            case PRIMARY: return t.getPrimary();
+            case SUCCESS: return t.getSuccess();
+            case WARNING: return t.getWarning();
+            case DANGER:  return t.getDanger();
+            default: return t.getInfo();
         }
     }
 
     private void paintBadge(Graphics g) {
         if (hidden) return;
         if (count <= 0 && !dot) return;
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        Font badgeFont = ElementTheme.FONT.deriveFont(Font.BOLD, TIER_FONT[tier]);
+        Graphics2D g2 = createGraphics(g);
+        Font badgeFont = theme().getFontBase().deriveFont(Font.BOLD, TIER_FONT[tier]);
         g2.setFont(badgeFont);
         FontMetrics fm = g2.getFontMetrics();
         String text = badgeText(count, max);
@@ -148,7 +151,7 @@ public class AstBadge extends JComponent {
         int cx = getWidth() - Math.max(PAD, badgeW / 2 + 1);
         int cy = PAD;
 
-        float s = 0.6f + 0.4f * scale;
+        float s = 0.6f + 0.4f * anim.getProgress("pop");
         g2.translate(cx, cy);
         g2.scale(s, s);
         g2.translate(-cx, -cy);
@@ -210,7 +213,8 @@ public class AstBadge extends JComponent {
     }
 
     // --- Self-check ---
-    public static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // 档位基础：默认档、字体联动、非法档位抛异常
         AstBadge b = new AstBadge();
         assert b.getSizeTier() == SIZE_DEFAULT : "default tier";
@@ -263,7 +267,7 @@ public class AstBadge extends JComponent {
         AstBadge bh = new AstBadge();
         bh.setContent(new JLabel("X"));
         bh.setCount(5);
-        bh.scale = 1f;
+        bh.anim.setProgress("pop", 1f);
         int shown = countColor(render(bh), 0xF56C6C);
         assert shown > 20 : "count badge should paint red, got " + shown;
         bh.setHidden(true);
@@ -280,7 +284,7 @@ public class AstBadge extends JComponent {
         try { bt.setType(null); } catch (IllegalArgumentException e) { threwType = true; }
         assert threwType : "null type must throw";
         for (Type t : Type.values()) {
-            assert colorOf(t).getRGB() == (0xFF000000 | expectRgb(t)) : "colorOf(" + t + ") must match ElementTheme";
+            assert colorOf(t).getRGB() == (0xFF000000 | expectRgb(t)) : "colorOf(" + t + ") must match Theme";
             java.awt.image.BufferedImage img = renderDot(t);
             int own = countColor(img, expectRgb(t));
             assert own > 20 : "type " + t + " should paint its own color, got " + own;
@@ -318,7 +322,7 @@ public class AstBadge extends JComponent {
         AstBadge b = new AstBadge();
         b.setSize(tier);
         b.setCount(5);
-        b.scale = 1f; // 跳过弹出动画，确定态渲染
+        b.anim.setProgress("pop", 1f); // 跳过弹出动画，确定态渲染
         b.setContent(new JLabel("X"));
         return redBox(render(b))[3];
     }
@@ -328,7 +332,7 @@ public class AstBadge extends JComponent {
         AstBadge b = new AstBadge();
         b.setMax(max);
         b.setCount(count);
-        b.scale = 1f;
+        b.anim.setProgress("pop", 1f);
         b.setContent(new JLabel("X"));
         return redBox(render(b, 160, 60));
     }
@@ -356,7 +360,7 @@ public class AstBadge extends JComponent {
             b.paint(g);
         } finally {
             g.dispose();
-            b.popAnim.stop(); // 停掉 setCount 启动的弹出动画，否则 Timer 会让自检 JVM 无法退出
+            b.anim.get("pop").stop(); // 停掉 setCount 启动的弹出动画，否则 Timer 会让自检 JVM 无法退出
         }
         return img;
     }
@@ -389,12 +393,14 @@ public class AstBadge extends JComponent {
                 int p = img.getRGB(x, y);
                 int a = (p >>> 24) & 0xFF;
                 if (a < 250) continue; // 跳过抗锯齿边缘
-                int r = (p >>> 16) & 0xFF, g = (p >>> 8) & 0xFF, b = p & 0xFF;
-                if (Math.abs(r - tr) <= 6 && Math.abs(g - tg) <= 6 && Math.abs(b - tb) <= 6) n++;
+                int r = (p >>> 16) & 0xFF, g = (p >>> 8) & 0xFF, bl = p & 0xFF;
+                if (Math.abs(r - tr) <= 6 && Math.abs(g - tg) <= 6 && Math.abs(bl - tb) <= 6) n++;
             }
         }
         return n;
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstBadge().selfCheck();
+    }
 }

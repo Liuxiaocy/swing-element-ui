@@ -13,84 +13,9 @@ if exist "%JAVA8%\bin\javac.exe" (
 "%JAVAC%" -version >nul 2>nul || (echo ERROR: javac not found & exit /b 1)
 if not exist out mkdir out
 
-SET SOURCES=^
-src\org\swelement\core\ElementTheme.java ^
-src\org\swelement\core\Easing.java ^
-src\org\swelement\core\Animator.java ^
-src\org\swelement\core\AnimatedPopup.java ^
-src\org\swelement\core\GlassPane.java ^
-src\org\swelement\core\PopupPositioner.java ^
-src\org\swelement\ui\Alert.java ^
-src\org\swelement\ui\Badge.java ^
-src\org\swelement\ui\Button.java ^
-src\org\swelement\ui\Checkbox.java ^
-src\org\swelement\ui\CloseButton.java ^
-src\org\swelement\ui\Input.java ^
-src\org\swelement\ui\TextArea.java ^
-src\org\swelement\ui\Menu.java ^
-src\org\swelement\ui\Pagination.java ^
-src\org\swelement\ui\Progress.java ^
-src\org\swelement\ui\Radio.java ^
-src\org\swelement\ui\Select.java ^
-src\org\swelement\ui\Slider.java ^
-src\org\swelement\ui\Switch.java ^
-src\org\swelement\ui\Tabs.java ^
-src\org\swelement\ui\Tag.java ^
-src\org\swelement\demo\AlertDemo.java ^
-src\org\swelement\demo\BadgeDemo.java ^
-src\org\swelement\demo\ButtonDemo.java ^
-src\org\swelement\demo\CheckboxDemo.java ^
-src\org\swelement\demo\InputDemo.java ^
-src\org\swelement\demo\MenuDemo.java ^
-src\org\swelement\demo\PaginationDemo.java ^
-src\org\swelement\demo\ProgressDemo.java ^
-src\org\swelement\demo\RadioDemo.java ^
-src\org\swelement\demo\SelectDemo.java ^
-src\org\swelement\demo\SliderDemo.java ^
-src\org\swelement\demo\SwitchDemo.java ^
-src\org\swelement\demo\TabsDemo.java ^
-src\org\swelement\demo\TagDemo.java ^
-src\org\swelement\ui\AstContainer.java ^
-src\org\swelement\demo\AstContainerDemo.java ^
-src\org\swelement\ui\AstAvatar.java ^
-src\org\swelement\demo\AstAvatarDemo.java ^
-src\org\swelement\ui\AstCard.java ^
-src\org\swelement\demo\AstCardDemo.java ^
-src\org\swelement\ui\AstLoading.java ^
-src\org\swelement\demo\AstLoadingDemo.java ^
-src\org\swelement\ui\AstTooltip.java ^
-src\org\swelement\ui\AstDropdown.java ^
-src\org\swelement\ui\AstDialog.java ^
-src\org\swelement\ui\AstMessageBox.java ^
-src\org\swelement\ui\AstMessage.java ^
-src\org\swelement\demo\AstPopupDemo.java ^
-src\org\swelement\ui\AstCascader.java ^
-src\org\swelement\ui\AstDatePicker.java ^
-src\org\swelement\ui\AstForm.java ^
-src\org\swelement\ui\AstTree.java ^
-src\org\swelement\ui\AstTable.java ^
-src\org\swelement\ui\AstTableColumn.java ^
-src\org\swelement\ui\AstTableModel.java ^
-src\org\swelement\demo\AstTableDemo.java ^
-src\org\swelement\demo\AstAdvancedDemo.java ^
-src\org\swelement\demo\AstP2P3Demo.java ^
-src\org\swelement\demo\AstFormDemo.java ^
-src\org\swelement\ui\AstDivider.java ^
-src\org\swelement\ui\AstIcon.java ^
-src\org\swelement\demo\AstIconDemo.java ^
-src\org\swelement\ui\AstRate.java ^
-src\org\swelement\ui\AstBreadcrumb.java ^
-src\org\swelement\ui\AstSteps.java ^
-src\org\swelement\ui\AstCollapse.java ^
-src\org\swelement\ui\AstInputNumber.java ^
-src\org\swelement\ui\AstPopover.java ^
-src\org\swelement\ui\AstDrawer.java ^
-src\org\swelement\ui\AstTimePicker.java ^
-src\org\swelement\ui\AstTransfer.java ^
-src\org\swelement\ui\AstTimeline.java ^
-src\org\swelement\ui\AstCalendar.java ^
-src\org\swelement\ui\AstCarousel.java ^
-src\org\swelement\ui\AstBadge.java
+rem ---- 动态收集 src 下的所有 .java 源文件（避免手工清单遗漏/失效）----
+set "SOURCES="
+for /r src %%f in (*.java) do set "SOURCES=!SOURCES! "%%f""
 
 rem JDK 1.8 直接编译即可（默认 -source/-target 8）；若回退到高版本 JDK 则用 --release 8 兜底
 "%JAVAC%" -encoding UTF-8 -d out %SOURCES%
@@ -100,6 +25,26 @@ if errorlevel 1 (
 )
 if errorlevel 1 (echo BUILD FAILED & exit /b 1)
 echo BUILD OK
+
+echo --- ThemeManager self-check ---
+"%JRUN%" -ea -cp out org.swelement.core.theme.ThemeManager
+if %ERRORLEVEL% NEQ 0 ( echo ThemeManager self-check FAILED & exit /b 1 )
+
+echo --- ElementLightTheme self-check ---
+"%JRUN%" -ea -cp out org.swelement.core.theme.ElementLightTheme
+if %ERRORLEVEL% NEQ 0 ( echo ElementLightTheme self-check FAILED & exit /b 1 )
+
+echo --- AnimationManager self-check ---
+"%JRUN%" -ea -cp out org.swelement.core.AnimationManager
+if %ERRORLEVEL% NEQ 0 ( echo AnimationManager self-check FAILED & exit /b 1 )
+
+echo --- SelfCheckBase self-check ---
+"%JRUN%" -ea -cp out org.swelement.core.SelfCheckBase
+if %ERRORLEVEL% NEQ 0 ( echo SelfCheckBase self-check FAILED & exit /b 1 )
+
+echo --- PaintingHelper self-check ---
+"%JRUN%" -ea -cp out org.swelement.framework.util.PaintingHelper
+if %ERRORLEVEL% NEQ 0 ( echo PaintingHelper self-check FAILED & exit /b 1 )
 
 echo --- CloseButton self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstCloseButton
@@ -244,3 +189,19 @@ if %ERRORLEVEL% NEQ 0 ( echo AstIconDemo self-check FAILED & exit /b 1 )
 echo --- AstBadge self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstBadge
 if %ERRORLEVEL% NEQ 0 ( echo AstBadge self-check FAILED & exit /b 1 )
+
+echo --- AstSwitch self-check ---
+"%JRUN%" -ea -cp out org.swelement.ui.AstSwitch
+if %ERRORLEVEL% NEQ 0 ( echo AstSwitch self-check FAILED & exit /b 1 )
+
+echo --- AstRadio self-check ---
+"%JRUN%" -ea -cp out org.swelement.ui.AstRadio
+if %ERRORLEVEL% NEQ 0 ( echo AstRadio self-check FAILED & exit /b 1 )
+
+echo --- AstCheckbox self-check ---
+"%JRUN%" -ea -cp out org.swelement.ui.AstCheckbox
+if %ERRORLEVEL% NEQ 0 ( echo AstCheckbox self-check FAILED & exit /b 1 )
+
+echo --- AstButton self-check ---
+"%JRUN%" -ea -cp out org.swelement.ui.AstButton
+if %ERRORLEVEL% NEQ 0 ( echo AstButton self-check FAILED & exit /b 1 )

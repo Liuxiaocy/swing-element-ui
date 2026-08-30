@@ -1,9 +1,9 @@
 package org.swelement.ui;
 
 import org.swelement.core.AnimatedPopup;
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstContainerComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -33,15 +33,12 @@ import java.util.function.Consumer;
  *  - 键盘：上下箭头调整当前聚焦列的值。
  *  - 对比度：触发框文字 TEXT_MAIN on 白底；面板项文字 TEXT_MAIN，选中项白字 PRIMARY 底（按惯例跳过断言）。
  */
-public class AstTimePicker extends JComponent {
+public class AstTimePicker extends AstInteractiveComponent {
     private int hour = 0, minute = 0, second = 0;
     private final boolean showSeconds;
     private Consumer<int[]> timeChangeListener;
     private final AnimatedPopup popup;
     private boolean open;
-    private float hover;
-    private final Animator hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-        new Animator.Listener() { public void update(float v) { hover = v; repaint(); }});
     private static final int FIELD_H = 36;
     private static final int ICON_SIZE = 16;
 
@@ -52,10 +49,11 @@ public class AstTimePicker extends JComponent {
         this.popup = new AnimatedPopup();
         this.popup.setDismissListener(new Runnable() { public void run() { open = false; }});
         AnimatedPopup.registerGlobal(popup, AnimatedPopup.PopupLayer.POPUP);
-        setOpaque(false);
+        anim.register("hover", 150, Easing::easeInOut);
+        setFont(UIManager.getFont("Label.font"));
         addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { hoverAnim.stop(); hoverAnim.go(hover, 1f); }
-            @Override public void mouseExited(MouseEvent e) { hoverAnim.stop(); hoverAnim.go(hover, 0f); }
+            @Override public void mouseEntered(MouseEvent e) { anim.stop("hover"); anim.go("hover", anim.getProgress("hover"), 1f); }
+            @Override public void mouseExited(MouseEvent e) { anim.stop("hover"); anim.go("hover", anim.getProgress("hover"), 0f); }
             @Override public void mousePressed(MouseEvent e) { toggle(); }
         });
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -112,15 +110,14 @@ public class AstTimePicker extends JComponent {
     }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Graphics2D g2 = createGraphics(g);
+        float hover = anim.getProgress("hover");
         int w = getWidth(), h = getHeight();
         // 触发框：白底 + BORDER_BASE 边框（hover 时 PRIMARY）
         Color borderC = hover > 0.01f
-            ? ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, hover)
-            : ElementTheme.BORDER_BASE;
-        RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, w-1.5f, h-1.5f, ElementTheme.RADIUS, ElementTheme.RADIUS);
+            ? lerp(theme().getBorderBase(), theme().getPrimary(), hover)
+            : theme().getBorderBase();
+        RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, w-1.5f, h-1.5f, theme().getRadiusBase(), theme().getRadiusBase());
         g2.setColor(Color.WHITE);
         g2.fill(rect);
         g2.setColor(borderC);
@@ -130,34 +127,34 @@ public class AstTimePicker extends JComponent {
         String text = showSeconds
             ? String.format("%02d:%02d:%02d", hour, minute, second)
             : String.format("%02d:%02d", hour, minute);
-        g2.setColor(ElementTheme.TEXT_MAIN);
-        ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTimePicker field text");
-        g2.setFont(ElementTheme.FONT.deriveFont(14f));
+        g2.setColor(theme().getTextPrimary());
+        assertContrast(theme().getTextPrimary(), Color.WHITE, "AstTimePicker field text");
+        g2.setFont(getFont().deriveFont(14f));
         FontMetrics fm = g2.getFontMetrics();
         int baseY = (h - fm.getHeight()) / 2 + fm.getAscent();
         g2.drawString(text, 12, baseY);
         // 时钟图标（右侧）
         int ix = w - ICON_SIZE - 10, iy = (h - ICON_SIZE) / 2;
-        drawClockIcon(g2, ix, iy, ICON_SIZE, ElementTheme.TEXT_REGULAR);
+        drawClockIcon(g2, ix, iy, ICON_SIZE, theme().getTextRegular());
         g2.dispose();
     }
 
     private static void drawClockIcon(Graphics2D g2, int x, int y, int s, Color c) {
-        g2 = (Graphics2D) g2.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setColor(c);
-        g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        Graphics2D g = (Graphics2D) g2.create();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setColor(c);
+        g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         // 外圈圆
-        g2.drawOval(x, y, s, s);
+        g.drawOval(x, y, s, s);
         // 时针、分针
         int cx = x + s/2, cy = y + s/2;
-        g2.drawLine(cx, cy, cx, cy - s/4);
-        g2.drawLine(cx, cy, cx + s/3, cy);
-        g2.dispose();
+        g.drawLine(cx, cy, cx, cy - s/4);
+        g.drawLine(cx, cy, cx + s/3, cy);
+        g.dispose();
     }
 
     // --- 弹出面板：三列可滚动列表 ---
-    static final class TimePanel extends JPanel {
+    static final class TimePanel extends AstContainerComponent {
         interface Callback { void onPick(int h, int m, int s); void onConfirm(); }
         private final boolean showSeconds;
         private int hour, minute, second;
@@ -170,7 +167,7 @@ public class AstTimePicker extends JComponent {
             this.showSeconds = showSeconds;
             this.hour = h; this.minute = m; this.second = s;
             this.cb = cb;
-            setOpaque(false);
+            setFont(UIManager.getFont("Label.font"));
             setLayout(new BorderLayout());
             add(buildColumns(), BorderLayout.CENTER);
             // 底部"确定"按钮
@@ -198,8 +195,8 @@ public class AstTimePicker extends JComponent {
             JPanel wrap = new JPanel(new BorderLayout());
             wrap.setOpaque(false);
             JLabel lbl = new JLabel(label, JLabel.CENTER);
-            lbl.setFont(ElementTheme.FONT.deriveFont(12f));
-            lbl.setForeground(ElementTheme.TEXT_REGULAR);
+            lbl.setFont(getFont().deriveFont(12f));
+            lbl.setForeground(theme().getTextRegular());
             lbl.setBorder(BorderFactory.createEmptyBorder(0, 0, 4, 0));
             wrap.add(lbl, BorderLayout.NORTH);
             // 列表：ListModel + JList
@@ -208,10 +205,10 @@ public class AstTimePicker extends JComponent {
             final JList<String> list = new JList<String>(model) {
                 @Override public boolean isOptimizedDrawingEnabled() { return false; }
             };
-            list.setFont(ElementTheme.FONT.deriveFont(13f));
-            list.setSelectionBackground(ElementTheme.PRIMARY);
+            list.setFont(getFont().deriveFont(13f));
+            list.setSelectionBackground(theme().getPrimary());
             list.setSelectionForeground(Color.WHITE);
-            list.setForeground(ElementTheme.TEXT_MAIN);
+            list.setForeground(theme().getTextPrimary());
             list.setBackground(Color.WHITE);
             list.setFixedCellHeight(ROW_H);
             list.setVisibleRowCount(VISIBLE_ROWS);
@@ -246,9 +243,13 @@ public class AstTimePicker extends JComponent {
             int h = 16 /*label*/ + VISIBLE_ROWS * ROW_H + 16 + 46 /*footer*/;
             return new Dimension(w, h);
         }
+
+        @Override protected void selfCheck() { }
     }
 
-    static void selfCheck() {
+    // --- Self-check ---
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstTimePicker().setTime(24, 0, 0); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "hour>23 must throw"; threw = false;
@@ -261,7 +262,7 @@ public class AstTimePicker extends JComponent {
         try { new AstTimePicker().setTimeChangeListener(null); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null listener must throw";
 
-        AstTimePicker tp = new AstTimePicker();
+        AstTimePicker tp = this;
         tp.setTime(9, 5, 30);
         int[] t = tp.getTime();
         assert t[0] == 9 && t[1] == 5 && t[2] == 30 : "getTime roundtrip";
@@ -348,5 +349,7 @@ public class AstTimePicker extends JComponent {
         assert panel.getPreferredSize().width > 0 && panel.getPreferredSize().height > 0 : "TimePanel preferredSize 合理";
         System.out.println("AstTimePicker self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstTimePicker().selfCheck();
+    }
 }

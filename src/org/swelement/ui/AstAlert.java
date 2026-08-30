@@ -1,16 +1,15 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.core.theme.Theme;
+import org.swelement.framework.AstContainerComponent;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class AstAlert extends JComponent {
+public class AstAlert extends AstContainerComponent {
     public static final int SUCCESS = 0, WARNING = 1, INFO = 2, ERROR = 3;
 
-    private static final Color[] COLORS = {ElementTheme.SUCCESS, ElementTheme.WARNING, ElementTheme.INFO, ElementTheme.DANGER};
     private static final Color[] BG = {new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xF4F4F5), new Color(0xFEF0F0)};
     private static final String[] ICONS = {"\u221a", "!", "i", "\u00d7"};
 
@@ -20,35 +19,35 @@ public class AstAlert extends JComponent {
     private static final int LEFT_PAD = 40;
     private static final int RIGHT_PAD = 16;
 
-    private float inP = 0f, outP;
     private Runnable onClosed;
     private int origW, origH;
-
-    private final Animator inAnim = new Animator(300, Easing::easeOut, v -> { inP = v; repaint(); syncClose(); });
-    private final Animator outAnim = new Animator(250, Easing::easeIn, v -> {
-        outP = v;
-        int h = Math.max(1, Math.round(origH * (1 - v)));
-        setPreferredSize(new Dimension(origW, h));
-        revalidate();
-        if (v >= 1f && onClosed != null) {
-            Runnable r = onClosed;
-            onClosed = null;
-            r.run();
-        }
-        repaint();
-        syncClose();
-    });
     private final int type;
     private final String title, desc;
     private final boolean closable;
     private AstCloseButton closeBtn;
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("in", 300, Easing::easeOut);
+        anim.register("out", 250, Easing::easeIn);
+    }
+
+    private Color typeColor(int t) {
+        Theme theme = theme();
+        switch (t) {
+            case SUCCESS: return theme.getSuccess();
+            case WARNING: return theme.getWarning();
+            case INFO: return theme.getInfo();
+            default: return theme.getDanger();
+        }
+    }
 
     public AstAlert(int type, String title, String desc, boolean closable) {
         this.type = type;
         this.title = title;
         this.desc = desc;
         this.closable = closable;
-        setOpaque(false);
         setPreferredSize(new Dimension(360, desc == null ? 40 : 56));
         setLayout(null); // AstCloseButton 绝对定位
         if (closable) {
@@ -56,7 +55,7 @@ public class AstAlert extends JComponent {
             closeBtn.addActionListener(e -> close(() -> {}));
             add(closeBtn);
         }
-        inAnim.go(0f, 1f);
+        anim.go("in", 0f, 1f);
     }
 
     @Override
@@ -72,7 +71,7 @@ public class AstAlert extends JComponent {
     private int computeFixedH(int availW) {
         if (desc == null) return 40;
         int descW = Math.max(20, availW - LEFT_PAD - RIGHT_PAD);
-        int lines = wrapLines(getFontMetrics(ElementTheme.FONT.deriveFont(13f)), desc, descW, 2).length;
+        int lines = wrapLines(getFontMetrics(theme().getFontBase().deriveFont(13f)), desc, descW, 2).length;
         return Math.max(40, PAD + TITLE_LINE_H + 4 + lines * DESC_LINE_H + PAD);
     }
 
@@ -82,16 +81,22 @@ public class AstAlert extends JComponent {
     /** 淡入淡出动画驱动 AstCloseButton 的 alpha 与可交互性。 */
     private void syncClose() {
         if (closeBtn == null) return;
-        float a = inP * (1 - outP);
+        float a = anim.getProgress("in") * (1 - anim.getProgress("out"));
         closeBtn.setAlpha(a);
         closeBtn.setInteractive(a > 0.5f && isEnabled());
     }
 
     public void close(Runnable onClosed) {
         this.onClosed = onClosed;
-        origW = getWidth();
-        origH = getHeight();
-        outAnim.go(0f, 1f);
+        origW = getPreferredSize().width;
+        origH = getPreferredSize().height;
+        anim.get("out").go(0f, 1f, () -> {
+            if (this.onClosed != null) {
+                Runnable r = this.onClosed;
+                this.onClosed = null;
+                r.run();
+            }
+        });
     }
 
     @Override
@@ -103,33 +108,42 @@ public class AstAlert extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        int a = Math.round(255 * inP * (1 - outP));
+        // 关闭动画期间缩小 preferredSize（复刻原始 outAnim 回调行为）
+        float outProgress = anim.getProgress("out");
+        if (outProgress > 0f && origH > 0) {
+            int h = Math.max(1, Math.round(origH * (1 - outProgress)));
+            setPreferredSize(new Dimension(origW, h));
+            revalidate();
+        }
+        syncClose();
+        int a = Math.round(255 * anim.getProgress("in") * (1 - outProgress));
         if (a <= 0) return;
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
         int w = getWidth();
         int boxH = Math.min(getHeight(), computeFixedH(w));
         g2.setColor(new Color(BG[type].getRed(), BG[type].getGreen(), BG[type].getBlue(), a));
         g2.fillRect(0, 0, w, boxH);
-        g2.setColor(new Color(COLORS[type].getRed(), COLORS[type].getGreen(), COLORS[type].getBlue(), a));
+        Color tc = typeColor(type);
+        g2.setColor(new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), a));
         g2.fillRect(0, 0, 4, boxH);
 
         int availW = Math.max(20, w - LEFT_PAD - RIGHT_PAD);
+        Font baseFont = theme().getFontBase();
         if (desc == null) {
             // 精简模式（高40）：图标与标题垂直居中
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+            g2.setFont(baseFont.deriveFont(Font.BOLD, 16f));
             FontMetrics fm = g2.getFontMetrics();
             g2.drawString(ICONS[type], 16, (boxH - fm.getHeight()) / 2f + fm.getAscent());
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD));
+            g2.setFont(baseFont.deriveFont(Font.BOLD));
             FontMetrics tfm = g2.getFontMetrics();
             g2.drawString(truncate(tfm, title, availW), LEFT_PAD, (boxH - tfm.getHeight()) / 2f + tfm.getAscent());
         } else {
             // 完整模式：标题上、描述下（描述最多 2 行，超出省略号截断）
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+            g2.setFont(baseFont.deriveFont(Font.BOLD, 16f));
             FontMetrics tfm = g2.getFontMetrics();
             g2.drawString(ICONS[type], 16, PAD + (TITLE_LINE_H - tfm.getHeight()) / 2f + tfm.getAscent());
             g2.drawString(truncate(tfm, title, availW), LEFT_PAD, PAD + (TITLE_LINE_H - tfm.getHeight()) / 2f + tfm.getAscent());
-            g2.setFont(ElementTheme.FONT.deriveFont(13f));
+            g2.setFont(baseFont.deriveFont(13f));
             FontMetrics dfm = g2.getFontMetrics();
             Color descColor = new Color(0x606266);
             g2.setColor(new Color(descColor.getRed(), descColor.getGreen(), descColor.getBlue(), a));
@@ -174,7 +188,8 @@ public class AstAlert extends JComponent {
         return s + ell;
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         AstAlert a = new AstAlert(AstAlert.INFO, "标题", "描述文字", true);
         assert a.getComponentCount() == 1 && a.getComponent(0) instanceof AstCloseButton
                 : "closable alert has AstCloseButton child, count=" + a.getComponentCount();
@@ -199,6 +214,7 @@ public class AstAlert extends JComponent {
         assert longA.getPreferredSize().height >= 84 : "长描述应为 2 行固定高度(≥84)，实际=" + longA.getPreferredSize().height;
         final Throwable[] err2 = {null};
         try {
+            Thread.sleep(350); // 等待入场动画完成，确保绘制时 alpha > 0
             SwingUtilities.invokeAndWait(new Runnable() { public void run() {
                 longA.setSize(longA.getPreferredSize());
                 java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(longA.getWidth(), longA.getHeight(), java.awt.image.BufferedImage.TYPE_INT_ARGB);
@@ -213,5 +229,7 @@ public class AstAlert extends JComponent {
         System.out.println("AstAlert self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstAlert(INFO, "title", "desc", true).selfCheck();
+    }
 }

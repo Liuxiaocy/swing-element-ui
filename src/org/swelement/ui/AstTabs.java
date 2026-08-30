@@ -1,8 +1,7 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,27 +13,34 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AstTabs extends JComponent {
+public class AstTabs extends AstAbstractComponent {
     private static final int HEADER_H = 40;
 
-    private final List<String> titles = new ArrayList<>();
-    private final Animator indXAnim = new Animator(250, Easing::easeInOut, v -> { indX = v; repaint(); });
-    private final Animator indWAnim = new Animator(250, Easing::easeInOut, v -> { indW = v; repaint(); });
-    private final Animator contentAnim = new Animator(200, Easing::easeInOut, v -> { contentAlpha = v; repaint(); });
+    private final List<String> titles = new ArrayList<String>();
     private final EventListenerList listenerList = new EventListenerList();
-    private float indX, indW, contentAlpha = 1f;
+    private float indXFrom, indXTo, indWFrom, indWTo;
+    private boolean indicatorInit;
     private int selected = 0;
     private final CardLayout cards = new CardLayout();
     private final JPanel cardPanel = new JPanel(cards) {
         @Override
         protected void paintComponent(Graphics g) {
+            float contentAlpha = anim.getProgress("content");
             ((Graphics2D) g).setComposite(AlphaComposite.SrcOver.derive(contentAlpha));
             super.paintComponent(g);
         }
     };
 
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("indX", 250, Easing::easeInOut);
+        anim.register("indW", 250, Easing::easeInOut);
+        anim.register("content", 200, Easing::easeInOut);
+        anim.setProgress("content", 1f);
+    }
+
     public AstTabs() {
-        setOpaque(false);
         setLayout(new BorderLayout());
         cardPanel.setBackground(Color.WHITE);
         cardPanel.setOpaque(false);
@@ -46,7 +52,7 @@ public class AstTabs extends JComponent {
                 if (e.getY() > HEADER_H) return;
                 int[] xs = tabPositions();
                 for (int i = 0; i < titles.size(); i++) {
-                    if (e.getX() >= xs[i] && e.getX() < xs[i] + 24 + getFontMetrics(ElementTheme.FONT).stringWidth(titles.get(i))) {
+                    if (e.getX() >= xs[i] && e.getX() < xs[i] + 24 + getFontMetrics(theme().getFontBase()).stringWidth(titles.get(i))) {
                         setSelectedIndex(i);
                         return;
                     }
@@ -100,14 +106,14 @@ public class AstTabs extends JComponent {
         if (i < 0 || i >= titles.size() || i == selected) return;
         selected = i;
         cards.show(cardPanel, String.valueOf(i));
-        contentAnim.go(0f, 1f);
+        anim.go("content", 0f, 1f);
         slideIndicator();
         repaint();
         fireStateChanged();
     }
 
     private int[] tabPositions() {
-        FontMetrics fm = getFontMetrics(ElementTheme.FONT);
+        FontMetrics fm = getFontMetrics(theme().getFontBase());
         int[] xs = new int[titles.size()];
         int x = 0;
         for (int i = 0; i < titles.size(); i++) {
@@ -118,13 +124,19 @@ public class AstTabs extends JComponent {
     }
 
     private void slideIndicator() {
-        FontMetrics fm = getFontMetrics(ElementTheme.FONT);
+        FontMetrics fm = getFontMetrics(theme().getFontBase());
         int x = 0;
         for (int i = 0; i < titles.size(); i++) {
             int w = 24 + fm.stringWidth(titles.get(i));
             if (i == selected) {
-                indXAnim.go(indX, x);
-                indWAnim.go(indW, w);
+                float curX = indXFrom + (indXTo - indXFrom) * anim.getProgress("indX");
+                float curW = indWFrom + (indWTo - indWFrom) * anim.getProgress("indW");
+                indXFrom = curX;
+                indXTo = x;
+                indWFrom = curW;
+                indWTo = w;
+                anim.go("indX", 0f, 1f);
+                anim.go("indW", 0f, 1f);
                 return;
             }
             x += w;
@@ -133,26 +145,94 @@ public class AstTabs extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
+        float indX = indXFrom + (indXTo - indXFrom) * anim.getProgress("indX");
+        float indW = indWFrom + (indWTo - indWFrom) * anim.getProgress("indW");
         g2.setColor(Color.WHITE);
         g2.fillRect(0, 0, getWidth(), getHeight());
-        FontMetrics fm = g2.getFontMetrics(ElementTheme.FONT);
+        g2.setFont(theme().getFontBase());
+        FontMetrics fm = g2.getFontMetrics();
         int[] xs = tabPositions();
         for (int i = 0; i < titles.size(); i++) {
-            g2.setColor(i == selected ? ElementTheme.PRIMARY : new Color(0x303133));
-            g2.setFont(ElementTheme.FONT);
+            g2.setColor(i == selected ? theme().getPrimary() : theme().getTextPrimary());
+            assertContrast(theme().getTextPrimary(), Color.WHITE, "AstTabs unselected text on white");
             g2.drawString(titles.get(i), xs[i] + 12, (HEADER_H - fm.getHeight()) / 2f + fm.getAscent());
         }
-        if (indX == 0f && indW == 0f && !titles.isEmpty()) {
-            indX = xs[selected];
-            indW = 24 + fm.stringWidth(titles.get(selected));
+        if (!indicatorInit && !titles.isEmpty()) {
+            indicatorInit = true;
+            indXFrom = xs[selected];
+            indXTo = xs[selected];
+            indWFrom = 24 + fm.stringWidth(titles.get(selected));
+            indWTo = indWFrom;
         }
-        g2.setColor(ElementTheme.PRIMARY);
+        g2.setColor(theme().getPrimary());
         g2.fillRect(Math.round(indX), HEADER_H - 2, Math.round(indW), 2);
         g2.dispose();
     }
 
     @Override
     public Dimension getPreferredSize() { return new Dimension(480, 240); }
+
+    // --- Self-check ---
+
+    @Override
+    protected void selfCheck() {
+        // Basic tab operations
+        AstTabs tabs = new AstTabs(new String[]{"Tab1", "Tab2", "Tab3"}, 0);
+        assert tabs.getSelectedIndex() == 0 : "initial index 0";
+        assert "Tab1".equals(tabs.getSelectedTitle()) : "initial title";
+
+        tabs.setSelectedIndex(1);
+        assert tabs.getSelectedIndex() == 1 : "switched to 1";
+        assert "Tab2".equals(tabs.getSelectedTitle()) : "title 2";
+
+        tabs.setSelectedIndex(2);
+        assert tabs.getSelectedIndex() == 2 : "switched to 2";
+
+        // Invalid index ignored
+        tabs.setSelectedIndex(-1);
+        assert tabs.getSelectedIndex() == 2 : "invalid -1 ignored";
+        tabs.setSelectedIndex(99);
+        assert tabs.getSelectedIndex() == 2 : "invalid 99 ignored";
+
+        // Same index ignored
+        tabs.setSelectedIndex(2);
+        assert tabs.getSelectedIndex() == 2 : "same index ignored";
+
+        // Add tab after creation
+        tabs.addTab("Tab4", new JPanel());
+        assert tabs.getSelectedIndex() == 2 : "addTab doesn't change selection";
+
+        // Change listener
+        final int[] changed = {-1};
+        tabs.addChangeListener(new ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent e) {
+                changed[0] = tabs.getSelectedIndex();
+            }
+        });
+        tabs.setSelectedIndex(0);
+        assert changed[0] == 0 : "listener fired";
+
+        // Paint test on EDT
+        final Throwable[] err = {null};
+        try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+            AstTabs t = new AstTabs(new String[]{"A", "B"}, 0);
+            t.setBounds(0, 0, 400, 240);
+            t.setSelectedIndex(1);
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(400, 240, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            Graphics2D gg = img.createGraphics();
+            gg.setColor(Color.WHITE); gg.fillRect(0, 0, 400, 240);
+            try { t.paint(gg); } finally { gg.dispose(); }
+        }}); } catch (Throwable t) { err[0] = t; }
+        if (err[0] != null) throw new RuntimeException(err[0]);
+
+        // Contrast: unselected tab text on white background
+        assertContrast(theme().getTextPrimary(), Color.WHITE, "AstTabs unselected text on white");
+
+        System.out.println("AstTabs self-check OK");
+    }
+
+    public static void main(String[] args) {
+        new AstTabs().selfCheck();
+    }
 }

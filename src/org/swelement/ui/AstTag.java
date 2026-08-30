@@ -1,14 +1,14 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.core.theme.Theme;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 
-public class AstTag extends JComponent {
+public class AstTag extends AstDisplayComponent {
     public static final int PRIMARY = 0, SUCCESS = 1, WARNING = 2, DANGER = 3, INFO = 4;
     public static final int EFFECT_DARK = 0, EFFECT_LIGHT = 1, EFFECT_PLAIN = 2;
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
@@ -22,7 +22,6 @@ public class AstTag extends JComponent {
 
     private static final Color[] LIGHT_BG = {new Color(0xECF5FF), new Color(0xF0F9EB), new Color(0xFDF6EC), new Color(0xFEF0F0), new Color(0xF4F4F5)};
     private static final Color[] LIGHT_BORDER = {new Color(0xD9ECFF), new Color(0xE1F3D8), new Color(0xFAECD8), new Color(0xFDE2E2), new Color(0xE9E9EB)};
-    private static final Color[] DARK_BG = {ElementTheme.PRIMARY, ElementTheme.SUCCESS, ElementTheme.WARNING, ElementTheme.DANGER, ElementTheme.INFO};
     // 深色文字变体，浅色/白底上对比度 >= 4.5:1（取值同 Button PLAIN_FG）
     private static final Color[] DEEP_FG = {new Color(0x1d6fb5), new Color(0x2d6b18), new Color(0x955d12), new Color(0xb83232), new Color(0x606266)};
 
@@ -32,17 +31,6 @@ public class AstTag extends JComponent {
     private int size = SIZE_DEFAULT;
     private AstCloseButton closeBtn;
 
-    private final Animator closeAnim = new Animator(200, Easing::easeInOut, v -> {
-        float w = origW * (1 - v);
-        setPreferredSize(new Dimension(Math.max(1, Math.round(w)), origH));
-        revalidate();
-        if (v >= 1f && onClosed != null) {
-            Runnable r = onClosed;
-            onClosed = null;
-            r.run();
-        }
-        repaint();
-    });
     private final int type;
     private final boolean closable;
     private String text;
@@ -51,8 +39,25 @@ public class AstTag extends JComponent {
         this.text = text;
         this.type = type;
         this.closable = closable;
-        setOpaque(false);
         setLayout(null); // AstCloseButton 绝对定位，doLayout 摆放
+    }
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("close", 200, Easing::easeInOut);
+    }
+
+    /** 深色背景色（effect=DARK），从主题获取语义色。 */
+    private Color darkBg(int type) {
+        Theme t = theme();
+        switch (type) {
+            case PRIMARY: return t.getPrimary();
+            case SUCCESS: return t.getSuccess();
+            case WARNING: return t.getWarning();
+            case DANGER: return t.getDanger();
+            default: return t.getInfo();
+        }
     }
 
     public void setEffect(int effect) {
@@ -86,13 +91,19 @@ public class AstTag extends JComponent {
 
     public void close(Runnable onClosed) {
         this.onClosed = onClosed;
-        origW = getWidth();
-        origH = getHeight();
+        origW = getPreferredSize().width;
+        origH = getPreferredSize().height;
         if (closeBtn != null) {
             closeBtn.setInteractive(false);
             closeBtn.setVisible(false);
         }
-        closeAnim.go(0f, 1f);
+        anim.get("close").go(0f, 1f, () -> {
+            if (this.onClosed != null) {
+                Runnable r = this.onClosed;
+                this.onClosed = null;
+                r.run();
+            }
+        });
     }
 
     private void updateCloseColors() {
@@ -102,9 +113,9 @@ public class AstTag extends JComponent {
             closeBtn.setColor(Color.WHITE);
             closeBtn.setHoverColor(Color.WHITE);
         } else {
-            // light: 深色变体 × 对应浅色底；plain: 深色变体 × 白底。hover 统一 TEXT_MAIN
+            // light: 深色变体 × 对应浅色底；plain: 深色变体 × 白底。hover 统一 TEXT_PRIMARY
             closeBtn.setColor(DEEP_FG[type]);
-            closeBtn.setHoverColor(ElementTheme.TEXT_MAIN);
+            closeBtn.setHoverColor(theme().getTextPrimary());
         }
     }
 
@@ -131,15 +142,21 @@ public class AstTag extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
+        // 关闭动画：根据进度收缩 preferredSize
+        float closeProgress = anim.getProgress("close");
+        if (closeProgress > 0f && origW > 0) {
+            float w = origW * (1 - closeProgress);
+            setPreferredSize(new Dimension(Math.max(1, Math.round(w)), origH));
+            revalidate();
+        }
         Color bg, fg, border;
         switch (effect) {
             case EFFECT_DARK:
-                bg = DARK_BG[type]; fg = Color.WHITE; border = DARK_BG[type]; // 白字彩底：Element 标准实心，对比度例外
+                bg = darkBg(type); fg = Color.WHITE; border = darkBg(type); // 白字彩底：Element 标准实心，对比度例外
                 break;
             case EFFECT_PLAIN:
-                bg = Color.WHITE; fg = DEEP_FG[type]; border = DARK_BG[type];
+                bg = Color.WHITE; fg = DEEP_FG[type]; border = darkBg(type);
                 break;
             default: // EFFECT_LIGHT（默认，向后兼容）
                 bg = LIGHT_BG[type]; fg = DEEP_FG[type]; border = LIGHT_BORDER[type];
@@ -150,7 +167,7 @@ public class AstTag extends JComponent {
         g2.setColor(border);
         g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 4, 4);
         g2.setColor(fg);
-        Font f = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+        Font f = theme().getFontBase().deriveFont(SIZE_FONT[size]);
         g2.setFont(f);
         FontMetrics fm = g2.getFontMetrics(f);
         int rightInset = closable ? CLOSE_GAP + CLOSE_SIZE[size] + CLOSE_RIGHT : SIZE_HPAD[size];
@@ -164,7 +181,7 @@ public class AstTag extends JComponent {
     @Override
     public Dimension getPreferredSize() {
         if (isPreferredSizeSet()) return super.getPreferredSize();
-        Font f = ElementTheme.FONT.deriveFont(SIZE_FONT[size]);
+        Font f = theme().getFontBase().deriveFont(SIZE_FONT[size]);
         FontMetrics fm = getFontMetrics(f);
         int w = SIZE_HPAD[size] + fm.stringWidth(text)
                 + (closable ? CLOSE_GAP + CLOSE_SIZE[size] + CLOSE_RIGHT : SIZE_HPAD[size]);
@@ -172,12 +189,13 @@ public class AstTag extends JComponent {
         return new Dimension(w, h);
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // 对比度：light 与 plain 各 type 深色文字变体 vs 对应背景
         for (int t = 0; t < 5; t++) {
-            ElementTheme.assertContrast(DEEP_FG[t], LIGHT_BG[t], "tag light type=" + t);
-            ElementTheme.assertContrast(DEEP_FG[t], Color.WHITE, "tag plain type=" + t);
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, LIGHT_BG[t], "tag hover-x on light type=" + t);
+            assertContrast(DEEP_FG[t], LIGHT_BG[t], "tag light type=" + t);
+            assertContrast(DEEP_FG[t], Color.WHITE, "tag plain type=" + t);
+            assertContrast(theme().getTextPrimary(), LIGHT_BG[t], "tag hover-x on light type=" + t);
         }
         // 显式 setPreferredSize 必须被尊重（close 收缩动画依赖此：Animator 通过 setPreferredSize 驱动）
         AstTag shrink = new AstTag("标签", AstTag.PRIMARY, false);
@@ -223,11 +241,14 @@ public class AstTag extends JComponent {
         } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
         // 点击 AstCloseButton 触发关闭动画并回调 onClosed（primary close 路径）
+        // 注意：基类 removeNotify 会 dispose 动画管理器，故需在动画完成后再 dispose 窗口
         final Throwable[] err2 = {null};
         final boolean[] closed = {false};
+        final JFrame[] holder = {null};
         try {
             SwingUtilities.invokeAndWait(() -> {
                 JFrame f = new JFrame();
+                holder[0] = f;
                 JPanel p = new JPanel();
                 AstTag c = new AstTag("可关闭", AstTag.SUCCESS, true);
                 c.setOnClosed(() -> closed[0] = true);
@@ -237,14 +258,16 @@ public class AstTag extends JComponent {
                 Component cb = c.getComponent(0);
                 cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_PRESSED,
                         System.currentTimeMillis(), 0, cb.getWidth() / 2, cb.getHeight() / 2, 1, false));
-                f.dispose();
             });
             Thread.sleep(400); // 等待 ~200ms 关闭动画完成
+            if (holder[0] != null) holder[0].dispose();
         } catch (Throwable t) { err2[0] = t; }
         if (err2[0] != null) throw new RuntimeException(err2[0]);
         assert closed[0] : "clicking close button should fire onClosed after close animation";
         System.out.println("AstTag self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstTag("test", PRIMARY, false).selfCheck();
+    }
 }

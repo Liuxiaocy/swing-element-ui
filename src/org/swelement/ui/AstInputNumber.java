@@ -1,14 +1,12 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
-import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.RoundRectangle2D;
 import java.util.function.Consumer;
 
 /**
@@ -24,7 +22,7 @@ import java.util.function.Consumer;
  * 长按按钮 500ms 后每 100ms 自动步进（加速）。键盘上下箭头也可步进。
  * 数值越界 clamp；输入非法字符不更新。
  */
-public class AstInputNumber extends JComponent implements FormValueProvider, FormInvalidMarker {
+public class AstInputNumber extends AstAbstractComponent implements FormValueProvider, FormInvalidMarker {
     private double min, max, step;
     private int precision; // 小数位数
     private double value;
@@ -55,7 +53,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         this.value = clamp(initial);
         this.field = new JTextField(format(value));
         this.field.setHorizontalAlignment(JTextField.CENTER);
-        this.field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        this.field.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
         this.field.setBorder(new EmptyBorder(0, 4, 0, 4));
         this.minusBtn = new StepButton("-", false);
         this.plusBtn = new StepButton("+", true);
@@ -67,7 +65,6 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         add(minusBtn, BorderLayout.WEST);
         add(field, BorderLayout.CENTER);
         add(plusBtn, BorderLayout.EAST);
-        setOpaque(false);
         applyTier();
         // 输入框校验：失焦/回车时解析
         field.addActionListener(e -> commitText());
@@ -94,7 +91,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
     }
 
     private void applyTier() {
-        field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        field.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
         minusBtn.setPreferredSize(new Dimension(BTN_W, TIER_HEIGHT[tier]));
         plusBtn.setPreferredSize(new Dimension(BTN_W, TIER_HEIGHT[tier]));
     }
@@ -120,7 +117,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
     }
     @Override public void setInvalid(boolean inv) {
         this.invalid = inv;
-        setBorder(inv ? BorderFactory.createLineBorder(ElementTheme.DANGER, 1) : null);
+        setBorder(inv ? BorderFactory.createLineBorder(theme().getDanger(), 1) : null);
         repaint();
     }
 
@@ -172,23 +169,15 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     // --- StepButton ---
-    private final class StepButton extends JComponent {
+    private final class StepButton extends AstInteractiveComponent {
         private final boolean plus;
-        float hover;
-        boolean pressed;
-        final Animator hoverAnim;
 
         StepButton(String label, boolean plus) {
             this.plus = plus;
             setPreferredSize(new Dimension(BTN_W, TIER_HEIGHT[tier]));
-            setOpaque(false);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-                new Animator.Listener() { public void update(float v) { hover = v; repaint(); }});
             addMouseListener(new MouseAdapter() {
                 @Override public void mousePressed(MouseEvent e) {
                     if (!isEnabled()) return;
-                    pressed = true;
                     doStep(plus);
                     if (plus) { holdingPlus = true; holdingMinus = false; }
                     else { holdingMinus = true; holdingPlus = false; }
@@ -196,39 +185,33 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
                     holdTimer.start();
                 }
                 @Override public void mouseReleased(MouseEvent e) {
-                    pressed = false;
                     holdingPlus = false; holdingMinus = false;
                     holdTimer.stop();
-                    repaint();
                 }
                 @Override public void mouseExited(MouseEvent e) {
                     holdTimer.stop();
                     holdingPlus = false; holdingMinus = false;
-                    pressed = false;
-                    hoverAnim.stop(); hoverAnim.go(hover, 0f);
-                }
-                @Override public void mouseEntered(MouseEvent e) {
-                    if (isEnabled()) hoverAnim.stop(); hoverAnim.go(hover, 1f);
                 }
             });
         }
 
-        @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = createGraphics(g);
             int w = getWidth(), h = getHeight();
+            float hover = hoverProgress();
             // 背景：白底，hover 时 FILL_BASE
-            Color bg = isEnabled() ? (hover > 0.01f ? ElementTheme.lerp(Color.WHITE, ElementTheme.FILL_BASE, hover) : Color.WHITE) : ElementTheme.FILL_BASE;
+            Color bg = isEnabled() ? (hover > 0.01f ? lerp(Color.WHITE, theme().getFillBase(), hover) : Color.WHITE) : theme().getFillBase();
             g2.setColor(bg);
             g2.fillRect(0, 0, w, h);
             // 左/右边框
-            g2.setColor(ElementTheme.BORDER_BASE);
-            if (plus) g2.drawLine(0, 0, 0, h); // plus 在右侧
-            else g2.drawLine(w - 1, 0, w - 1, h); // minus 在左侧
+            g2.setColor(theme().getBorderBase());
+            if (plus) g2.drawLine(0, 0, 0, h);
+            else g2.drawLine(w - 1, 0, w - 1, h);
             // 符号
-            g2.setColor(isEnabled() ? ElementTheme.TEXT_MAIN : ElementTheme.TEXT_PLACEHOLDER);
-            if (isEnabled()) ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstInputNumber btn");
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+            g2.setColor(isEnabled() ? theme().getTextPrimary() : theme().getTextPlaceholder());
+            if (isEnabled()) assertContrast(theme().getTextPrimary(), bg, "AstInputNumber btn");
+            g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 16f));
             FontMetrics fm = g2.getFontMetrics();
             String sym = plus ? "+" : "−";
             int tx = (w - fm.stringWidth(sym)) / 2;
@@ -236,10 +219,17 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
             g2.drawString(sym, tx, ty);
             g2.dispose();
         }
+
+        @Override
+        protected void selfCheck() { }
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
+        // 对比度：步进按钮文字 vs 背景
+        assertContrast(theme().getTextPrimary(), Color.WHITE, "InputNumber btn text on white");
+
         boolean threw = false;
         try { new AstInputNumber(10, 1, 1, 0); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "min > max"; threw = false;
@@ -314,5 +304,7 @@ public class AstInputNumber extends JComponent implements FormValueProvider, For
         System.out.println("AstInputNumber self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstInputNumber(0, 100, 1, 50).selfCheck();
+    }
 }

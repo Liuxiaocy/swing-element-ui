@@ -84,7 +84,7 @@ public class AstContainerDemo {
             }
         });
 
-        apply.doClick(0);
+        apply.doClick();
 
         f.setContentPane(split);
         f.setSize(1000, 700);

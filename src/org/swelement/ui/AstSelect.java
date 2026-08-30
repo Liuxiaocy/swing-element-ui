@@ -3,7 +3,8 @@ package org.swelement.ui;
 import org.swelement.core.Animator;
 import org.swelement.core.AnimatedPopup;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -16,7 +17,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AstSelect extends JPanel implements FormValueProvider, FormInvalidMarker {
+public class AstSelect extends AstAbstractComponent implements FormValueProvider, FormInvalidMarker {
     public static class Option {
         public final String label;
         public final Object value;
@@ -42,13 +43,8 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
     private final AnimatedPopup popup = new AnimatedPopup();
     private final JPanel optionList = new JPanel();
     private final boolean multiple, filterable;
-    private final Animator arrowAnim = new Animator(200, Easing::easeInOut, v -> { arrowAngle = v; repaint(); });
-    private float arrowAngle;
     private boolean popupShown, fieldFocus;
-    // 可清空 ×（复用 AstInput 批次 1 的 east 面板配方，替代手绘 × + 坐标命中）
-    private final AstCloseButton clearBtn = new AstCloseButton(16);
-    private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
-    private float clearVis;
+    // 可清空：hover 淡入手绘 ×（点击清空），隐藏时替换箭头 —— 不用 AstCloseButton（会与上下箭头重叠）
     private boolean hovering;
     private boolean invalid = false;
 
@@ -56,13 +52,18 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     private static final int[] TIER_HEIGHT = {40, 32, 28};
     private static final float[] TIER_FONT = {14f, 13f, 12f};
-    private static final int[] TIER_CLEAR = {18, 16, 14};
     private int tier = SIZE_DEFAULT;
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("arrow", 200, Easing::easeInOut);
+        anim.register("clear", 150, Easing::easeInOut);
+    }
 
     public AstSelect(boolean multiple, boolean filterable) {
         this.multiple = multiple;
         this.filterable = filterable;
-        setOpaque(false);
         setLayout(new BorderLayout());
         setPreferredSize(new Dimension(220, 40));
 
@@ -72,7 +73,7 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         if (filterable) {
             field.setOpaque(false);
             field.setBorder(new EmptyBorder(0, 12, 0, 0));
-            field.setFont(ElementTheme.FONT);
+            field.setFont(theme().getFontBase());
             field.addFocusListener(new FocusAdapter() {
                 public void focusGained(FocusEvent e) { fieldFocus = true; repaint(); }
                 public void focusLost(FocusEvent e) { fieldFocus = false; repaint(); }
@@ -81,37 +82,37 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         } else {
             display.setOpaque(false);
             display.setBorder(new EmptyBorder(0, 12, 0, 0));
-            display.setFont(ElementTheme.FONT);
+            display.setFont(theme().getFontBase());
             center.add(display, BorderLayout.CENTER);
         }
         applyTier();
         add(center, BorderLayout.CENTER);
 
-        // 可清空 ×（复用 AstInput 批次 1 的 east 面板配方，替代手绘 × + 坐标命中测试）
-        clearBtn.setAlpha(0f);
-        clearBtn.setInteractive(false);
-        clearBtn.setOnClose(() -> {
-            if (multiple) return;
-            selected.clear();
-            updateDisplay();
-            rebuildList(null);
-            repaint();
-        });
+        // 可清空：hover 淡入手绘 ×（点击清空），隐藏时替换箭头 —— 不用 AstCloseButton（避免与箭头重叠）
         JPanel east = new JPanel(new GridBagLayout());
         east.setOpaque(false);
         east.setBorder(new EmptyBorder(0, 4, 0, 8));
-        east.add(clearBtn);
         add(east, BorderLayout.EAST);
 
         MouseAdapter hoverM = new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { hovering = true;  updateClear(); }
-            public void mouseExited(MouseEvent e)  { hovering = false; updateClear(); }
+            public void mouseEntered(MouseEvent e) {
+                hovering = true;
+                updateClear();
+            }
+            public void mouseExited(MouseEvent e)  {
+                hovering = false;
+                updateClear();
+            }
         };
         addMouseListener(hoverM); display.addMouseListener(hoverM); tagsPanel.addMouseListener(hoverM); east.addMouseListener(hoverM);
         if (field != null) field.addMouseListener(hoverM);
-        east.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e) { if (!isEnabled()) return; togglePopup(); }
-        });
+        // 统一按下处理：命中 × 清空，否则展开下拉。所有区域经坐标转换后走同一 handlePress
+        //（避免 AstCloseButton 与箭头重叠：事件不会被重复 toggle，也不会点不到）。
+        installPress(this);
+        installPress(east);
+        installPress(display);
+        installPress(tagsPanel);
+        if (field != null) installPress(field);
 
         optionList.setOpaque(false);
         optionList.setLayout(new BoxLayout(optionList, BoxLayout.Y_AXIS));
@@ -119,21 +120,10 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         popup.setDismissListener(() -> {
             if (popupShown) {
                 popupShown = false;
-                arrowAnim.go(arrowAngle, 0f);
+                anim.go("arrow", anim.getProgress("arrow"), 0f);
                 repaint();
             }
         });
-
-        MouseAdapter click = new MouseAdapter() {
-            public void mousePressed(MouseEvent e) {
-                if (!isEnabled()) return;
-                togglePopup();
-            }
-        };
-        addMouseListener(click);
-        display.addMouseListener(click);
-        tagsPanel.addMouseListener(click);
-        if (field != null) field.addMouseListener(click);
     }
 
     /** 尺寸档位（对齐 Element UI）：高度 40/32/28，档位联动字体与清空按钮尺寸。 */
@@ -146,11 +136,10 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
     }
 
     private void applyTier() {
-        if (display != null) display.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
-        if (field != null) field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
-        clearBtn.setButtonSize(TIER_CLEAR[tier]);
-        tagsPanel.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
-        for (Component c : tagsPanel.getComponents()) c.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        if (display != null) display.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
+        if (field != null) field.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
+        tagsPanel.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
+        for (Component c : tagsPanel.getComponents()) c.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
     }
 
     @Override
@@ -229,28 +218,58 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         return label.toLowerCase().contains(filter.toLowerCase());
     }
 
-    private void updateClear() {
-        float target = (!multiple && !selected.isEmpty() && hovering && isEnabled()) ? 1f : 0f;
-        clearAnim.go(clearVis, target);
+    /** 清空单选选择（对应手绘 × 的点击行为，含下拉重建与重绘）。 */
+    private void clearOnClick() {
+        if (multiple) return;
+        selected.clear();
+        updateDisplay();
+        rebuildList(null);
+        repaint();
     }
 
-    private void syncClear() {
-        clearBtn.setAlpha(clearVis);
-        clearBtn.setInteractive(clearVis > 0.5f);
+    /** 命中测试：给定组件坐标，是否落在可清空 ×（区分于展开箭头）区域内。 */
+    private boolean isClearHit(int x, int y) {
+        if (multiple || selected.isEmpty() || !isEnabled()) return false;
+        if (anim.getProgress("clear") < 0.5f) return false;
+        float cx = getWidth() - 18f, cy = getHeight() / 2f;
+        return Math.hypot(x - cx, y - cy) <= 7;
+    }
+
+    /** 统一的按下处理：命中 × 则清空，否则展开下拉。 */
+    private void handlePress(int x, int y) {
+        if (!isEnabled()) return;
+        if (isClearHit(x, y)) clearOnClick();
+        else togglePopup();
+    }
+
+    /** 给指定子区域安装统一按下监听：坐标转换到 AstSelect 后再走 handlePress。 */
+    private void installPress(Component c) {
+        c.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                Point p = (c == AstSelect.this) ? e.getPoint()
+                        : SwingUtilities.convertPoint(c, e.getPoint(), AstSelect.this);
+                handlePress(p.x, p.y);
+            }
+        });
+    }
+
+    private void updateClear() {
+        float target = (!multiple && !selected.isEmpty() && hovering && isEnabled()) ? 1f : 0f;
+        anim.get("clear").go(anim.getProgress("clear"), target, this::repaint);
     }
 
     private void togglePopup() {
         if (popupShown) {
             popup.setVisible(false);
             popupShown = false;
-            arrowAnim.go(arrowAngle, 0f);
+            anim.go("arrow", anim.getProgress("arrow"), 0f);
             repaint();
         } else {
             rebuildList(filterable ? field.getText() : null);
             popup.getContent().setPreferredSize(new Dimension(Math.max(180, getWidth()), popup.getContent().getPreferredSize().height));
             popup.show(this, 0, getHeight());
             popupShown = true;
-            arrowAnim.go(arrowAngle, 1f);
+            anim.go("arrow", anim.getProgress("arrow"), 1f);
             repaint();
         }
     }
@@ -264,7 +283,7 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
                 lastGroup = o.group;
                 JLabel g = new JLabel(o.group);
                 g.setForeground(new Color(0x909399));
-                g.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 12f));
+                g.setFont(theme().getFontBase().deriveFont(Font.PLAIN, 12f));
                 g.setBorder(new EmptyBorder(6, 12, 4, 0));
                 optionList.add(g);
             }
@@ -290,7 +309,7 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
             if (filterable) field.setText(o.label);
             popup.setVisible(false);
             popupShown = false;
-            arrowAnim.go(arrowAngle, 0f);
+            anim.go("arrow", anim.getProgress("arrow"), 0f);
         }
         updateDisplay();
         rebuildList(null);
@@ -305,7 +324,7 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
                 chip.setOpaque(true);
                 chip.setBackground(new Color(0xF4F4F5));
                 chip.setForeground(new Color(0x606266));
-                chip.setFont(ElementTheme.FONT.deriveFont(Font.PLAIN, 12f));
+                chip.setFont(theme().getFontBase().deriveFont(Font.PLAIN, 12f));
                 chip.setBorder(new EmptyBorder(2, 8, 2, 8));
                 chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 chip.addMouseListener(new MouseAdapter() {
@@ -323,20 +342,22 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
+        float arrowAngle = anim.getProgress("arrow");
         boolean highlighted = popupShown || fieldFocus;
-        Color border = isEnabled() ? (highlighted ? ElementTheme.PRIMARY : new Color(0xDCDFE6)) : new Color(0xE4E7ED);
-        if (invalid) border = ElementTheme.DANGER;
-        Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
-        g2.setColor(isEnabled() ? Color.WHITE : ElementTheme.FILL_BASE);
+        Color border = isEnabled() ? (highlighted ? theme().getPrimary() : new Color(0xDCDFE6)) : new Color(0xE4E7ED);
+        if (invalid) border = theme().getDanger();
+        int radius = 8; // hardcoded for now (Element UI select has fixed 8px radius, slightly different from base)
+        Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+        g2.setColor(isEnabled() ? Color.WHITE : theme().getFillBase());
         g2.fill(shape);
         g2.setColor(border);
         g2.setStroke(new BasicStroke(highlighted ? 2f : 1f));
         g2.draw(shape);
 
-        if (clearVis < 0.5f) {  // × 淡入过半即隐藏箭头（Element「× 替换箭头」）
-            float ax = getWidth() - 18f, ay = getHeight() / 2f;
+        float clearP = anim.getProgress("clear");
+        float ax = getWidth() - 18f, ay = getHeight() / 2f;
+        if (clearP < 0.5f) {
             Graphics2D a2 = (Graphics2D) g2.create();
             a2.rotate(Math.PI * arrowAngle, ax, ay);
             a2.setColor(new Color(0xC0C4CC));
@@ -344,40 +365,53 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
             a2.drawLine(Math.round(ax - 4), Math.round(ay - 1), Math.round(ax), Math.round(ay + 2));
             a2.drawLine(Math.round(ax + 4), Math.round(ay - 1), Math.round(ax), Math.round(ay + 2));
             a2.dispose();
+        } else {
+            // 手绘 ×：替代 AstCloseButton（避免与上下箭头重叠、遮挡点击），随 clear 进度淡入
+            int alphaInt = Math.min(255, Math.round((clearP - 0.5f) * 2f * 255f));
+            Graphics2D c2 = (Graphics2D) g2.create();
+            c2.setColor(new Color(0x90, 0x93, 0x99, alphaInt));
+            c2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            c2.drawLine(Math.round(ax - 3), Math.round(ay - 3), Math.round(ax + 3), Math.round(ay + 3));
+            c2.drawLine(Math.round(ax + 3), Math.round(ay - 3), Math.round(ax - 3), Math.round(ay + 3));
+            c2.dispose();
         }
 
         g2.dispose();
     }
 
-    private class OptionRow extends JPanel {
+    private class OptionRow extends AstInteractiveComponent {
         private final Option option;
-        private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
-        private float hover;
 
         OptionRow(Option o) {
             this.option = o;
-            setOpaque(false);
             setPreferredSize(new Dimension(Math.max(180, AstSelect.this.getWidth()), 32));
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            if (option.disabled) setEnabled(false);
             addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) { if (option.disabled) return; hoverAnim.go(hover, 1f); }
-                public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
                 public void mousePressed(MouseEvent e) { if (!option.disabled) choose(option); }
             });
         }
 
         @Override
+        protected boolean isToggleMode() {
+            return false;
+        }
+
+        @Override
+        protected void selfCheck() {
+            // 内部类，自检由外部类负责
+        }
+
+        @Override
         protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2 = createGraphics(g);
             if (!option.disabled) {
-                g2.setColor(ElementTheme.lerp(Color.WHITE, new Color(0xF5F7FA), hover));
+                g2.setColor(lerp(Color.WHITE, new Color(0xF5F7FA), hoverProgress()));
                 g2.fillRect(0, 0, getWidth(), getHeight());
             }
             boolean isSel = selected.contains(option);
-            g2.setFont(ElementTheme.FONT);
+            g2.setFont(theme().getFontBase());
             g2.setColor(option.disabled ? new Color(0xC0C4CC)
-                    : (isSel ? ElementTheme.PRIMARY : ElementTheme.TEXT_REGULAR));
+                    : (isSel ? theme().getPrimary() : theme().getTextRegular()));
             FontMetrics fm = g2.getFontMetrics();
             String text = option.label + (multiple && isSel ? "  \u221a" : "");
             g2.drawString(text, 12, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
@@ -385,12 +419,16 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         }
     }
 
-    public static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         assert matches("Apple", "app");
         assert matches("Apple", "APPLE");
         assert matches("苹果", "苹");
         assert !matches("Apple", "pear");
         assert !matches("", "a");
+
+        // 对比度
+        assertContrast(theme().getTextRegular(), Color.WHITE, "select text on white");
 
         // 可清空：hover 淡入 ×，点击清空选择（复用 AstInput 的测试配方）
         final AstSelect sel = new AstSelect(new String[]{"北京", "上海", "广州"});
@@ -424,9 +462,9 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         ms.setFormValue("");
         assert ms.getFormValue().isEmpty() : "AstSelect multi empty after setFormValue('')";
 
-        // 尺寸档位 + 清空按钮配方（R1/R2）
+        // 尺寸档位（手绘 × 清空方案：无独立 AstCloseButton 子组件，避免与上下箭头重叠）
         AstSelect sz = new AstSelect(false, false);
-        assert sz.clearBtn instanceof AstCloseButton : "Select clear button is AstCloseButton (R2)";
+        assert !hasCloseButton(sz) : "Select uses hand-drawn ×, not an AstCloseButton";
         sz.setSize(AstSelect.SIZE_SMALL);
         assert sz.getPreferredSize().height == 28 : "Select SMALL height 28, got " + sz.getPreferredSize().height;
         sz.setSize(AstSelect.SIZE_LARGE);
@@ -440,21 +478,21 @@ public class AstSelect extends JPanel implements FormValueProvider, FormInvalidM
         System.out.println("AstSelect self-check OK");
     }
 
-    /** 测试辅助：向 AstSelect 内的 AstCloseButton 派发按下事件。 */
+    /** 测试辅助：在手绘 × 命中区域派发按下事件（等价于点击清空）。 */
     private static void clearBtnClickForTest(AstSelect sel) {
-        for (Component c : sel.getComponents()) {
-            if (c instanceof JPanel) {
-                for (Component cc : ((JPanel) c).getComponents()) {
-                    if (cc instanceof AstCloseButton) {
-                        cc.dispatchEvent(new java.awt.event.MouseEvent(cc, java.awt.event.MouseEvent.MOUSE_PRESSED,
-                                System.currentTimeMillis(), 0, 8, 8, 1, false));
-                        return;
-                    }
-                }
-            }
-        }
-        throw new AssertionError("AstCloseButton not found in AstSelect");
+        sel.handlePress(sel.getWidth() - 18, sel.getHeight() / 2);
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    /** 结构性校验：组件树不应再包含 AstCloseButton（改用首绘 × + 命中测试）。 */
+    private static boolean hasCloseButton(java.awt.Container root) {
+        for (Component c : root.getComponents()) {
+            if (c instanceof AstCloseButton) return true;
+            if (c instanceof java.awt.Container && hasCloseButton((java.awt.Container) c)) return true;
+        }
+        return false;
+    }
+
+    public static void main(String[] args) {
+        new AstSelect(new String[]{"test"}).selfCheck();
+    }
 }

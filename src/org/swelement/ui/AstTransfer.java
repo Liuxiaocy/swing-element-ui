@@ -1,6 +1,6 @@
 package org.swelement.ui;
 
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstContainerComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -33,7 +33,7 @@ import java.util.function.Consumer;
  *  - 过滤：setFilterable(true) 后标题下方出现搜索框（简化：直接 JTextField + 过滤）。
  *  - 对比度：面板标题 TEXT_MAIN 白底；计数 TEXT_SECONDARY 白底；勾选框图标 TEXT_REGULAR。
  */
-public class AstTransfer extends JComponent {
+public class AstTransfer extends AstContainerComponent {
     public static final class Item {
         public final String key;
         public final String label;
@@ -67,7 +67,7 @@ public class AstTransfer extends JComponent {
     private static final float[] TIER_FONT = {13f, 13f, 12f};
     private int tier = SIZE_DEFAULT;
     private int rowH = 28;
-    private Font cellFont = ElementTheme.FONT.deriveFont(13f);
+    private Font cellFont;
 
     // --- F4: 自定义文案与空态 ---
     private String leftTitle = "列表";
@@ -84,8 +84,9 @@ public class AstTransfer extends JComponent {
             if (it == null) throw new IllegalArgumentException("item must not be null");
             allItems.put(it.key, it);
         }
+        setFont(UIManager.getFont("Label.font"));
+        cellFont = getFont().deriveFont(13f);
         applyTier();
-        setOpaque(false);
         setLayout(new BorderLayout(8, 0));
         add(buildLeftPanel(), BorderLayout.WEST);
         add(buildCenterPanel(), BorderLayout.CENTER);
@@ -136,9 +137,9 @@ public class AstTransfer extends JComponent {
         p.setPreferredSize(new Dimension(220, 240));
         p.setBorder(new EmptyBorder(0, 0, 0, 0));
         leftSearch = new JTextField();
-        leftSearch.setFont(ElementTheme.FONT.deriveFont(13f));
+        leftSearch.setFont(getFont().deriveFont(13f));
         leftSearch.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(ElementTheme.BORDER_BASE),
+            BorderFactory.createLineBorder(theme().getBorderBase()),
             BorderFactory.createEmptyBorder(2, 6, 2, 6)));
         leftSearch.setVisible(false);
         leftSearch.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
@@ -154,10 +155,10 @@ public class AstTransfer extends JComponent {
         leftModel = new DefaultListModel<String>();
         leftList = makeList(leftModel);
         leftList.setCellRenderer(new TransferCellRenderer(true));
-        leftList.setFont(ElementTheme.FONT.deriveFont(13f));
+        leftList.setFont(getFont().deriveFont(13f));
         leftList.setBackground(Color.WHITE);
-        leftList.setSelectionBackground(ElementTheme.FILL_BASE);
-        leftList.setSelectionForeground(ElementTheme.TEXT_MAIN);
+        leftList.setSelectionBackground(theme().getFillBase());
+        leftList.setSelectionForeground(theme().getTextPrimary());
         leftList.setVisibleRowCount(8);
         leftList.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mousePressed(java.awt.event.MouseEvent e) {
@@ -169,11 +170,11 @@ public class AstTransfer extends JComponent {
             }
         });
         JScrollPane sp = new JScrollPane(leftList);
-        sp.setBorder(BorderFactory.createLineBorder(ElementTheme.BORDER_BASE));
+        sp.setBorder(BorderFactory.createLineBorder(theme().getBorderBase()));
         p.add(sp, BorderLayout.CENTER);
         leftCount = new JLabel("0 / 0");
-        leftCount.setFont(ElementTheme.FONT.deriveFont(12f));
-        leftCount.setForeground(ElementTheme.TEXT_REGULAR);
+        leftCount.setFont(getFont().deriveFont(12f));
+        leftCount.setForeground(theme().getTextRegular());
         leftCount.setBorder(new EmptyBorder(4, 4, 0, 0));
         p.add(leftCount, BorderLayout.SOUTH);
         return p;
@@ -186,9 +187,9 @@ public class AstTransfer extends JComponent {
         JPanel top = new JPanel(); top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS)); top.setOpaque(false);
         top.add(makeHeader(rightTitle, false));
         rightSearch = new JTextField();
-        rightSearch.setFont(ElementTheme.FONT.deriveFont(13f));
+        rightSearch.setFont(getFont().deriveFont(13f));
         rightSearch.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(ElementTheme.BORDER_BASE),
+            BorderFactory.createLineBorder(theme().getBorderBase()),
             BorderFactory.createEmptyBorder(2, 6, 2, 6)));
         rightSearch.setVisible(false);
         rightSearch.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
@@ -200,10 +201,10 @@ public class AstTransfer extends JComponent {
         rightModel = new DefaultListModel<String>();
         rightList = makeList(rightModel);
         rightList.setCellRenderer(new TransferCellRenderer(false));
-        rightList.setFont(ElementTheme.FONT.deriveFont(13f));
+        rightList.setFont(getFont().deriveFont(13f));
         rightList.setBackground(Color.WHITE);
-        rightList.setSelectionBackground(ElementTheme.FILL_BASE);
-        rightList.setSelectionForeground(ElementTheme.TEXT_MAIN);
+        rightList.setSelectionBackground(theme().getFillBase());
+        rightList.setSelectionForeground(theme().getTextPrimary());
         rightList.setVisibleRowCount(8);
         rightList.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mousePressed(java.awt.event.MouseEvent e) {
@@ -215,11 +216,11 @@ public class AstTransfer extends JComponent {
             }
         });
         JScrollPane sp = new JScrollPane(rightList);
-        sp.setBorder(BorderFactory.createLineBorder(ElementTheme.BORDER_BASE));
+        sp.setBorder(BorderFactory.createLineBorder(theme().getBorderBase()));
         p.add(sp, BorderLayout.CENTER);
         rightCount = new JLabel("0 / 0");
-        rightCount.setFont(ElementTheme.FONT.deriveFont(12f));
-        rightCount.setForeground(ElementTheme.TEXT_REGULAR);
+        rightCount.setFont(getFont().deriveFont(12f));
+        rightCount.setForeground(theme().getTextRegular());
         rightCount.setBorder(new EmptyBorder(4, 4, 0, 0));
         p.add(rightCount, BorderLayout.SOUTH);
         return p;
@@ -247,8 +248,8 @@ public class AstTransfer extends JComponent {
         JPanel h = new JPanel(new BorderLayout());
         h.setOpaque(false);
         JLabel lbl = new JLabel(title);
-        lbl.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 14f));
-        lbl.setForeground(ElementTheme.TEXT_MAIN);
+        lbl.setFont(getFont().deriveFont(Font.BOLD, 14f));
+        lbl.setForeground(theme().getTextPrimary());
         lbl.setBorder(new EmptyBorder(0, 0, 8, 0));
         h.add(lbl, BorderLayout.WEST);
         if (left) leftTitleLbl = lbl; else rightTitleLbl = lbl;
@@ -269,12 +270,12 @@ public class AstTransfer extends JComponent {
 
     private void paintEmptyHint(Graphics g, JList<?> list) {
         // 空态提示是功能性文本，用 TEXT_REGULAR（6.1:1）而非 TEXT_PLACEHOLDER（1.7:1，不达 WCAG AA）
-        ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstTransfer empty hint on white");
+        assertContrast(theme().getTextRegular(), Color.WHITE, "AstTransfer empty hint on white");
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setFont(ElementTheme.FONT.deriveFont((float) EMPTY_HINT_FONT_SIZE));
+        g2.setFont(getFont().deriveFont((float) EMPTY_HINT_FONT_SIZE));
         FontMetrics fm = g2.getFontMetrics();
-        g2.setColor(ElementTheme.TEXT_REGULAR);
+        g2.setColor(theme().getTextRegular());
         g2.drawString(emptyText,
                 (list.getWidth() - fm.stringWidth(emptyText)) / 2,
                 list.getHeight() / 2 - fm.getHeight() / 2 + fm.getAscent());
@@ -392,7 +393,7 @@ public class AstTransfer extends JComponent {
 
     private void applyTier() {
         this.rowH = TIER_ROW_H[tier];
-        this.cellFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
+        this.cellFont = getFont().deriveFont(TIER_FONT[tier]);
         // JList 可视行数随档位调整（整体高度同步变化）
         if (leftList != null) { leftList.setVisibleRowCount(8 - tier); rightList.setVisibleRowCount(8 - tier); }
     }
@@ -412,16 +413,16 @@ public class AstTransfer extends JComponent {
                     g2.setColor(Color.WHITE);
                     g2.fillRect(0, 0, getWidth(), getHeight());
                     if (isSelected) {
-                        g2.setColor(ElementTheme.FILL_BASE);
+                        g2.setColor(theme().getFillBase());
                         g2.fillRect(0, 0, getWidth(), getHeight());
                     }
                     // 勾选框 □/☑
                     int bx = 10, by = (getHeight() - 14) / 2, bs = 14;
-                    g2.setColor(checked ? ElementTheme.PRIMARY : ElementTheme.BORDER_BASE);
+                    g2.setColor(checked ? theme().getPrimary() : theme().getBorderBase());
                     g2.setStroke(new BasicStroke(1.4f));
                     g2.drawRoundRect(bx, by, bs, bs, 2, 2);
                     if (checked) {
-                        g2.setColor(ElementTheme.PRIMARY);
+                        g2.setColor(theme().getPrimary());
                         g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                         g2.drawLine(bx+3, by+7, bx+6, by+10);
                         g2.drawLine(bx+6, by+10, bx+11, by+4);
@@ -429,8 +430,8 @@ public class AstTransfer extends JComponent {
                     // 文字
                     Item it = allItems.get(key);
                     String label = it == null ? key : it.label;
-                    g2.setColor(ElementTheme.TEXT_MAIN);
-                    ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTransfer cell text");
+                    g2.setColor(theme().getTextPrimary());
+                    assertContrast(theme().getTextPrimary(), Color.WHITE, "AstTransfer cell text");
                     g2.setFont(cellFont);
                     FontMetrics fm = g2.getFontMetrics();
                     int baseY = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
@@ -484,7 +485,9 @@ public class AstTransfer extends JComponent {
         return n;
     }
 
-    static void selfCheck() {
+    // --- Self-check ---
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstTransfer(null); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null items must throw"; threw = false;
@@ -621,5 +624,7 @@ public class AstTransfer extends JComponent {
 
         System.out.println("AstTransfer self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstTransfer(new ArrayList<Item>()).selfCheck();
+    }
 }

@@ -1,8 +1,7 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -24,11 +23,11 @@ import java.util.function.Consumer;
  *   c.setChangeListener((idx, open) -> System.out.println(idx + " " + (open?"open":"close")));
  *
  * 设计：每个面板标题栏（38px）+ 内容区。标题栏：白底 + 底部 1px 分隔线，
- * 右侧 ▶/▼ 箭头，展开时旋转 90°（Animator 220ms easeInOut）。
+ * 右侧 ▶/▼ 箭头，展开时旋转 90°（AnimationManager 220ms easeInOut）。
  * 内容区高度动画：折叠 0→contentH（easeInOut），内容 alpha 同步。
  * 手风琴模式：展开某项时自动折叠其他项。
  */
-public class AstCollapse extends JPanel {
+public class AstCollapse extends AstAbstractComponent {
     private final List<CollapseItem> items = new ArrayList<CollapseItem>();
     private boolean accordion;
     private Consumer<int[]> changeListener; // 当前展开项索引数组
@@ -37,7 +36,6 @@ public class AstCollapse extends JPanel {
     public AstCollapse(boolean accordion) {
         this.accordion = accordion;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setOpaque(false);
     }
 
     public void setAccordion(boolean a) { this.accordion = a; }
@@ -112,19 +110,27 @@ public class AstCollapse extends JPanel {
     }
 
     // --- CollapseItem ---
-    private static final class CollapseItem extends JPanel {
+    private static final class CollapseItem extends AstAbstractComponent {
         private final AstCollapse parent;
         private final int index;
         private final String title;
         private final JComponent content;
         private boolean isOpen;
-        private float openProgress; // 0=折叠, 1=展开
-        private final Animator openAnim;
-        private final Animator arrowAnim;
-        private float arrowRot; // 0→1 旋转
 
         private static final int HEADER_H = 38;
         private int contentH = 100; // 内容首选高度
+
+        @Override
+        protected void initComponent() {
+            super.initComponent();
+            anim.register("open", 220, Easing::easeInOut);
+            anim.register("arrow", 220, Easing::easeInOut);
+        }
+
+        @Override
+        protected void selfCheck() {
+            // CollapseItem 的自检由 AstCollapse.selfCheck() 覆盖
+        }
 
         CollapseItem(AstCollapse parent, int index, String title, JComponent content) {
             this.parent = parent;
@@ -132,22 +138,16 @@ public class AstCollapse extends JPanel {
             this.title = title;
             this.content = content;
             setLayout(new BorderLayout());
-            setOpaque(false);
             // 内容高度
             contentH = Math.max(content.getPreferredSize().height, 40);
-            openAnim = new Animator(220, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-                new Animator.Listener() { public void update(float v) { openProgress = v; revalidate(); repaint(); }});
-            arrowAnim = new Animator(220, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-                new Animator.Listener() { public void update(float v) { arrowRot = v; repaint(); }});
             // 标题栏作为 NORTH
             JPanel header = new JPanel(new BorderLayout()) {
                 @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    Graphics2D g2 = createGraphics(g);
                     g2.setColor(Color.WHITE);
                     g2.fillRect(0, 0, getWidth(), getHeight());
                     // 底部分隔线（除展开状态顶部有内容外）
-                    g2.setColor(ElementTheme.BORDER_BASE);
+                    g2.setColor(theme().getBorderBase());
                     g2.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
                     g2.dispose();
                 }
@@ -156,21 +156,20 @@ public class AstCollapse extends JPanel {
             header.setMaximumSize(new Dimension(Short.MAX_VALUE, HEADER_H));
             header.setOpaque(false);
             JLabel lbl = new JLabel(title);
-            lbl.setFont(ElementTheme.FONT.deriveFont(15f));
-            lbl.setForeground(ElementTheme.TEXT_MAIN);
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstCollapse header title");
+            lbl.setFont(theme().getFontBase().deriveFont(15f));
+            lbl.setForeground(theme().getTextPrimary());
+            assertContrast(theme().getTextPrimary(), Color.WHITE, "AstCollapse header title");
             lbl.setBorder(new EmptyBorder(0, 16, 0, 0));
             header.add(lbl, BorderLayout.CENTER);
             // 箭头图标面板（自绘）
             JPanel arrowPanel = new JPanel() {
                 @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(ElementTheme.TEXT_REGULAR);
+                    Graphics2D g2 = createGraphics(g);
+                    g2.setColor(theme().getTextRegular());
                     g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                     int aw = 8, ah = 8;
                     int cx = getWidth() / 2, cy = getHeight() / 2;
-                    float angle = (float) (Math.PI / 2 * arrowRot); // 0→90°
+                    float angle = (float) (Math.PI / 2 * anim.getProgress("arrow")); // 0→90°
                     // ▶ 形状旋转 angle
                     Path2D p = new Path2D.Float();
                     double s = 4.5;
@@ -198,22 +197,26 @@ public class AstCollapse extends JPanel {
             // 内容区
             JPanel contentWrap = new JPanel(new BorderLayout()) {
                 @Override public Dimension getPreferredSize() {
-                    int h = Math.round(contentH * openProgress);
+                    int h = Math.round(contentH * anim.getProgress("open"));
                     return new Dimension(Short.MAX_VALUE, h);
                 }
                 @Override public Dimension getMaximumSize() { return getPreferredSize(); }
                 @Override public boolean isOptimizedDrawingEnabled() { return false; }
                 @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    Graphics2D g2 = createGraphics(g);
+                    float p = anim.getProgress("open");
                     // 内容背景
-                    g2.setColor(ElementTheme.FILL_BASE);
+                    g2.setColor(theme().getFillBase());
                     g2.fillRect(0, 0, getWidth(), getHeight());
                     // 内容 alpha
-                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.max(0f, Math.min(1f, openProgress))));
-                    g2.setColor(ElementTheme.FILL_BASE);
+                    g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.max(0f, Math.min(1f, p))));
+                    g2.setColor(theme().getFillBase());
                     g2.fillRect(0, 0, getWidth(), getHeight());
                     g2.dispose();
+                    // 动画进行中时重新布局以更新内容高度
+                    if (p > 0f && p < 1f) {
+                        CollapseItem.this.revalidate();
+                    }
                 }
             };
             contentWrap.setOpaque(false);
@@ -224,13 +227,14 @@ public class AstCollapse extends JPanel {
 
         void setOpen(boolean open) {
             this.isOpen = open;
-            openAnim.stop(); openAnim.go(openProgress, open ? 1f : 0f);
-            arrowAnim.stop(); arrowAnim.go(arrowRot, open ? 1f : 0f);
+            anim.go("open", anim.getProgress("open"), open ? 1f : 0f);
+            anim.go("arrow", anim.getProgress("arrow"), open ? 1f : 0f);
         }
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         AstCollapse c0 = new AstCollapse();
         try { c0.addItem(null, new JPanel()); } catch (IllegalArgumentException e) { threw = true; }
@@ -294,6 +298,9 @@ public class AstCollapse extends JPanel {
         assert !ca.isOpen(1) : "B closed";
         assert lastCount[0] == 1 : "listener fired";
 
+        // 对比度
+        assertContrast(theme().getTextPrimary(), Color.WHITE, "collapse header title on white");
+
         // Paint test on EDT
         final Throwable[] err = {null};
         try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
@@ -320,12 +327,14 @@ public class AstCollapse extends JPanel {
         System.out.println("AstCollapse self-check OK");
     }
 
-    private static JComponent makeContent(String text) {
+    private JComponent makeContent(String text) {
         JLabel l = new JLabel(text);
-        l.setFont(ElementTheme.FONT.deriveFont(14f));
+        l.setFont(theme().getFontBase().deriveFont(14f));
         l.setBorder(new EmptyBorder(16, 16, 16, 16));
         return l;
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstCollapse().selfCheck();
+    }
 }

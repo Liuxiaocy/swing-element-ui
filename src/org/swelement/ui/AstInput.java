@@ -2,7 +2,7 @@ package org.swelement.ui;
 
 import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -15,7 +15,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
-public class AstInput extends JPanel implements FormValueProvider, FormInvalidMarker {
+public class AstInput extends AstAbstractComponent implements FormValueProvider, FormInvalidMarker {
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     private static final int[] TIER_HEIGHT = {40, 32, 28};
     private static final float[] TIER_FONT = {14f, 13f, 12f};
@@ -38,25 +38,28 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
 
     private final JTextField field;
     private final AstCloseButton clearBtn = new AstCloseButton(16);
-    private final Animator focusAnim = new Animator(200, Easing::easeInOut, v -> { focus = v; repaint(); });
-    private final Animator hoverAnim = new Animator(200, Easing::easeInOut, v -> { hover = v; repaint(); });
-    private final Animator clearAnim = new Animator(150, Easing::easeInOut, v -> { clearVis = v; syncClear(); repaint(); });
-    private float focus, hover, clearVis;
     private boolean hasText, hovering, focused;
     private boolean invalid = false;
     private final String placeholder;
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("focus", 200, Easing::easeInOut);
+        anim.register("hover", 200, Easing::easeInOut);
+        anim.register("clear", 150, Easing::easeInOut);
+    }
 
     public AstInput(String placeholder) { this(placeholder, TEXT); }
 
     public AstInput(String placeholder, int type) {
         this.placeholder = placeholder;
         this.password = (type == PASSWORD);
-        setOpaque(false);
         setLayout(new BorderLayout());
         field = password ? createPasswordField() : createTextField();
         field.setOpaque(false);
-        field.setFont(ElementTheme.FONT);
-        field.setForeground(ElementTheme.TEXT_MAIN);
+        field.setFont(theme().getFontBase());
+        field.setForeground(theme().getTextPrimary());
         field.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { hasText = !field.getText().isEmpty(); updateClear(); }
             public void removeUpdate(DocumentEvent e) { hasText = !field.getText().isEmpty(); updateClear(); }
@@ -92,12 +95,12 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
         add(east, BorderLayout.EAST);
 
         field.addFocusListener(new FocusAdapter() {
-            public void focusGained(FocusEvent e) { focused = true;  focusAnim.go(focus, 1f); updateClear(); }
-            public void focusLost(FocusEvent e)   { focused = false; focusAnim.go(focus, 0f); updateClear(); }
+            public void focusGained(FocusEvent e) { focused = true;  anim.go("focus", anim.getProgress("focus"), 1f); updateClear(); }
+            public void focusLost(FocusEvent e)   { focused = false; anim.go("focus", anim.getProgress("focus"), 0f); updateClear(); }
         });
         MouseAdapter m = new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { hovering = true;  hoverAnim.go(hover, 1f); updateClear(); }
-            public void mouseExited(MouseEvent e)  { hovering = false; hoverAnim.go(hover, 0f); updateClear(); }
+            public void mouseEntered(MouseEvent e) { hovering = true;  anim.go("hover", anim.getProgress("hover"), 1f); updateClear(); }
+            public void mouseExited(MouseEvent e)  { hovering = false; anim.go("hover", anim.getProgress("hover"), 0f); updateClear(); }
         };
         hoverKeeper = m;
         field.addMouseListener(m);   // field 铺满面板，鼠标事件落在 field 上
@@ -115,7 +118,7 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
     }
 
     private void applyTier() {
-        field.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        field.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
         field.setBorder(BorderFactory.createEmptyBorder(TIER_VPAD[tier], TIER_HPAD[tier], TIER_VPAD[tier], 8));
         clearBtn.setButtonSize(TIER_CLEAR[tier]);
         revalidate();
@@ -175,7 +178,7 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
     private void paintPlaceholder(Graphics g, JTextComponent c) {
         if (!hasText && !c.isFocusOwner()) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setColor(ElementTheme.TEXT_PLACEHOLDER);
+            g2.setColor(theme().getTextPlaceholder());
             g2.setFont(c.getFont());
             FontMetrics fm = g2.getFontMetrics();
             Insets ins = c.getBorder() != null ? c.getBorder().getBorderInsets(c) : new Insets(0, 0, 0, 0);
@@ -188,31 +191,39 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
         // 目标值取 hover/focus 的「状态」而非动画中间值：Animator.go() 会同步回调 update(from)，
         // 若读 focus/hover 浮点数，事件发生瞬间它们仍是动画起始值（0），清空按钮永远淡不进来。
         float target = hasText && (hovering || focused) ? 1f : 0f;
-        clearAnim.go(clearVis, target);
+        float current = anim.getProgress("clear");
+        // 直接使用底层 Animator，附加 onComplete 确保动画结束时 syncClear 被调用
+        // （paintComponent 中每帧也会调用 syncClear，onComplete 额外覆盖 headless/未显示场景）
+        Animator clearAnim = anim.get("clear");
+        clearAnim.go(current, target, this::syncClear);
     }
 
     /** 清空按钮淡入淡出动画驱动 alpha 与可交互性（无文本或 alpha 低时不拦截点击）。 */
     private void syncClear() {
-        clearBtn.setAlpha(clearVis);
-        clearBtn.setInteractive(isEnabled() && clearVis > 0.5f);
+        clearBtn.setAlpha(anim.getProgress("clear"));
+        clearBtn.setInteractive(isEnabled() && anim.getProgress("clear") > 0.5f);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        Color border = ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, Math.max(focus, hover));
+        Graphics2D g2 = createGraphics(g);
+        syncClear();
+        float focus = anim.getProgress("focus");
+        float hover = anim.getProgress("hover");
+        Color border = lerp(theme().getBorderBase(), theme().getPrimary(), Math.max(focus, hover));
         if (!isEnabled()) border = new Color(0xE4E7ED);
-        if (invalid) border = ElementTheme.DANGER;
-        Color bg = isEnabled() ? ElementTheme.lerp(ElementTheme.FILL_BLANK, ElementTheme.FILL_BASE, hover) : ElementTheme.FILL_BASE;
-        Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, ElementTheme.RADIUS * 2, ElementTheme.RADIUS * 2);
+        if (invalid) border = theme().getDanger();
+        Color bg = isEnabled() ? lerp(theme().getFillBlank(), theme().getFillBase(), hover) : theme().getFillBase();
+        int radius = theme().getRadiusBase() * 2;
+        Shape shape = new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
         g2.setColor(bg);
         g2.fill(shape);
         g2.setColor(border);
         g2.setStroke(new BasicStroke(focus > 0 ? 2f : 1f));
         g2.draw(shape);
-        if (focus > 0) {  // 聚焦光晕
-            g2.setColor(new Color(64, 158, 255, Math.round(50 * focus)));
+        if (focus > 0) {
+            Color primary = theme().getPrimary();
+            g2.setColor(new Color(primary.getRed(), primary.getGreen(), primary.getBlue(), Math.round(50 * focus)));
             g2.setStroke(new BasicStroke(4f));
             g2.draw(shape);
         }
@@ -236,10 +247,11 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
         super.setEnabled(enabled);
         field.setEnabled(enabled);
         clearBtn.setEnabled(enabled); // 禁用态：清空按钮灰化且不可点
-        clearBtn.setInteractive(enabled && clearVis > 0.5f);
+        clearBtn.setInteractive(enabled && anim.getProgress("clear") > 0.5f);
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         AstInput df = new AstInput("默认");
         assert df.getPreferredSize().height == 32 : "DEFAULT height 32, got " + df.getPreferredSize().height;
         AstInput lg = new AstInput("大");
@@ -306,6 +318,9 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
         fb.setFormValue("world");
         assert fb.getFormValue().equals("world") : "AstInput.setFormValue";
 
+        // 对比度：文字 vs 背景
+        assertContrast(theme().getTextPrimary(), theme().getFillBlank(), "input text on bg");
+
         System.out.println("AstInput self-check OK");
     }
 
@@ -362,5 +377,7 @@ public class AstInput extends JPanel implements FormValueProvider, FormInvalidMa
         return n;
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstInput("test").selfCheck();
+    }
 }

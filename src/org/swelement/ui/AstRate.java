@@ -1,8 +1,7 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,9 +21,9 @@ import java.util.function.Consumer;
  *
  * 设计：5 边星形自绘；已选星用 WARNING 金色填充，未选为 BORDER_BASE；
  * hover 时实时预览（不改变 value，仅视觉），离开恢复。点击设置 value。
- * 半星：左半填充 + 右半边框。动画：hover 缩放 1.0→1.15（150ms easeOut）。
+ * 半星：左半填充 + 右半边框。动画：hover 缩放 1.0→1.12（150ms easeOut）。
  */
-public class AstRate extends JComponent {
+public class AstRate extends AstInteractiveComponent {
     private int max = 5;
     private float value;
     private boolean allowHalf;
@@ -34,8 +33,6 @@ public class AstRate extends JComponent {
     private int gap = 4;
 
     private float hoverValue = -1f; // -1 = no hover
-    private final Animator hoverAnim;
-    private float hoverScale = 1f;
 
     public AstRate() { this(5, false); }
     public AstRate(int max, boolean allowHalf) { this(max, allowHalf, 0f); }
@@ -50,9 +47,7 @@ public class AstRate extends JComponent {
         this.max = max;
         this.allowHalf = allowHalf;
         this.value = initialValue;
-        this.hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeOut(t); }},
-            new Animator.Listener() { public void update(float v) { hoverScale = v; repaint(); }});
-        setOpaque(false);
+        anim.register("hover", 150, Easing::easeOut);
         setFocusable(true);
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override public void mouseMoved(MouseEvent e) {
@@ -60,7 +55,8 @@ public class AstRate extends JComponent {
                 float hv = valueAt(e.getPoint());
                 if (hv != hoverValue) {
                     hoverValue = hv;
-                    hoverAnim.stop(); hoverAnim.go(hoverScale, 1.12f);
+                    anim.stop("hover");
+                    anim.go("hover", anim.getProgress("hover"), 1f);
                     repaint();
                 }
             }
@@ -69,7 +65,8 @@ public class AstRate extends JComponent {
             @Override public void mouseExited(MouseEvent e) {
                 if (readOnly) return;
                 hoverValue = -1f;
-                hoverAnim.stop(); hoverAnim.go(hoverScale, 1f);
+                anim.stop("hover");
+                anim.go("hover", anim.getProgress("hover"), 0f);
                 repaint();
             }
             @Override public void mousePressed(MouseEvent e) {
@@ -127,8 +124,8 @@ public class AstRate extends JComponent {
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
+        float hoverAnim = anim.getProgress("hover");
         float displayValue = (hoverValue >= 0 && !readOnly) ? hoverValue : value;
         for (int i = 0; i < max; i++) {
             float cx = 2 + i * (starSize + gap) + starSize / 2f;
@@ -141,7 +138,7 @@ public class AstRate extends JComponent {
             boolean isHovered = (hoverValue >= 0 && !readOnly)
                 && hoverValue >= starVal - 0.5f && hoverValue < starVal + 0.5f
                 || (hoverValue >= starVal && i == (int) hoverValue - 1);
-            float scale = (isHovered && hoverScale > 1f) ? hoverScale : 1f;
+            float scale = (isHovered && hoverAnim > 0f) ? (1f + 0.12f * hoverAnim) : 1f;
             drawStar(g2, cx, cy, starSize / 2f, filled, scale);
         }
         g2.dispose();
@@ -155,14 +152,14 @@ public class AstRate extends JComponent {
             g.translate(-cx, -cy);
         }
         Path2D star = starPath(cx, cy, r);
-        Color fillCol = (filled > 0f) ? ElementTheme.WARNING : Color.WHITE;
-        Color borderCol = (filled > 0f) ? ElementTheme.WARNING : ElementTheme.BORDER_BASE;
+        Color fillCol = (filled > 0f) ? theme().getWarning() : Color.WHITE;
+        Color borderCol = (filled > 0f) ? theme().getWarning() : theme().getBorderBase();
         // 背景：白底圆（避免穿透）
         g.setColor(Color.WHITE);
         g.fill(star);
         if (filled == 0.5f) {
             // 半星：左半填充
-            g.setColor(ElementTheme.WARNING);
+            g.setColor(theme().getWarning());
             g.setClip(new Rectangle2D.Float(cx - r, cy - r, r, r * 2));
             g.fill(star);
             g.setClip(null);
@@ -210,7 +207,8 @@ public class AstRate extends JComponent {
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstRate(0, false); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "max 0"; threw = false;
@@ -233,7 +231,7 @@ public class AstRate extends JComponent {
         try { r0.setStarSize(5); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "starSize too small";
 
-        AstRate r = new AstRate(5, true, 2.5f);
+        AstRate r = this;
         assert r.getValue() == 2.5f : "value 2.5";
         r.setValue(4f);
         assert r.getValue() == 4f : "value 4";
@@ -314,5 +312,7 @@ public class AstRate extends JComponent {
         System.out.println("AstRate self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstRate(5, true, 2.5f).selfCheck();
+    }
 }

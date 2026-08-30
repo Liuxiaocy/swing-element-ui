@@ -1,8 +1,10 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstContainerComponent;
+import org.swelement.framework.AstDisplayComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,7 +36,7 @@ import java.util.function.Consumer;
  * 设计要点：表头行高 44/36/32、数据行高 40/32/28（尺寸档位 R1）。
  * 斑马纹、hover 高亮、点击选中均经 AstTableModel 视图行。
  */
-public class AstTable extends JPanel {
+public class AstTable extends AstContainerComponent {
     // --- Align（列对齐，供 AstTableColumn 复用）---
     public enum Align { LEFT, CENTER, RIGHT }
 
@@ -63,8 +65,8 @@ public class AstTable extends JPanel {
     private static final float[] TIER_FONT = {14f, 14f, 13f};
     private int headerH = 36;
     private int rowH = 32;
-    private Font headerFont = ElementTheme.FONT.deriveFont(Font.BOLD, 14f);
-    private Font cellFont = ElementTheme.FONT.deriveFont(14f);
+    private Font headerFont;
+    private Font cellFont;
 
     private static final int CELL_PAD_X = 12;
     /** 多选模式选择列宽度（始终冻结在左侧）。 */
@@ -134,8 +136,8 @@ public class AstTable extends JPanel {
     private void applyTier() {
         this.headerH = TIER_HEADER_H[tier];
         this.rowH = TIER_ROW_H[tier];
-        this.headerFont = ElementTheme.FONT.deriveFont(Font.BOLD, TIER_FONT[tier]);
-        this.cellFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
+        this.headerFont = theme().getFontBase().deriveFont(Font.BOLD, TIER_FONT[tier]);
+        this.cellFont = theme().getFontBase().deriveFont(TIER_FONT[tier]);
         headerView.applyTier(headerH, headerFont);
         bodyView.applyTier(rowH, cellFont);
         footerView.applyTier(rowH, cellFont);
@@ -245,19 +247,18 @@ public class AstTable extends JPanel {
     @Override public Dimension getMinimumSize() { return new Dimension(getTotalWidth() + selectColW() + 2, headerH + rowH); }
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
+        Graphics2D g2 = createGraphics(g);
         g2.setColor(Color.WHITE);
         g2.fillRect(0, 0, getWidth(), getHeight());
-        g2.setColor(ElementTheme.BORDER_BASE);
+        g2.setColor(theme().getBorderBase());
         g2.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
         g2.dispose();
     }
 
     // ===================== HeaderView =====================
-    public class HeaderView extends JComponent {
+    public class HeaderView extends AstInteractiveComponent {
         private int hH = 36; private Font hf;
         HeaderView() {
-            setOpaque(false);
             addMouseListener(new MouseAdapter() {
                 @Override public void mousePressed(MouseEvent e) {
                     if (multiSelect()) {
@@ -312,11 +313,10 @@ public class AstTable extends JPanel {
         int getPreferredHeight() { return getDepth() * hH; }
         @Override public Dimension getPreferredSize() { return new Dimension(getTotalWidth(), getPreferredHeight()); }
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2 = createGraphics(g);
             int w = getWidth(), hh = getPreferredHeight(), depth = getDepth();
-            Color sep = ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f);
-            g2.setColor(ElementTheme.PRIMARY);
+            Color sep = lerp(theme().getPrimary(), Color.BLACK, 0.15f);
+            g2.setColor(theme().getPrimary());
             g2.fillRect(0, 0, w, hh);
             g2.setColor(sep);
             g2.drawLine(0, hh - 1, w, hh - 1);
@@ -369,7 +369,7 @@ public class AstTable extends JPanel {
         private void drawHeaderCell(Graphics2D g2, FontMetrics fm, AstTableColumn col, int x, int groupW, int level, int depth) {
             int rows = col.isLeaf() ? Math.max(1, depth - level) : 1;
             int cellH = rows * hH, top = level * hH, bottom = top + cellH;
-            Color sep = ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.15f);
+            Color sep = lerp(theme().getPrimary(), Color.BLACK, 0.15f);
             g2.setColor(Color.WHITE);
             String text = clipText(g2, col.title, groupW - 2 * CELL_PAD_X);
             int tx = x + (groupW - fm.stringWidth(text)) / 2;
@@ -400,7 +400,7 @@ public class AstTable extends JPanel {
             g2.drawLine(x, bottom - 1, x + groupW, bottom - 1);
             // 叶子列右侧竖分隔（跨整个单元格高度）
             if (col.isLeaf() && (x + col.width) < getWidth()) {
-                g2.setColor(ElementTheme.lerp(ElementTheme.PRIMARY, Color.BLACK, 0.1f));
+                g2.setColor(lerp(theme().getPrimary(), Color.BLACK, 0.1f));
                 g2.drawLine(x + col.width - 1, top + 4, x + col.width - 1, bottom - 4);
             }
         }
@@ -411,16 +411,15 @@ public class AstTable extends JPanel {
             for (int i = 0; i < leaf && i < leaves.size(); i++) x += leaves.get(i).width;
             return x;
         }
+        @Override protected void selfCheck() { }
     }
 
     // ===================== BodyView =====================
-    public class BodyView extends JComponent {
+    public class BodyView extends AstInteractiveComponent {
         private int rH = 32; private Font cf;
         int scrollX = 0;          // 横向滚动（包可见，供 HeaderView 对齐 + selfCheck）
         private int scrollY = 0;
         private int hoverRow = -1;
-        private float hoverAlpha = 0f;
-        private final Animator hoverAnim;
         /** 被合并单元格覆盖的格（C9），每次绘制前重算。 */
         private java.util.Set<Long> coveredCells = java.util.Collections.emptySet();
         /** 横向滚动条拖拽状态。 */
@@ -428,13 +427,16 @@ public class AstTable extends JPanel {
         /** 非空时记录每次 drawCells 实际落笔的 (视图行, 叶子列)；仅 selfCheck 使用。 */
         java.util.List<int[]> paintLog = null;
 
+        @Override
+        protected void initComponent() {
+            super.initComponent();
+            anim.register("hover", 150, Easing::easeInOut);
+        }
+
         BodyView() {
-            setOpaque(false);
-            hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); } },
-                new Animator.Listener() { public void update(float v) { hoverAlpha = v; repaint(); }});
             addMouseListener(new MouseAdapter() {
                 @Override public void mouseExited(MouseEvent e) {
-                    hoverRow = -1; hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
+                    hoverRow = -1; anim.go("hover", anim.getProgress("hover"), 0f);
                 }
                 @Override public void mousePressed(MouseEvent e) {
                     // 1) 底部横向滚动条：开始拖拽
@@ -476,7 +478,7 @@ public class AstTable extends JPanel {
                     int idx = viewRowAtPoint(e.getPoint());
                     if (idx != hoverRow) {
                         hoverRow = idx;
-                        hoverAnim.stop(); hoverAnim.go(hoverAlpha, idx >= 0 ? 1f : 0f);
+                        anim.go("hover", anim.getProgress("hover"), idx >= 0 ? 1f : 0f);
                     }
                 }
                 @Override public void mouseDragged(MouseEvent e) {
@@ -535,11 +537,11 @@ public class AstTable extends JPanel {
         }
         private void paintHScrollBar(Graphics2D g2) {
             int w = getWidth(), y = getHeight() - HSCROLL_H;
-            g2.setColor(ElementTheme.FILL_BASE);
+            g2.setColor(theme().getFillBase());
             g2.fillRect(0, y, w, HSCROLL_H);
-            g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.4f));
+            g2.setColor(lerp(theme().getBorderBase(), Color.WHITE, 0.4f));
             g2.drawLine(0, y, w, y);
-            g2.setColor(ElementTheme.lerp(ElementTheme.TEXT_PLACEHOLDER, Color.WHITE, 0.25f));
+            g2.setColor(lerp(theme().getTextPlaceholder(), Color.WHITE, 0.25f));
             g2.fillRoundRect(hScrollThumbX(), y + 1, hScrollThumbW(), HSCROLL_H - 3, 4, 4);
         }
         void scrollToRow(int v) {
@@ -594,9 +596,7 @@ public class AstTable extends JPanel {
             return new Dimension(getTotalWidth() + selectColW(), total);
         }
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            Graphics2D g2 = createGraphics(g);
             int h = viewportH(); // 数据行可用高度（底部留给横向滚动条）
             List<AstTableColumn> leaves = model.getLeafColumns();
             computeCovered(leaves.size());
@@ -623,29 +623,30 @@ public class AstTable extends JPanel {
         /** 行背景：选中 / 状态 / 斑马 / hover（C9 状态行）。 */
         private void paintRowBg(Graphics2D g2, int v, int y) {
             boolean selected = model.isSelectedView(v);
+            float hoverAlpha = anim.getProgress("hover");
             boolean isHovered = (v == hoverRow) && hoverAlpha > 0.01f;
             boolean zebra = (v % 2 == 1);
             AstTableModel.Status st = model.getRowStatus(model.rawRowOf(v));
             Color bg = Color.WHITE;
-            if (selected) bg = ElementTheme.PRIMARY;
+            if (selected) bg = theme().getPrimary();
             else if (st != AstTableModel.Status.DEFAULT) {
-                bg = ElementTheme.lerp(statusColor(st), Color.WHITE, 0.85f);
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstTable status row");
+                bg = lerp(statusColor(st), Color.WHITE, 0.85f);
+                assertContrast(theme().getTextPrimary(), bg, "AstTable status row");
             }
             else if (zebra) {
-                bg = ElementTheme.FILL_BASE;
-                ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, ElementTheme.FILL_BASE, "AstTable zebra row");
+                bg = theme().getFillBase();
+                assertContrast(theme().getTextPrimary(), theme().getFillBase(), "AstTable zebra row");
             }
-            else ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTable white row");
+            else assertContrast(theme().getTextPrimary(), Color.WHITE, "AstTable white row");
             g2.setColor(bg); g2.fillRect(0, y, getWidth(), rH);
             if (selected) return;
             if (isHovered) {
                 int a = Math.round(18 * hoverAlpha);
-                g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
+                g2.setColor(new Color(theme().getPrimary().getRed(), theme().getPrimary().getGreen(), theme().getPrimary().getBlue(), a));
                 g2.fillRect(0, y, getWidth(), rH);
             }
             if (st == AstTableModel.Status.DEFAULT && !zebra) {
-                g2.setColor(ElementTheme.lerp(ElementTheme.BORDER_BASE, Color.WHITE, 0.5f));
+                g2.setColor(lerp(theme().getBorderBase(), Color.WHITE, 0.5f));
                 g2.drawLine(0, y + rH - 1, getWidth(), y + rH - 1);
             }
         }
@@ -657,10 +658,11 @@ public class AstTable extends JPanel {
             // 合并单元格可跨行，clip 高度需按最大 rowspan 放宽，否则被截断
             int spanH = rowSpanRows(v, leaves.size()) * rH;
             boolean selected = model.isSelectedView(v);
+            float hoverAlpha = anim.getProgress("hover");
             boolean isHovered = (v == hoverRow) && hoverAlpha > 0.01f;
-            Color textColor = ElementTheme.TEXT_MAIN;
+            Color textColor = theme().getTextPrimary();
             if (selected) textColor = Color.WHITE;
-            else if (isHovered) textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha * 0.7f);
+            else if (isHovered) textColor = lerp(theme().getTextPrimary(), theme().getPrimary(), hoverAlpha * 0.7f);
             if (leftBand > 0) {
                 g2.clipRect(0, y, leftBand, spanH);
                 drawCells(g2, v, y, w, leaves, scw, PRED_LEFT, textColor);
@@ -709,7 +711,7 @@ public class AstTable extends JPanel {
                     g2.drawString(text, tx, ty);
                     if (x + mw < w) {
                         Color saved = g2.getColor();
-                        g2.setColor(ElementTheme.BORDER_BASE);
+                        g2.setColor(theme().getBorderBase());
                         g2.drawLine(x + mw - 1, y + 4, x + mw - 1, y + mh - 4);
                         g2.setColor(saved);
                     }
@@ -746,7 +748,7 @@ public class AstTable extends JPanel {
         /** 绘制展开行区块（C7），整行宽、浅色底。 */
         private void paintExpandRow(Graphics2D g2, int v, int y) {
             int w = getWidth();
-            g2.setColor(ElementTheme.FILL_BASE);
+            g2.setColor(theme().getFillBase());
             g2.fillRect(0, y, w, EXPAND_H);
             g2.drawLine(0, y + EXPAND_H - 1, w, y + EXPAND_H - 1);
             int raw = model.rawRowOf(v);
@@ -763,7 +765,7 @@ public class AstTable extends JPanel {
             if (expandTextFn != null) {
                 String text = expandTextFn.apply(raw);
                 if (text != null) {
-                    g2.setColor(ElementTheme.TEXT_MAIN);
+                    g2.setColor(theme().getTextPrimary());
                     g2.setFont(cf);
                     FontMetrics fm = g2.getFontMetrics();
                     int ty = y + (EXPAND_H - fm.getHeight()) / 2 + fm.getAscent();
@@ -771,21 +773,21 @@ public class AstTable extends JPanel {
                 }
             }
         }
+        @Override protected void selfCheck() { }
     }
 
     // ===================== FooterView（C8 合计行）=====================
-    public class FooterView extends JComponent {
+    public class FooterView extends AstDisplayComponent {
         private int fH = 32; private Font cf;
-        FooterView() { setOpaque(false); setVisible(false); }
+        FooterView() { setVisible(false); }
         void applyTier(int h, Font f) { this.fH = h; this.cf = f; }
         int getPreferredHeight() { return model.hasSummary() ? fH : 0; }
         @Override public Dimension getPreferredSize() { return new Dimension(getTotalWidth() + selectColW(), getPreferredHeight()); }
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2 = createGraphics(g);
             int w = getWidth(), h = getHeight();
             g2.setColor(Color.WHITE); g2.fillRect(0, 0, w, h);
-            g2.setColor(ElementTheme.BORDER_BASE); g2.drawLine(0, 0, w, 0);
+            g2.setColor(theme().getBorderBase()); g2.drawLine(0, 0, w, 0);
             g2.setFont(cf);
             FontMetrics fm = g2.getFontMetrics();
             List<AstTableColumn> leaves = model.getLeafColumns();
@@ -810,7 +812,7 @@ public class AstTable extends JPanel {
         }
         private void drawSummaryCells(Graphics2D g2, FontMetrics fm, List<AstTableColumn> leaves, int xOffset,
                                       java.util.function.Predicate<AstTableColumn> filter, int h) {
-            g2.setColor(ElementTheme.TEXT_MAIN);
+            g2.setColor(theme().getTextPrimary());
             int x = xOffset;
             for (int c = 0; c < leaves.size(); c++) {
                 AstTableColumn col = leaves.get(c);
@@ -829,6 +831,7 @@ public class AstTable extends JPanel {
             Object v = model.getSummary(c);
             return v == null ? "" : String.valueOf(v);
         }
+        @Override protected void selfCheck() { }
     }
 
     // --- 文本/对齐工具 ---
@@ -863,13 +866,13 @@ public class AstTable extends JPanel {
         }
     }
     /** 行状态 → 主题色（C9）。 */
-    private static Color statusColor(AstTableModel.Status st) {
+    private Color statusColor(AstTableModel.Status st) {
         switch (st) {
-            case SUCCESS: return ElementTheme.SUCCESS;
-            case WARNING: return ElementTheme.WARNING;
-            case DANGER:  return ElementTheme.DANGER;
-            case INFO:    return ElementTheme.INFO;
-            default:      return ElementTheme.PRIMARY;
+            case SUCCESS: return theme().getSuccess();
+            case WARNING: return theme().getWarning();
+            case DANGER:  return theme().getDanger();
+            case INFO:    return theme().getInfo();
+            default:      return theme().getPrimary();
         }
     }
     /** 合并单元格（C9）：锚点 (rawRow, leafCol) 向下跨 rowspan 行、向右跨 colspan 列。 */
@@ -885,16 +888,17 @@ public class AstTable extends JPanel {
     private void drawCheckbox(Graphics2D g2, int cx, int cy, boolean checked) {
         int s = 16, x = cx - s / 2, y = cy - s / 2;
         g2.setColor(Color.WHITE); g2.fillRect(x, y, s, s);
-        g2.setColor(ElementTheme.BORDER_BASE); g2.drawRect(x, y, s, s);
+        g2.setColor(theme().getBorderBase()); g2.drawRect(x, y, s, s);
         if (checked) {
-            g2.setColor(ElementTheme.PRIMARY);
+            g2.setColor(theme().getPrimary());
             g2.drawLine(x + 3, cy, x + 6, y + s - 4);
             g2.drawLine(x + 6, y + s - 4, x + s - 3, y + 3);
         }
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // Constructor null guards
         boolean threw = false;
         try { new AstTable((Column[]) null); } catch (IllegalArgumentException e) { threw = true; }
@@ -1313,7 +1317,7 @@ public class AstTable extends JPanel {
                 try { tm.getHeaderView().paint(mg); } finally { mg.dispose(); }
                 // 「姓名」是未分多级的叶子列，应纵向跨 2 行 → level0/level1 的分界处不应有横线。
                 // 采样点取列左缘内侧（避开居中文字的抗锯齿像素）。
-                int pr = ElementTheme.PRIMARY.getRed(), pg = ElementTheme.PRIMARY.getGreen(), pb = ElementTheme.PRIMARY.getBlue();
+                int pr = theme().getPrimary().getRed(), pg = theme().getPrimary().getGreen(), pb = theme().getPrimary().getBlue();
                 int midY = tm.getHeaderHeight() - 1;
                 int bpx = mimg.getRGB(tm.getHeaderView().leafX(0) + 8, midY);
                 boolean isBg = ((bpx >> 16) & 0xFF) == pr && ((bpx >> 8) & 0xFF) == pg && (bpx & 0xFF) == pb;
@@ -1366,5 +1370,8 @@ public class AstTable extends JPanel {
         System.out.println("AstTable self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        AstTableColumn[] cols = { new AstTableColumn("test", 100) };
+        new AstTable(cols).selfCheck();
+    }
 }

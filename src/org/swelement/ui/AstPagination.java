@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
 
-public class AstPagination extends JComponent {
+public class AstPagination extends AstAbstractComponent {
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     /** 按钮宽高 / 字号随档位。 */
     private static final int[] TIER_BTN_H = {32, 28, 24};
@@ -30,11 +30,10 @@ public class AstPagination extends JComponent {
     private final JTextField jumper = new JTextField(3);
 
     public AstPagination() {
-        setOpaque(false);
         setLayout(new BorderLayout());
         row.setOpaque(false);
         add(row, BorderLayout.CENTER);
-        jumper.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        jumper.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
         jumper.setBorder(new EmptyBorder(2, 4, 2, 4));
         jumper.addActionListener(this::onJump);
     }
@@ -43,7 +42,7 @@ public class AstPagination extends JComponent {
     public void setSize(int t) {
         if (t < SIZE_LARGE || t > SIZE_SMALL) throw new IllegalArgumentException("tier out of range: " + t);
         tier = t;
-        jumper.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+        jumper.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
         rebuild();
     }
 
@@ -124,40 +123,41 @@ public class AstPagination extends JComponent {
         row.repaint();
     }
 
-    private class PageButton extends JLabel {
+    private class PageButton extends AstInteractiveComponent {
         private final int page;
-        private final Animator hoverAnim = new Animator(150, Easing::easeInOut, v -> { hover = v; repaint(); });
-        private float hover;
+        private final String text;
 
         PageButton(String text, int page) {
-            super(text);
+            this.text = text;
             this.page = page;
-            setOpaque(false);
             setPreferredSize(new Dimension(page > 0 ? TIER_BTN_W[tier] : TIER_BTN_W[tier] - 4, TIER_BTN_H[tier]));
-            setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
             if (page > 0) {
                 addMouseListener(new MouseAdapter() {
-                    public void mouseEntered(MouseEvent e) { if (!isEnabled()) return; hoverAnim.go(hover, 1f); }
-                    public void mouseExited(MouseEvent e) { hoverAnim.go(hover, 0f); }
                     public void mousePressed(MouseEvent e) { if (!isEnabled()) return; setCurrentPage(page); }
                 });
             }
         }
 
         @Override
+        protected boolean isToggleMode() { return false; }
+
+        @Override
+        protected void selfCheck() {}
+
+        @Override
         protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Graphics2D g2 = createGraphics(g);
+            float hover = hoverProgress();
             boolean active = page == current && page > 0;
             if (active || hover > 0) {
-                g2.setColor(active ? ElementTheme.PRIMARY : ElementTheme.lerp(Color.WHITE, new Color(0xF5F7FA), hover));
+                g2.setColor(active ? theme().getPrimary() : lerp(Color.WHITE, new Color(0xF5F7FA), hover));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
             }
-            g2.setFont(ElementTheme.FONT.deriveFont(TIER_FONT[tier]));
+            g2.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
             g2.setColor(active ? Color.WHITE : (page > 0 ? new Color(0x606266) : new Color(0xC0C4CC)));
             FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(getText(), (getWidth() - fm.stringWidth(getText())) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+            g2.drawString(text, (getWidth() - fm.stringWidth(text)) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
             g2.dispose();
         }
     }
@@ -170,7 +170,8 @@ public class AstPagination extends JComponent {
         } catch (NumberFormatException ignore) { }
     }
 
-    public static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         assert pageWindow(1, 10).equals(java.util.Arrays.asList(1, 2, 3, -1, 10));
         assert pageWindow(5, 10).equals(java.util.Arrays.asList(1, -1, 3, 4, 5, 6, 7, -1, 10));
         assert pageWindow(9, 10).equals(java.util.Arrays.asList(1, -1, 7, 8, 9, 10));
@@ -193,6 +194,10 @@ public class AstPagination extends JComponent {
         boolean threw = false;
         try { pg.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "invalid tier must throw";
+
+        // 对比度
+        assertContrast(new Color(0x606266), Color.WHITE, "pagination btn text on white");
+
         System.out.println("AstPagination self-check OK");
     }
 
@@ -203,5 +208,7 @@ public class AstPagination extends JComponent {
         throw new AssertionError("no PageButton found");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstPagination(100, 10, 1).selfCheck();
+    }
 }

@@ -1,10 +1,9 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.AnimatedPopup;
 import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
 import org.swelement.core.PopupPositioner;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -132,21 +131,29 @@ public class AstMessage {
     }
 
     // ---------- Internal ToastCard paint component ----------
-    static final class ToastCard extends JPanel {
+    static final class ToastCard extends AstAbstractComponent {
         final MessageType type;
         final String text;
-        final Animator inAnim; // 0 → 1 : slide-down + fade
-        float progress;
+
+        @Override
+        protected void initComponent() {
+            super.initComponent();
+            anim.register("in", 220, Easing::easeOut);
+        }
+
+        @Override
+        protected void selfCheck() {}
+
         ToastCard(MessageType t, String s) {
             type = t; text = s;
-            setOpaque(false);
-            inAnim = new Animator(220, new Easing() { public float apply(float f) { return Easing.easeOut(f); }},
-                new Animator.Listener() { public void update(float v) { progress = v; repaint(); }});
         }
-        void startIn() { inAnim.stop(); inAnim.go(0f, 1f); }
+        void startIn() { anim.go("in", 0f, 1f); }
+
+        void setInProgress(float v) { anim.setProgress("in", v); }
+        float getInProgress() { return anim.getProgress("in"); }
 
         @Override public Dimension getPreferredSize() {
-            Font f = ElementTheme.FONT.deriveFont(14f);
+            Font f = theme().getFontBase().deriveFont(14f);
             FontMetrics fm = getFontMetrics(f);
             int textW = fm.stringWidth(text);
             int w = 32 + 12 + 8 + textW + 32; // icon 32x32 + 12 icon pad + 8 gap + textW + 32 right pad
@@ -158,15 +165,14 @@ public class AstMessage {
         @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
         @Override protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            Graphics2D g2 = createGraphics(g);
             // Toast card: white bg with 8px corner; light 1px BORDER_BASE; left accent stripe of type color 4px wide
-            int a = Math.min(255, Math.max(0, Math.round(255 * progress)));
+            int a = Math.min(255, Math.max(0, Math.round(255 * anim.getProgress("in"))));
             Color bg = new Color(0xFF, 0xFF, 0xFF, a);
-            Color border = new Color(ElementTheme.BORDER_BASE.getRed(), ElementTheme.BORDER_BASE.getGreen(), ElementTheme.BORDER_BASE.getBlue(), a);
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstMessage toast text");
-            int r = ElementTheme.RADIUS;
+            Color borderBase = theme().getBorderBase();
+            Color border = new Color(borderBase.getRed(), borderBase.getGreen(), borderBase.getBlue(), a);
+            assertContrast(theme().getTextPrimary(), Color.WHITE, "AstMessage toast text");
+            int r = theme().getRadiusBase();
             RoundRectangle2D rect = new RoundRectangle2D.Float(0.5f, 0.5f, getWidth()-1.5f, getHeight()-1.5f, r, r);
             g2.setColor(bg); g2.fill(rect);
             g2.setColor(border); g2.setStroke(new BasicStroke(1f)); g2.draw(rect);
@@ -178,12 +184,12 @@ public class AstMessage {
             // AstBadge icon 24x24, left=16, vertical center
             int iconX = 20, iconY = (getHeight() - 24) / 2;
             Color iconBg = accentA;
-            Color fg = ElementTheme.pickTextColorForBg(accent);
-            ElementTheme.assertContrast(fg, accent, "AstMessage toast badge "+type);
+            Color fg = pickTextColorForBg(accent);
+            assertContrast(fg, accent, "AstMessage toast badge "+type);
             Ellipse2D circ = new Ellipse2D.Float(iconX, iconY, 24, 24);
             g2.setColor(iconBg); g2.fill(circ);
             String glyph = glyphFor(type);
-            Font f = ElementTheme.FONT.deriveFont(Font.BOLD, 14f);
+            Font f = theme().getFontBase().deriveFont(Font.BOLD, 14f);
             g2.setFont(f);
             FontMetrics fm = g2.getFontMetrics(f);
             int gx = iconX + 12 - fm.stringWidth(glyph)/2;
@@ -192,9 +198,10 @@ public class AstMessage {
             g2.drawString(glyph, gx, gy);
             // Text right of icon, at x = 20 + 24 + 8 = 52
             int tx = 52;
-            Color tc = new Color(ElementTheme.TEXT_MAIN.getRed(), ElementTheme.TEXT_MAIN.getGreen(), ElementTheme.TEXT_MAIN.getBlue(), a);
+            Color textMain = theme().getTextPrimary();
+            Color tc = new Color(textMain.getRed(), textMain.getGreen(), textMain.getBlue(), a);
             g2.setColor(tc);
-            Font tf = ElementTheme.FONT.deriveFont(14f);
+            Font tf = theme().getFontBase().deriveFont(14f);
             g2.setFont(tf);
             FontMetrics tm = g2.getFontMetrics(tf);
             int ty = (getHeight() - tm.getHeight())/2 + tm.getAscent();
@@ -209,14 +216,14 @@ public class AstMessage {
             g2.dispose();
         }
 
-        static Color colorFor(MessageType t) {
+        Color colorFor(MessageType t) {
             switch (t) {
-                case INFO: return ElementTheme.PRIMARY;
-                case SUCCESS: return ElementTheme.SUCCESS;
-                case WARNING: return ElementTheme.WARNING;
-                case ERROR: return ElementTheme.DANGER;
+                case INFO: return theme().getPrimary();
+                case SUCCESS: return theme().getSuccess();
+                case WARNING: return theme().getWarning();
+                case ERROR: return theme().getDanger();
             }
-            return ElementTheme.PRIMARY;
+            return theme().getPrimary();
         }
         static String glyphFor(MessageType t) {
             switch (t) {
@@ -256,7 +263,7 @@ public class AstMessage {
             Container content = popup.getContent();
             for (int ci = 0; ci < content.getComponentCount(); ci++) {
                 Component cc = content.getComponent(ci);
-                if (cc instanceof ToastCard) { ((ToastCard) cc).progress = 1f; }
+                if (cc instanceof ToastCard) { ((ToastCard) cc).setInProgress(1f); }
             }
             Graphics2D gg = img.createGraphics();
             try { popup.paint(gg); } finally { gg.dispose(); }

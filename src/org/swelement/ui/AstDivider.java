@@ -1,6 +1,6 @@
 package org.swelement.ui;
 
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,7 +18,7 @@ import java.awt.*;
  * 垂直方向占满高度画竖线。文字色 TEXT_REGULAR，线色 BORDER_BASE，
  * 对比度由 assertContrast 校验（仅水平带文字模式）。
  */
-public class AstDivider extends JComponent {
+public class AstDivider extends AstDisplayComponent {
     public static final int HORIZONTAL = 0, VERTICAL = 1;
     public static final int ALIGN_LEFT = 0, ALIGN_CENTER = 1, ALIGN_RIGHT = 2;
 
@@ -26,8 +26,8 @@ public class AstDivider extends JComponent {
     private String text;
     private int align;
     private boolean dashed;
-    private Color lineColor = ElementTheme.BORDER_BASE;
-    private Color textColor = ElementTheme.TEXT_REGULAR;
+    private Color lineColor;
+    private Color textColor;
 
     public AstDivider(int direction) { this(direction, null, ALIGN_CENTER); }
 
@@ -41,7 +41,13 @@ public class AstDivider extends JComponent {
         this.direction = direction;
         this.text = text;
         this.align = align;
-        setOpaque(false);
+    }
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        lineColor = theme().getBorderBase();
+        textColor = theme().getTextRegular();
     }
 
     public void setText(String t) { this.text = t; repaint(); }
@@ -73,15 +79,14 @@ public class AstDivider extends JComponent {
     @Override public Dimension getMinimumSize() { return getPreferredSize(); }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
         int w = getWidth(), h = getHeight();
         g2.setColor(lineColor);
         if (direction == HORIZONTAL) {
             if (text == null || text.isEmpty()) {
                 drawLine(g2, 0, h / 2, w, h / 2);
             } else {
-                g2.setFont(ElementTheme.FONT.deriveFont(14f));
+                g2.setFont(theme().getFontBase().deriveFont(14f));
                 FontMetrics fm = g2.getFontMetrics();
                 String clipped = clipText(g2, text, w - 32);
                 int tw = fm.stringWidth(clipped);
@@ -108,7 +113,7 @@ public class AstDivider extends JComponent {
                     drawLine(g2, textX + tw + 4, h / 2, w, h / 2);
                 }
                 // 文字
-                ElementTheme.assertContrast(textColor, Color.WHITE, "AstDivider text");
+                assertContrast(textColor, Color.WHITE, "AstDivider text");
                 g2.setColor(textColor);
                 g2.drawString(clipped, textX, ty);
             }
@@ -142,7 +147,8 @@ public class AstDivider extends JComponent {
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstDivider(9); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "bad direction"; threw = false;
@@ -186,5 +192,7 @@ public class AstDivider extends JComponent {
         try { c.paint(gg); } finally { gg.dispose(); }
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstDivider(HORIZONTAL).selfCheck();
+    }
 }

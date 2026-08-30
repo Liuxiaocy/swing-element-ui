@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,18 +10,21 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
-public class AstCard extends JComponent {
+public class AstCard extends AstDisplayComponent {
     /** 阴影模式（Element UI Card 的 shadow 属性）。 */
     public enum Shadow { ALWAYS, HOVER, NEVER }
 
     private final String title;
     private final boolean bordered;
     private Shadow shadow = Shadow.HOVER;
-    private final Animator hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); } },
-        new Animator.Listener() { public void update(float v) { hover = v; repaint(); } });
-    private float hover;
     private JComponent content;
     private final JPanel headerActions;
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("hover", 150, Easing::easeInOut);
+    }
 
     public AstCard(String title) { this(title, true, true); }
 
@@ -38,11 +41,10 @@ public class AstCard extends JComponent {
         headerActions.setOpaque(false);
         setLayout(null); // manual layout in doLayout
         add(headerActions);
-        setOpaque(false);
         if (this.shadow == Shadow.HOVER) {
             addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) { if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 1f); } }
-                public void mouseExited(MouseEvent e)  { if (isEnabled()) { hoverAnim.stop(); hoverAnim.go(hover, 0f); } }
+                public void mouseEntered(MouseEvent e) { if (isEnabled()) { anim.go("hover", anim.getProgress("hover"), 1f); } }
+                public void mouseExited(MouseEvent e)  { if (isEnabled()) { anim.go("hover", anim.getProgress("hover"), 0f); } }
             });
         }
     }
@@ -51,7 +53,7 @@ public class AstCard extends JComponent {
     public void setShadow(Shadow s) {
         if (s == null) throw new IllegalArgumentException("shadow must not be null");
         this.shadow = s;
-        if (s != Shadow.HOVER && hover > 0.01f) { hoverAnim.stop(); hover = 0f; }
+        if (s != Shadow.HOVER && anim.getProgress("hover") > 0.01f) { anim.setProgress("hover", 0f); }
         repaint();
     }
 
@@ -109,20 +111,19 @@ public class AstCard extends JComponent {
     }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Graphics2D g2 = createGraphics(g);
         Insets in = getInsets();
         int x = in.left, y = in.top;
         int w = getWidth() - in.left - in.right;
         int h = getHeight() - in.top - in.bottom;
         w = Math.max(0, w); h = Math.max(0, h);
+        float hover = anim.getProgress("hover");
         Color bg = Color.WHITE;
         Color borderColor = bordered
-                ? ElementTheme.lerp(ElementTheme.BORDER_BASE, ElementTheme.PRIMARY, hover)
+                ? lerp(theme().getBorderBase(), theme().getPrimary(), hover)
                 : new Color(0, 0, 0, 0);
-        ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstCard.body");
-        int r = ElementTheme.RADIUS * 2;
+        assertContrast(theme().getTextPrimary(), bg, "AstCard.body");
+        int r = theme().getRadiusBase() * 2;
         // 阴影：ALWAYS 恒定 / HOVER 随悬停插值 / NEVER 无（画在卡片底、向下偏移 3px 露出下缘）
         float shadowFactor = shadow == Shadow.ALWAYS ? 1f : shadow == Shadow.HOVER ? hover : 0f;
         if (shadowFactor > 0.01f && w > 2 && h > 2) {
@@ -140,19 +141,19 @@ public class AstCard extends JComponent {
         // Hover outer glow ring: PRIMARY translucent stroke 1.5px
         if (hover > 0.01f && w > 2 && h > 2) {
             int a = Math.round(36 * hover);
-            g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a));
+            g2.setColor(new Color(theme().getPrimary().getRed(), theme().getPrimary().getGreen(), theme().getPrimary().getBlue(), a));
             g2.setStroke(new BasicStroke(1.5f));
             g2.draw(new RoundRectangle2D.Float(x + 1f, y + 1f, w - 2.5f, h - 2.5f, r, r));
         }
         // 无头卡片：不绘制标题栏（分隔线 + 标题文字）
         if (isHeadless()) { g2.dispose(); return; }
         // Title bar separator at y+48 (1px, BORDER_BASE)
-        g2.setColor(ElementTheme.BORDER_BASE);
+        g2.setColor(theme().getBorderBase());
         g2.drawLine(x, y + 48, x + w, y + 48);
         // Title string: bold 16px, x+20, baseline vertically centered in 48px title bar
-        g2.setColor(ElementTheme.TEXT_MAIN);
-        ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstCard.title");
-        g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+        g2.setColor(theme().getTextPrimary());
+        assertContrast(theme().getTextPrimary(), bg, "AstCard.title");
+        g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 16f));
         FontMetrics fm = g2.getFontMetrics();
         int titleBaseline = y + (48 - fm.getHeight()) / 2 + fm.getAscent();
         // Don't paint title on top of right-justified headerActions (max title width: width - actions.width - 28px)
@@ -173,7 +174,8 @@ public class AstCard extends JComponent {
         g2.dispose();
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // Create card with title + content + action, paint off-screen to trigger contrast assertions
         final AstCard c = new AstCard("用户信息");
         JPanel body = new JPanel();
@@ -265,5 +267,7 @@ public class AstCard extends JComponent {
         } catch (Throwable t) { throw new RuntimeException(t); }
         System.out.println("AstCard self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstCard("test").selfCheck();
+    }
 }

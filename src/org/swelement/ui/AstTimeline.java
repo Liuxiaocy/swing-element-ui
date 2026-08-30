@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,7 +29,7 @@ import java.util.List;
  *  - 卡片 hover 时背景过渡到 FILL_BASE（Animator 150ms easeInOut）。
  *  - 对比度：标题/描述/时间戳均白底，断言校验。
  */
-public class AstTimeline extends JComponent {
+public class AstTimeline extends AstDisplayComponent {
     public enum Type { PRIMARY, SUCCESS, WARNING, DANGER, INFO }
 
     public static final class Item {
@@ -47,8 +47,6 @@ public class AstTimeline extends JComponent {
     }
 
     private final List<Item> items;
-    private final List<Float> hoverStates = new ArrayList<Float>();
-    private final List<Animator> hoverAnims = new ArrayList<Animator>();
     private static final int NODE_X = 20;
     private static final int NODE_D = 12;
     private static final int LINE_X = NODE_X; // 竖线 x 居中于节点
@@ -64,12 +62,8 @@ public class AstTimeline extends JComponent {
         for (Item it : items) if (it == null) throw new IllegalArgumentException("item must not be null");
         this.items = new ArrayList<Item>(items);
         for (int i = 0; i < this.items.size(); i++) {
-            hoverStates.add(0f);
-            final int idx = i;
-            hoverAnims.add(new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-                new Animator.Listener() { public void update(float v) { hoverStates.set(idx, v); repaint(); }}));
+            anim.register("hover_" + i, 150, Easing::easeInOut);
         }
-        setOpaque(false);
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override public void mouseMoved(java.awt.event.MouseEvent e) {
                 int y = e.getY();
@@ -78,20 +72,18 @@ public class AstTimeline extends JComponent {
                     int top = i * (ROW_H + GAP);
                     if (y >= top && y < top + ROW_H) { hovered = i; break; }
                 }
-                for (int i = 0; i < hoverAnims.size(); i++) {
+                for (int i = 0; i < AstTimeline.this.items.size(); i++) {
                     float target = (i == hovered) ? 1f : 0f;
-                    if (Math.abs(hoverStates.get(i) - target) > 0.01f) {
-                        hoverAnims.get(i).stop();
-                        hoverAnims.get(i).go(hoverStates.get(i), target);
+                    if (Math.abs(anim.getProgress("hover_" + i) - target) > 0.01f) {
+                        anim.go("hover_" + i, anim.getProgress("hover_" + i), target);
                     }
                 }
             }
         });
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseExited(java.awt.event.MouseEvent e) {
-                for (int i = 0; i < hoverAnims.size(); i++) {
-                    hoverAnims.get(i).stop();
-                    hoverAnims.get(i).go(hoverStates.get(i), 0f);
+                for (int i = 0; i < items.size(); i++) {
+                    anim.go("hover_" + i, anim.getProgress("hover_" + i), 0f);
                 }
             }
         });
@@ -99,11 +91,11 @@ public class AstTimeline extends JComponent {
 
     private Color typeColor(Type t) {
         switch (t) {
-            case PRIMARY: return ElementTheme.PRIMARY;
-            case SUCCESS: return ElementTheme.SUCCESS;
-            case WARNING: return ElementTheme.WARNING;
-            case DANGER: return ElementTheme.DANGER;
-            case INFO: default: return ElementTheme.INFO;
+            case PRIMARY: return theme().getPrimary();
+            case SUCCESS: return theme().getSuccess();
+            case WARNING: return theme().getWarning();
+            case DANGER: return theme().getDanger();
+            case INFO: default: return theme().getInfo();
         }
     }
 
@@ -116,20 +108,18 @@ public class AstTimeline extends JComponent {
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Graphics2D g2 = createGraphics(g);
         int n = items.size();
         int totalH = n * ROW_H + (n - 1) * GAP;
         // 竖线
-        g2.setColor(ElementTheme.BORDER_BASE);
+        g2.setColor(theme().getBorderBase());
         g2.setStroke(new BasicStroke(LINE_W));
         g2.drawLine(LINE_X, 0, LINE_X, totalH);
         // 每项
         for (int i = 0; i < n; i++) {
             Item it = items.get(i);
             int top = i * (ROW_H + GAP);
-            float hover = hoverStates.get(i);
+            float hover = anim.getProgress("hover_" + i);
             // 节点
             Color tc = typeColor(it.type);
             Ellipse2D node = new Ellipse2D.Float(NODE_X - NODE_D/2f, top + ROW_H/2f - NODE_D/2f, NODE_D, NODE_D);
@@ -142,29 +132,29 @@ public class AstTimeline extends JComponent {
             int cardY = top;
             int cardH = ROW_H;
             int cardW = getWidth() - CARD_X - 4;
-            Color bg = ElementTheme.lerp(Color.WHITE, ElementTheme.FILL_BASE, hover);
+            Color bg = lerp(Color.WHITE, theme().getFillBase(), hover);
             g2.setColor(bg);
-            g2.fillRoundRect(CARD_X, cardY, cardW, cardH, ElementTheme.RADIUS, ElementTheme.RADIUS);
-            g2.setColor(ElementTheme.BORDER_BASE);
+            g2.fillRoundRect(CARD_X, cardY, cardW, cardH, theme().getRadiusBase(), theme().getRadiusBase());
+            g2.setColor(theme().getBorderBase());
             g2.setStroke(new BasicStroke(1f));
-            g2.drawRoundRect(CARD_X, cardY, cardW, cardH, ElementTheme.RADIUS, ElementTheme.RADIUS);
+            g2.drawRoundRect(CARD_X, cardY, cardW, cardH, theme().getRadiusBase(), theme().getRadiusBase());
             // 文字
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 14f));
+            g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 14f));
             FontMetrics fm = g2.getFontMetrics();
-            g2.setColor(ElementTheme.TEXT_MAIN);
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, bg, "AstTimeline title");
+            g2.setColor(theme().getTextPrimary());
+            assertContrast(theme().getTextPrimary(), bg, "AstTimeline title");
             g2.drawString(ellipsize(g2, fm, it.title, cardW - 2 * CARD_PAD), CARD_X + CARD_PAD, cardY + 22);
             // 时间戳
-            g2.setFont(ElementTheme.FONT.deriveFont(12f));
+            g2.setFont(theme().getFontBase().deriveFont(12f));
             fm = g2.getFontMetrics();
-            g2.setColor(ElementTheme.TEXT_REGULAR);
-            ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, bg, "AstTimeline timestamp");
+            g2.setColor(theme().getTextRegular());
+            assertContrast(theme().getTextRegular(), bg, "AstTimeline timestamp");
             g2.drawString(ellipsize(g2, fm, it.timestamp, cardW - 2 * CARD_PAD), CARD_X + CARD_PAD, cardY + ROW_H - 12);
             // 描述（如有）
             if (it.description != null) {
-                g2.setFont(ElementTheme.FONT.deriveFont(13f));
+                g2.setFont(theme().getFontBase().deriveFont(13f));
                 fm = g2.getFontMetrics();
-                g2.setColor(ElementTheme.TEXT_REGULAR);
+                g2.setColor(theme().getTextRegular());
                 String desc = ellipsize(g2, fm, it.description, cardW - 2 * CARD_PAD);
                 int descX = CARD_X + CARD_PAD;
                 int descY = cardY + 22 + fm.getHeight() + 2;
@@ -183,7 +173,8 @@ public class AstTimeline extends JComponent {
         return s + ell;
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstTimeline(null); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null items must throw"; threw = false;
@@ -223,5 +214,9 @@ public class AstTimeline extends JComponent {
         assert ca > 120 : "卡片绘制不透明 alpha=" + ca;
         System.out.println("AstTimeline self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        List<Item> items = new ArrayList<Item>();
+        items.add(new Item("2026-08-01", "test", Type.PRIMARY));
+        new AstTimeline(items).selfCheck();
+    }
 }

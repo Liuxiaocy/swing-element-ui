@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -27,14 +27,18 @@ import java.util.function.Consumer;
  *  - 切换月份时整面板淡入（alpha 动画 180ms easeOut）。
  *  - 对比度：日期文字白底断言；当日白字 PRIMARY 底按惯例跳过。
  */
-public class AstCalendar extends JComponent {
+public class AstCalendar extends AstInteractiveComponent {
     private int year, month; // month 0-11
     private int selDay = -1;
     private int hoverCell = -1;
-    private float alpha = 1f;
-    private final Animator fadeAnim = new Animator(180, new Easing() { public float apply(float t) { return Easing.easeOut(t); }},
-        new Animator.Listener() { public void update(float v) { alpha = v; repaint(); }});
     private Consumer<int[]> dateListener; // [year, month0, day]
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("fade", 180, Easing::easeOut);
+        anim.setProgress("fade", 1f);
+    }
 
     private static final int CELL = 36;
     private static final int HEADER_H = 40;
@@ -47,7 +51,6 @@ public class AstCalendar extends JComponent {
         Calendar now = Calendar.getInstance();
         this.year = now.get(Calendar.YEAR);
         this.month = now.get(Calendar.MONTH);
-        setOpaque(false);
         addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override public void mouseMoved(java.awt.event.MouseEvent e) {
                 int nav = navAt(e.getX(), e.getY());
@@ -106,7 +109,7 @@ public class AstCalendar extends JComponent {
         if (d < 1 || d > 31) throw new IllegalArgumentException("day out of range: " + d);
         boolean monthChanged = (y != year || m0 != month);
         this.year = y; this.month = m0; this.selDay = d;
-        if (monthChanged) { alpha = 0f; fadeAnim.stop(); fadeAnim.go(0f, 1f); }
+        if (monthChanged) { anim.go("fade", 0f, 1f); }
         else repaint();
     }
 
@@ -117,13 +120,13 @@ public class AstCalendar extends JComponent {
     public void prevMonth() {
         if (month == 0) { month = 11; year--; } else month--;
         selDay = -1;
-        alpha = 0f; fadeAnim.stop(); fadeAnim.go(0f, 1f);
+        anim.go("fade", 0f, 1f);
     }
 
     public void nextMonth() {
         if (month == 11) { month = 0; year++; } else month++;
         selDay = -1;
-        alpha = 0f; fadeAnim.stop(); fadeAnim.go(0f, 1f);
+        anim.go("fade", 0f, 1f);
     }
 
     @Override public Dimension getPreferredSize() { return new Dimension(7 * CELL + 16, HEADER_H + WEEK_H + 6 * CELL + 16); }
@@ -167,12 +170,12 @@ public class AstCalendar extends JComponent {
 
     public void prevYear() {
         year--; selDay = -1;
-        alpha = 0f; fadeAnim.stop(); fadeAnim.go(0f, 1f);
+        anim.go("fade", 0f, 1f);
     }
 
     public void nextYear() {
         year++; selDay = -1;
-        alpha = 0f; fadeAnim.stop(); fadeAnim.go(0f, 1f);
+        anim.go("fade", 0f, 1f);
     }
 
     private int cellAt(int x, int y) {
@@ -184,19 +187,17 @@ public class AstCalendar extends JComponent {
     }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Graphics2D g2 = createGraphics(g);
         int w = getWidth();
         // 整面板 alpha 应用：用 ALPHAComposite
         java.awt.Composite oldComp = g2.getComposite();
-        g2.setComposite(java.awt.AlphaComposite.SrcOver.derive(Math.max(0.15f, alpha)));
+        g2.setComposite(java.awt.AlphaComposite.SrcOver.derive(Math.max(0.15f, anim.getProgress("fade"))));
         // 标题栏
         String title = String.format("%d 年 %02d 月", year, month + 1);
-        g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 16f));
+        g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 16f));
         FontMetrics fm = g2.getFontMetrics();
-        g2.setColor(ElementTheme.TEXT_MAIN);
-        ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, getBackground0(), "AstCalendar title");
+        g2.setColor(theme().getTextPrimary());
+        assertContrast(theme().getTextPrimary(), getBackground0(), "AstCalendar title");
         int titleX = (w - fm.stringWidth(title)) / 2;
         g2.drawString(title, titleX, 26);
         // 翻年/翻月按钮：‹‹  ‹      ›  ››
@@ -206,9 +207,9 @@ public class AstCalendar extends JComponent {
         drawNavButton(g2, w - NB_X - NB_W, NB_Y, "››", hoverCell == NAV_NEXT_YEAR);
         // 星期表头
         int ox = 8, oy = HEADER_H + 8;
-        g2.setFont(ElementTheme.FONT.deriveFont(13f));
+        g2.setFont(theme().getFontBase().deriveFont(13f));
         fm = g2.getFontMetrics();
-        g2.setColor(ElementTheme.TEXT_REGULAR);
+        g2.setColor(theme().getTextRegular());
         for (int i = 0; i < 7; i++) {
             String s = WEEK[i];
             int sx = ox + i * CELL + (CELL - fm.stringWidth(s)) / 2;
@@ -234,20 +235,20 @@ public class AstCalendar extends JComponent {
             boolean isHover = (i == hoverCell);
             Color fg;
             Color bg = null;
-            if (isToday) { bg = ElementTheme.PRIMARY; fg = Color.WHITE; }
-            else if (isSel) { fg = ElementTheme.PRIMARY; bg = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), 30); }
-            else if (isHover) { bg = ElementTheme.FILL_BASE; fg = ElementTheme.TEXT_MAIN; }
-            else if (!inMonth) { fg = ElementTheme.TEXT_PLACEHOLDER; }
-            else { fg = ElementTheme.TEXT_MAIN; }
+            if (isToday) { bg = theme().getPrimary(); fg = Color.WHITE; }
+            else if (isSel) { fg = theme().getPrimary(); bg = new Color(theme().getPrimary().getRed(), theme().getPrimary().getGreen(), theme().getPrimary().getBlue(), 30); }
+            else if (isHover) { bg = theme().getFillBase(); fg = theme().getTextPrimary(); }
+            else if (!inMonth) { fg = theme().getTextPlaceholder(); }
+            else { fg = theme().getTextPrimary(); }
             if (!isToday && inMonth) {
-                ElementTheme.assertContrast(fg, bg != null ? bg : getBackground0(), "AstCalendar day " + day);
+                assertContrast(fg, bg != null ? bg : getBackground0(), "AstCalendar day " + day);
             }
             if (bg != null) {
                 g2.setColor(bg);
                 g2.fill(new RoundRectangle2D.Float(x+1, y+1, CELL-2, CELL-2, 6, 6));
             }
             g2.setColor(fg);
-            g2.setFont(ElementTheme.FONT.deriveFont(13f));
+            g2.setFont(theme().getFontBase().deriveFont(13f));
             FontMetrics fm2 = g2.getFontMetrics();
             String s = String.valueOf(shown);
             int sx = x + (CELL - fm2.stringWidth(s)) / 2;
@@ -262,16 +263,17 @@ public class AstCalendar extends JComponent {
 
     private void drawNavButton(Graphics2D g2, int x, int y, String s, boolean hover) {
         RoundRectangle2D r = new RoundRectangle2D.Float(x, y, 24, 24, 6, 6);
-        g2.setColor(hover ? ElementTheme.FILL_BASE : new Color(0, 0, 0, 0));
+        g2.setColor(hover ? theme().getFillBase() : new Color(0, 0, 0, 0));
         if (hover) g2.fill(r);
-        g2.setColor(ElementTheme.TEXT_REGULAR);
-        ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstCalendar nav");
-        g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 18f));
+        g2.setColor(theme().getTextRegular());
+        assertContrast(theme().getTextRegular(), Color.WHITE, "AstCalendar nav");
+        g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 18f));
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(s, x + (24 - fm.stringWidth(s)) / 2, y + (24 - fm.getHeight()) / 2 + fm.getAscent());
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstCalendar().setDateListener(null); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null listener must throw"; threw = false;
@@ -328,7 +330,7 @@ public class AstCalendar extends JComponent {
         cal2.setDateListener(new java.util.function.Consumer<int[]>() { public void accept(int[] d) { fired[0]++; }});
 
         // 离屏绘制校验对比度断言
-        cal2.year = 2026; cal2.month = 7; cal2.alpha = 1f;
+        cal2.year = 2026; cal2.month = 7;
         cal2.setSize(cal2.getPreferredSize());
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
                 cal2.getWidth(), cal2.getHeight(), java.awt.image.BufferedImage.TYPE_INT_ARGB);
@@ -345,5 +347,7 @@ public class AstCalendar extends JComponent {
         assert anyPainted : "calendar 应绘制出非透明像素";
         System.out.println("AstCalendar self-check OK");
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstCalendar().selfCheck();
+    }
 }

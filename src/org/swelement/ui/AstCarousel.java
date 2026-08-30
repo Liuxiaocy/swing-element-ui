@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -33,34 +33,33 @@ import java.util.List;
  *  - 自动播放：3 秒间隔切换到下一张，循环；鼠标 hover 容器时暂停。
  *  - 对比度：箭头/指示点断言；幻灯片内容由调用方在 SlidePainter 中保证对比度。
  */
-public class AstCarousel extends JComponent {
+public class AstCarousel extends AstInteractiveComponent {
     /** 幻灯片绘制器：在给定 Graphics2D 上绘制 (w,h) 区域的内容。 */
     public interface SlidePainter { void paint(Graphics2D g, int w, int h); }
 
     private final List<SlidePainter> slides;
     private int current = 0;
-    private float offset; // 当前像素偏移
-    private final Animator slideAnim;
     private boolean autoplay = false;
     private boolean hoverPaused = false;
     private Timer autoTimer;
     private static final int HEIGHT = 220;
     private static final long AUTO_INTERVAL = 3000;
-    private float arrowHover = 0f;
-    private final Animator arrowAnim = new Animator(180, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-        new Animator.Listener() { public void update(float v) { arrowHover = v; repaint(); }});
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("slide", 300, Easing::easeInOut);
+        anim.register("arrow", 180, Easing::easeInOut);
+    }
 
     public AstCarousel(List<SlidePainter> slides) {
         if (slides == null) throw new IllegalArgumentException("slides must not be null");
         if (slides.isEmpty()) throw new IllegalArgumentException("slides must not be empty");
         for (SlidePainter s : slides) if (s == null) throw new IllegalArgumentException("slide must not be null");
         this.slides = new ArrayList<SlidePainter>(slides);
-        slideAnim = new Animator(300, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-            new Animator.Listener() { public void update(float v) { offset = v; repaint(); }});
-        setOpaque(false);
         addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseEntered(java.awt.event.MouseEvent e) { hoverPaused = true; arrowAnim.stop(); arrowAnim.go(arrowHover, 1f); }
-            @Override public void mouseExited(java.awt.event.MouseEvent e) { hoverPaused = false; arrowAnim.stop(); arrowAnim.go(arrowHover, 0f); }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { hoverPaused = true; anim.go("arrow", anim.getProgress("arrow"), 1f); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { hoverPaused = false; anim.go("arrow", anim.getProgress("arrow"), 0f); }
             @Override public void mousePressed(java.awt.event.MouseEvent e) {
                 int w = getWidth();
                 if (e.getX() < 44) prev();
@@ -86,8 +85,7 @@ public class AstCarousel extends JComponent {
         int w = getWidth() > 0 ? getWidth() : getPreferredSize().width;
         float from = -old * w;
         float to = -idx * w;
-        slideAnim.stop();
-        slideAnim.go(from, to);
+        anim.go("slide", from, to);
     }
 
     public int getCurrent() { return current; }
@@ -112,12 +110,11 @@ public class AstCarousel extends JComponent {
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Graphics2D g2 = createGraphics(g);
         int w = getWidth(), h = getHeight();
         g2.setClip(0, 0, w, h);
         // 绘制所有 slides（横向排列），整体偏移 offset
+        float offset = anim.getProgress("slide");
         int sx = 0;
         for (int i = 0; i < slides.size(); i++) {
             Graphics2D sg = (Graphics2D) g2.create();
@@ -127,6 +124,7 @@ public class AstCarousel extends JComponent {
             sx += w;
         }
         // 左右箭头（hover 时显示）
+        float arrowHover = anim.getProgress("arrow");
         if (arrowHover > 0.01f) {
             int aw = 32, ah = 32;
             int ay = (h - ah) / 2;
@@ -143,10 +141,10 @@ public class AstCarousel extends JComponent {
         for (int i = 0; i < slides.size(); i++) {
             int cx = dx0 + i * (dotR * 2 + dotGap) + dotR;
             if (i == current) {
-                g2.setColor(ElementTheme.PRIMARY);
+                g2.setColor(theme().getPrimary());
                 g2.fillRoundRect(cx - dotR - 5, dy - dotR, dotR * 2 + 10, dotR * 2, dotR, dotR);
             } else {
-                g2.setColor(ElementTheme.BORDER_BASE);
+                g2.setColor(theme().getBorderBase());
                 g2.fillOval(cx - dotR, dy - dotR, dotR * 2, dotR * 2);
             }
         }
@@ -158,7 +156,7 @@ public class AstCarousel extends JComponent {
         g2.setColor(bg);
         g2.fill(new RoundRectangle2D.Float(x, y, w, h, 16, 16));
         g2.setColor(new Color(0xFF, 0xFF, 0xFF, alpha));
-        g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 20f));
+        g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, 20f));
         FontMetrics fm = g2.getFontMetrics();
         int tx = x + (w - fm.stringWidth(s)) / 2;
         int ty = y + (h - fm.getHeight()) / 2 + fm.getAscent();
@@ -169,7 +167,8 @@ public class AstCarousel extends JComponent {
         return x >= 0 && x < getWidth() && y >= 0 && y < getHeight();
     }
 
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstCarousel(null); } catch (IllegalArgumentException iae) { threw = true; }
         assert threw : "null slides must throw"; threw = false;
@@ -250,5 +249,9 @@ public class AstCarousel extends JComponent {
         }
         return out;
     }
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        List<SlidePainter> slides = new ArrayList<SlidePainter>();
+        slides.add(new SlidePainter() { public void paint(Graphics2D g, int w, int h) {} });
+        new AstCarousel(slides).selfCheck();
+    }
 }

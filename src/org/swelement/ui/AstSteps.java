@@ -1,8 +1,6 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
-import org.swelement.core.Easing;
-import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstAbstractComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -24,13 +22,13 @@ import java.util.function.Consumer;
  *   s.setStepClickListener(idx -> System.out.println("点击第 " + idx));
  *
  * 设计：圆形节点(28px) + 标签 + 连接线。
- * - 已完成节点：WARNING 填充 + 白色对勾
- * - 进行中节点：PRIMARY 填充 + 白色数字，外加 PRIMARY 描边光环
- * - 等待节点：白底 BORDER_BASE 描边 + TEXT_PLACEHOLDER 数字
+ * - 已完成节点：SUCCESS 填充 + 白色对勾
+ * - 进行中节点：PRIMARY 填充 + 高对比度数字（pickTextColorForBg 自动选择），外加 PRIMARY 描边光环
+ * - 等待节点：白底 BORDER_BASE 描边 + TEXT_REGULAR 数字
  * 连接线：已完成段 SUCCESS 填充，未完成段 BORDER_BASE。
- * 标签：已完成/进行中 TEXT_MAIN，等待 TEXT_PLACEHOLDER。
+ * 标签：已完成/进行中 TEXT_PRIMARY，等待 TEXT_REGULAR。
  */
-public class AstSteps extends JComponent {
+public class AstSteps extends AstAbstractComponent {
     public enum Direction { HORIZONTAL, VERTICAL }
 
     private final List<String> steps = new ArrayList<String>();
@@ -47,7 +45,6 @@ public class AstSteps extends JComponent {
 
     public AstSteps(List<String> steps) {
         setSteps0(steps);
-        setOpaque(false);
     }
 
     private void setSteps0(List<String> steps) {
@@ -100,8 +97,7 @@ public class AstSteps extends JComponent {
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = createGraphics(g);
         if (direction == Direction.HORIZONTAL) paintHorizontal(g2);
         else paintVertical(g2);
         g2.dispose();
@@ -120,7 +116,7 @@ public class AstSteps extends JComponent {
                 int x1 = cx + NODE_D / 2 + NODE_GAP;
                 int x2 = (i + 1) * (NODE_D + segW) + NODE_D / 2 - NODE_D / 2 - NODE_GAP;
                 boolean done = i < current;
-                g2.setColor(done ? ElementTheme.SUCCESS : ElementTheme.BORDER_BASE);
+                g2.setColor(done ? theme().getSuccess() : theme().getBorderBase());
                 g2.setStroke(new BasicStroke(LINE_W));
                 g2.drawLine(x1, centerY, x2, centerY);
             }
@@ -140,7 +136,7 @@ public class AstSteps extends JComponent {
                 int y1 = cy + NODE_D / 2 + NODE_GAP;
                 int y2 = startY + (i + 1) * (NODE_D + segH) - NODE_D / 2 - NODE_GAP;
                 boolean done = i < current;
-                g2.setColor(done ? ElementTheme.SUCCESS : ElementTheme.BORDER_BASE);
+                g2.setColor(done ? theme().getSuccess() : theme().getBorderBase());
                 g2.setStroke(new BasicStroke(LINE_W));
                 g2.drawLine(cx, y1, cx, y2);
             }
@@ -153,20 +149,21 @@ public class AstSteps extends JComponent {
         boolean active = i == current;
         // 光环（仅进行中）
         if (active) {
-            g2.setColor(new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), 60));
+            Color primary = theme().getPrimary();
+            g2.setColor(new Color(primary.getRed(), primary.getGreen(), primary.getBlue(), 60));
             g2.fill(new Ellipse2D.Float(cx - r - 4, cy - r - 4, NODE_D + 8, NODE_D + 8));
         }
         // 节点圆
         if (done) {
-            g2.setColor(ElementTheme.SUCCESS);
+            g2.setColor(theme().getSuccess());
             g2.fill(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
         } else if (active) {
-            g2.setColor(ElementTheme.PRIMARY);
+            g2.setColor(theme().getPrimary());
             g2.fill(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
         } else {
             g2.setColor(Color.WHITE);
             g2.fill(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
-            g2.setColor(ElementTheme.BORDER_BASE);
+            g2.setColor(theme().getBorderBase());
             g2.setStroke(new BasicStroke(1.5f));
             g2.draw(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
         }
@@ -179,24 +176,35 @@ public class AstSteps extends JComponent {
             int ox = cx - Math.round(s * 0.02f);
             g2.drawLine(ox - 5, cy, ox - 1, cy + 4);
             g2.drawLine(ox - 1, cy + 4, ox + 6, cy - 4);
-        } else {
-            // 等待态节点数字（白底圆内）：用 TEXT_REGULAR 保证对比度（TEXT_PLACEHOLDER 过淡）
-            g2.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, (float) FONT_NODE));
+        } else if (active) {
+            // 进行中节点数字：在主色背景上使用高对比度文字
+            Color numColor = pickTextColorForBg(theme().getPrimary());
+            g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, (float) FONT_NODE));
             FontMetrics fm = g2.getFontMetrics();
             String num = String.valueOf(i + 1);
             int tx = cx - fm.stringWidth(num) / 2;
             int ty = cy - fm.getHeight() / 2 + fm.getAscent();
-            g2.setColor(ElementTheme.TEXT_REGULAR);
-            ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstSteps waiting node");
+            g2.setColor(numColor);
+            assertContrast(numColor, theme().getPrimary(), "AstSteps active node");
+            g2.drawString(num, tx, ty);
+        } else {
+            // 等待态节点数字（白底圆内）：用 TEXT_REGULAR 保证对比度（TEXT_PLACEHOLDER 过淡）
+            g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, (float) FONT_NODE));
+            FontMetrics fm = g2.getFontMetrics();
+            String num = String.valueOf(i + 1);
+            int tx = cx - fm.stringWidth(num) / 2;
+            int ty = cy - fm.getHeight() / 2 + fm.getAscent();
+            g2.setColor(theme().getTextRegular());
+            assertContrast(theme().getTextRegular(), Color.WHITE, "AstSteps waiting node");
             g2.drawString(num, tx, ty);
         }
         // 标签
-        g2.setFont(ElementTheme.FONT.deriveFont(done || active ? Font.BOLD : Font.PLAIN, (float) FONT_LABEL));
+        g2.setFont(theme().getFontBase().deriveFont(done || active ? Font.BOLD : Font.PLAIN, (float) FONT_LABEL));
         FontMetrics fmL = g2.getFontMetrics();
         String label = steps.get(i);
-        Color labelCol = (done || active) ? ElementTheme.TEXT_MAIN : ElementTheme.TEXT_REGULAR;
-        if (done || active) ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstSteps active label");
-        else ElementTheme.assertContrast(ElementTheme.TEXT_REGULAR, Color.WHITE, "AstSteps waiting label");
+        Color labelCol = (done || active) ? theme().getTextPrimary() : theme().getTextRegular();
+        if (done || active) assertContrast(theme().getTextPrimary(), Color.WHITE, "AstSteps active label");
+        else assertContrast(theme().getTextRegular(), Color.WHITE, "AstSteps waiting label");
         g2.setColor(labelCol);
         if (labelCenter) {
             int tw = fmL.stringWidth(label);
@@ -207,7 +215,8 @@ public class AstSteps extends JComponent {
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try { new AstSteps(null); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "null steps"; threw = false;
@@ -230,6 +239,11 @@ public class AstSteps extends JComponent {
         // setSteps resets current if needed
         s.setSteps(Arrays.asList("x", "y"));
         assert s.getCurrent() == 0 : "current reset";
+
+        // 对比度：进行中节点文字 vs 主色背景
+        assertContrast(pickTextColorForBg(theme().getPrimary()), theme().getPrimary(), "Steps active node text on primary");
+        // 对比度：等待节点文字 vs 白色背景
+        assertContrast(theme().getTextRegular(), Color.WHITE, "Steps waiting text on white");
 
         // paint both directions
         final Throwable[] err = {null};
@@ -261,5 +275,7 @@ public class AstSteps extends JComponent {
         try { c.paint(gg); } finally { gg.dispose(); }
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        new AstSteps(java.util.Arrays.asList("a", "b")).selfCheck();
+    }
 }
