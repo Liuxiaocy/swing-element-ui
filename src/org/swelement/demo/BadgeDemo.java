@@ -2,6 +2,7 @@ package org.swelement.demo;
 
 import org.swelement.ui.AstBadge;
 import org.swelement.ui.AstButton;
+import org.swelement.ui.AstIcon;
 import org.swelement.ui.AstInput;
 
 import javax.swing.*;
@@ -85,11 +86,10 @@ public class BadgeDemo {
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     g2.setColor(new Color(0xF56C6C));
                     g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                    g2.setColor(Color.WHITE);
-                    g2.setFont(new Font("Microsoft YaHei", Font.BOLD, 18));
-                    FontMetrics fm = g2.getFontMetrics();
-                    String icon = "🔔";
-                    g2.drawString(icon, (getWidth() - fm.stringWidth(icon)) / 2f, (getHeight() - fm.getHeight()) / 2f + fm.getAscent());
+                    // 白色铃铛图标（AstIcon.Type.BELL 自绘）
+                    int iconSize = 28;
+                    g2.translate((getWidth() - iconSize) / 2, (getHeight() - iconSize) / 2);
+                    AstIcon.paintIcon(g2, AstIcon.Type.BELL, Color.WHITE, iconSize, 0f);
                     g2.dispose();
                 }
             };
