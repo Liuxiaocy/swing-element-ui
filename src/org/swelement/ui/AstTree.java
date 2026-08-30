@@ -1,8 +1,8 @@
 package org.swelement.ui;
 
-import org.swelement.core.Animator;
 import org.swelement.core.Easing;
 import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstInteractiveComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,7 +34,7 @@ import java.util.function.Consumer;
  * - 选中节点用 PRIMARY 背景 + 白字；hover 用 PRIMARY 半透明覆盖。
  * - 折叠/展开带高度过渡动画（每行 alpha + 位移），200ms easeOut。
  */
-public class AstTree extends JComponent {
+public class AstTree extends AstInteractiveComponent {
     // --- Node model ---
     public static final class TreeNode {
         public String label;
@@ -73,34 +73,34 @@ public class AstTree extends JComponent {
     private static final float[] TIER_FONT = {14f, 13f, 12f};
     private int tier = SIZE_DEFAULT;
     private int rowH = 26;
-    private Font nodeFont = ElementTheme.FONT.deriveFont(14f);
+    private Font nodeFont;
     private static final int INDENT = 20;       // 每级缩进
     private static final int EXPANDER_W = 16;    // 展开图标宽度
     private static final int LEFT_PAD = 4;       // 左侧基础内边距
     private static final int MAX_VISIBLE_ROWS_DEFAULT = 12;
 
     private int hoverIndex = -1;
-    private final Animator hoverAnim;
-    private float hoverAlpha;
 
     // 行背景动画：当节点折叠/展开时，对应行的过渡 (高度从 0→1 或 1→0)
     // 实现简化：折叠时立即从扁平列表移除；展开时立即加入。用 alpha 过渡做平滑淡入淡出。
     private final java.util.IdentityHashMap<TreeNode, Float> rowAlpha = new java.util.IdentityHashMap<TreeNode, Float>();
+
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        anim.register("hover", 150, Easing::easeInOut);
+    }
 
     public AstTree(TreeNode root) {
         if (root == null) throw new IllegalArgumentException("root must not be null");
         this.root = root;
         rebuildFlatRows();
         applyTier();
-        // hover animation (shared for whichever row is hovered)
-        hoverAnim = new Animator(150, new Easing() { public float apply(float t) { return Easing.easeInOut(t); }},
-            new Animator.Listener() { public void update(float v) { hoverAlpha = v; repaint(); }});
-        setOpaque(false);
         setFocusable(true);
         addMouseListener(new MouseAdapter() {
             @Override public void mouseExited(MouseEvent e) {
                 hoverIndex = -1;
-                hoverAnim.stop(); hoverAnim.go(hoverAlpha, 0f);
+                anim.go("hover", anim.getProgress("hover"), 0f);
             }
         });
         addMouseMotionListener(new MouseMotionAdapter() {
@@ -108,7 +108,7 @@ public class AstTree extends JComponent {
                 int idx = rowAtPoint(e.getPoint());
                 if (idx != hoverIndex) {
                     hoverIndex = idx;
-                    hoverAnim.stop(); hoverAnim.go(hoverAlpha, idx >= 0 ? 1f : 0f);
+                    anim.go("hover", anim.getProgress("hover"), idx >= 0 ? 1f : 0f);
                 }
             }
         });
@@ -225,52 +225,51 @@ public class AstTree extends JComponent {
 
     private void applyTier() {
         this.rowH = TIER_ROW_H[tier];
-        this.nodeFont = ElementTheme.FONT.deriveFont(TIER_FONT[tier]);
+        this.nodeFont = theme().getFontBase().deriveFont(TIER_FONT[tier]);
     }
 
     @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
     // --- Paint ---
     @Override protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        Graphics2D g2 = createGraphics(g);
         // 背景
         g2.setColor(Color.WHITE);
         g2.fillRect(0, 0, getWidth(), getHeight());
         // 绘制每一可见行
+        float hoverAlpha = anim.getProgress("hover");
         for (int i = 0; i < flatRows.size(); i++) {
             FlatRow row = flatRows.get(i);
             int y = i * rowH + 2;
-            paintRow(g2, row, y, i == hoverIndex);
+            paintRow(g2, row, y, i == hoverIndex, hoverAlpha);
         }
         g2.dispose();
     }
 
-    private void paintRow(Graphics2D g2, FlatRow row, int y, boolean isHovered) {
+    private void paintRow(Graphics2D g2, FlatRow row, int y, boolean isHovered, float hoverAlpha) {
         int w = getWidth();
         int depth = row.depth;
         int expX = LEFT_PAD + depth * INDENT;
         int expW = EXPANDER_W;
         // 背景：selected > hover > 默认
         Color bg = Color.WHITE;
-        Color textColor = ElementTheme.TEXT_MAIN;
+        Color textColor = theme().getTextPrimary();
         if (row.node.isSelected()) {
-            bg = ElementTheme.PRIMARY;
+            bg = theme().getPrimary();
             textColor = Color.WHITE;
             // selected 行跳过对比度断言（遵循 AstCascader/Button 惯例，保证视觉一致）
         } else if (isHovered && hoverAlpha > 0.01f) {
             int a = Math.round(18 * hoverAlpha);
-            bg = new Color(ElementTheme.PRIMARY.getRed(), ElementTheme.PRIMARY.getGreen(), ElementTheme.PRIMARY.getBlue(), a);
-            textColor = ElementTheme.lerp(ElementTheme.TEXT_MAIN, ElementTheme.PRIMARY, hoverAlpha * 0.7f);
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTree hover row");
+            bg = new Color(theme().getPrimary().getRed(), theme().getPrimary().getGreen(), theme().getPrimary().getBlue(), a);
+            textColor = lerp(theme().getTextPrimary(), theme().getPrimary(), hoverAlpha * 0.7f);
+            assertContrast(theme().getTextPrimary(), Color.WHITE, "AstTree hover row");
         } else {
-            ElementTheme.assertContrast(ElementTheme.TEXT_MAIN, Color.WHITE, "AstTree idle row");
+            assertContrast(theme().getTextPrimary(), Color.WHITE, "AstTree idle row");
         }
         g2.setColor(bg);
         g2.fillRect(0, y, w, rowH);
         // 连接线（dashed 竖线）
-        g2.setColor(ElementTheme.BORDER_BASE);
+        g2.setColor(theme().getBorderBase());
         g2.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f, new float[]{2f, 2f}, 0f));
         for (int d = 0; d <= depth; d++) {
             int lx = LEFT_PAD + d * INDENT + EXPANDER_W / 2;
@@ -279,13 +278,12 @@ public class AstTree extends JComponent {
         g2.setStroke(new BasicStroke(1f));
         // 展开图标 ▶/▼
         if (row.node.hasChildren()) {
-            g2.setColor(textColor);
-            g2.setFont(nodeFont.deriveFont(Font.PLAIN));
-            FontMetrics fmE = g2.getFontMetrics();
-            String icon = row.node.isExpanded() ? "▼" : "▶";
-            int ix = expX + (EXPANDER_W - fmE.stringWidth(icon)) / 2;
-            int iy = y + (rowH - fmE.getHeight()) / 2 + fmE.getAscent();
-            g2.drawString(icon, ix, iy);
+            AstIcon caret = row.node.isExpanded()
+                    ? new AstIcon(AstIcon.Type.CARET_DOWN, textColor, EXPANDER_W)
+                    : new AstIcon(AstIcon.Type.CARET_RIGHT, textColor, EXPANDER_W);
+            int ix = expX + (EXPANDER_W - caret.getIconWidth()) / 2;
+            int iy = y + (rowH - caret.getIconHeight()) / 2;
+            caret.paintIcon(this, g2, ix, iy);
         }
         // 标签
         g2.setColor(textColor);
@@ -355,7 +353,8 @@ public class AstTree extends JComponent {
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         // Constructor null guard
         boolean threw = false;
         try { new AstTree(null); } catch (IllegalArgumentException e) { threw = true; }
@@ -521,5 +520,8 @@ public class AstTree extends JComponent {
         System.out.println("AstTree self-check OK");
     }
 
-    public static void main(String[] args) { selfCheck(); }
+    public static void main(String[] args) {
+        TreeNode root = new TreeNode("root");
+        new AstTree(root).selfCheck();
+    }
 }
