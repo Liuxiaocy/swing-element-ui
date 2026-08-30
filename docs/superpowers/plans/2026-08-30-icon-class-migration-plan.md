@@ -324,10 +324,11 @@ import org.swelement.ui.AstIcon;
 
 ```java
 // 原：String[] icons = {"\u2713", "\u2717", "\u2605", "\u2699", "\u21bb", "\u2764"};
-// 改：
+// 改：★ 用 STAR（描边星），❤ 无对应图标，用 STAR_FILLED（实心星，收藏/点赞语义）作最近替代。
+//     实装版与计划原定（STAR_FILLED/DELETE_FILLED）不同，因 DELETE_FILLED 语义属删除，不适合作爱心替代。
 AstIcon.Type[] iconTypes = {
-    AstIcon.Type.CHECK, AstIcon.Type.CLOSE, AstIcon.Type.STAR_FILLED,
-    AstIcon.Type.SETTING, AstIcon.Type.REFRESH, AstIcon.Type.DELETE_FILLED
+    AstIcon.Type.CHECK, AstIcon.Type.CLOSE, AstIcon.Type.STAR,
+    AstIcon.Type.SETTING, AstIcon.Type.REFRESH, AstIcon.Type.STAR_FILLED
 };
 ```
 

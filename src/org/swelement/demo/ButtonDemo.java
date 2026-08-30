@@ -1,6 +1,7 @@
 package org.swelement.demo;
 
 import org.swelement.ui.AstButton;
+import org.swelement.ui.AstIcon;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -42,11 +43,14 @@ public class ButtonDemo {
             // ========== circle 圆形 + 图标 ==========
             JPanel p3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p3.setBorder(new TitledBorder("圆形 Circle（图标按钮）"));
-            String[] icons = {"\u2713", "\u2717", "\u2605", "\u2699", "\u21bb", "\u2764"};
+            AstIcon.Type[] iconTypes = {
+                AstIcon.Type.CHECK, AstIcon.Type.CLOSE, AstIcon.Type.STAR,
+                AstIcon.Type.SETTING, AstIcon.Type.REFRESH, AstIcon.Type.STAR_FILLED
+            };
             int[] ctypes = {AstButton.SUCCESS, AstButton.DANGER, AstButton.WARNING, AstButton.INFO, AstButton.PRIMARY, AstButton.DANGER};
-            for (int i = 0; i < icons.length; i++) {
+            for (int i = 0; i < iconTypes.length; i++) {
                 AstButton b = new AstButton("", ctypes[i], false);
-                b.setIcon(icons[i]);
+                b.setIcon(new AstIcon(iconTypes[i], Color.WHITE, 16));
                 b.setCircle(true);
                 p3.add(b);
             }
@@ -55,9 +59,9 @@ public class ButtonDemo {
             JPanel p4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p4.setBorder(new TitledBorder("图标 Icon（左/右）"));
             AstButton il = new AstButton("图标在左", AstButton.PRIMARY, false);
-            il.setIcon("\u2713");
+            il.setIcon(new AstIcon(AstIcon.Type.CHECK, Color.WHITE, 16));
             AstButton ir = new AstButton("图标在右", AstButton.PRIMARY, false);
-            ir.setIcon("\u2192");
+            ir.setIcon(new AstIcon(AstIcon.Type.ARROW_RIGHT, Color.WHITE, 16));
             ir.setIconPosition(AstButton.ICON_RIGHT);
             p4.add(il); p4.add(ir);
 
@@ -85,12 +89,12 @@ public class ButtonDemo {
             JPanel p6 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
             p6.setBorder(new TitledBorder("文本按钮 Text"));
             AstButton tb1 = new AstButton("文本按钮", AstButton.PRIMARY, false);
-            tb1.setTextButton(true);
+            tb1.setTextStyle(true);
             AstButton tb2 = new AstButton("禁用文本", AstButton.PRIMARY, false);
-            tb2.setTextButton(true);
+            tb2.setTextStyle(true);
             tb2.setEnabled(false);
             AstButton tb3 = new AstButton("圆角文本", AstButton.PRIMARY, false);
-            tb3.setTextButton(true);
+            tb3.setTextStyle(true);
             tb3.setRound(true);
             p6.add(tb1); p6.add(tb2); p6.add(tb3);
 
