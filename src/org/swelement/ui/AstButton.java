@@ -427,7 +427,10 @@ public class AstButton extends AstInteractiveComponent {
     private void paintButtonIcon(Graphics2D g2, Icon ic, Color c, int x, int y) {
         if (ic instanceof AstIcon) {
             AstIcon ai = (AstIcon) ic;
-            AstIcon.paintIcon(g2, ai.getTypeEnum(), c, ai.getSizeValue(), ai.getSpinPhase());
+            Graphics2D tx = (Graphics2D) g2.create();
+            tx.translate(x, y);
+            AstIcon.paintIcon(tx, ai.getTypeEnum(), c, ai.getSizeValue(), ai.getSpinPhase());
+            tx.dispose();
         } else {
             ic.paintIcon(this, g2, x, y);
         }
