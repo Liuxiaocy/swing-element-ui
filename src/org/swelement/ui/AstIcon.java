@@ -1,6 +1,7 @@
 package org.swelement.ui;
 
 import org.swelement.core.ElementTheme;
+import org.swelement.framework.AstDisplayComponent;
 
 import javax.swing.*;
 import java.awt.*;
@@ -28,7 +29,7 @@ import java.awt.geom.*;
  * CIRCLE_INFO, QUESTION, LOADING, CARET_UP/DOWN/LEFT/RIGHT, DELETE_FILLED。
  * stroke 线宽随 size 缩放，端点圆角；LOADING 可配合 spin 相位旋转。
  */
-public class AstIcon extends JComponent {
+public class AstIcon extends AstDisplayComponent implements Icon {
     // --- Icon type enum (新增 API；序号即旧 int 常量值) ---
     public enum Type {
         CHECK, CLOSE, ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT,
@@ -90,7 +91,6 @@ public class AstIcon extends JComponent {
         this.type = type;
         this.color = color;
         this.size = size;
-        setOpaque(false);
     }
 
     private static Type typeOf(int t) {
@@ -160,6 +160,10 @@ public class AstIcon extends JComponent {
         return spinTimer != null && spinTimer.isRunning();
     }
 
+    public float getSpinPhase() {
+        return spinPhase;
+    }
+
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(size, size);
@@ -168,6 +172,24 @@ public class AstIcon extends JComponent {
     @Override
     public Dimension getMinimumSize() {
         return getPreferredSize();
+    }
+
+    @Override
+    public int getIconWidth() {
+        return size;
+    }
+
+    @Override
+    public int getIconHeight() {
+        return size;
+    }
+
+    @Override
+    public void paintIcon(Component c, Graphics g, int x, int y) {
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.translate(x, y);
+        AstIcon.paintIcon(g2, type, color, size, spinPhase);
+        g2.dispose();
     }
 
     @Override
@@ -902,7 +924,8 @@ public class AstIcon extends JComponent {
     }
 
     // --- Self-check ---
-    static void selfCheck() {
+    @Override
+    protected void selfCheck() {
         boolean threw = false;
         try {
             new AstIcon(-1);
@@ -1033,10 +1056,24 @@ public class AstIcon extends JComponent {
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
+
+        // Icon 接口验证
+        AstIcon iface = new AstIcon(Type.CHECK, ElementTheme.PRIMARY, 24);
+        assert iface instanceof Icon : "AstIcon must implement javax.swing.Icon";
+        assert iface.getIconWidth() == 24 : "icon width 24, got " + iface.getIconWidth();
+        assert iface.getIconHeight() == 24 : "icon height 24, got " + iface.getIconHeight();
+        java.awt.image.BufferedImage iimg = new java.awt.image.BufferedImage(24, 24, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D ig = iimg.createGraphics();
+        try {
+            iface.paintIcon(null, ig, 0, 0);
+        } finally {
+            ig.dispose();
+        }
+
         System.out.println("AstIcon self-check OK (" + TYPES.length + " icons)");
     }
 
     public static void main(String[] args) {
-        selfCheck();
+        new AstIcon(CHECK).selfCheck();
     }
 }
