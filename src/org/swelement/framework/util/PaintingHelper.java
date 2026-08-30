@@ -2,7 +2,9 @@ package org.swelement.framework.util;
 
 import java.awt.*;
 import java.awt.geom.*;
+import java.awt.image.BufferedImage;
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 
 /**
  * 静态绘制工具类，提供圆角矩形、圆形、文字、发光效果、颜色调整、图标等常用绘制方法。
@@ -220,16 +222,37 @@ public final class PaintingHelper {
     // ==================== 图标 ====================
 
     /**
-     * 绘制一个 Icon（原生 ImageIcon / 任意 javax.swing.Icon / AstIcon）。
+     * 绘制一个 Icon。
+     * <p>
+     * 注意：PaintingHelper 为静态工具类、无组件上下文，因此调用 {@code paintIcon} 时
+     * 传入的组件参数为 null。该约定适用于不依赖组件属性（如 getComponentOrientation、
+     * isEnabled、getForeground）的图标实现，例如本框架的 AstIcon 与原生 ImageIcon。
      *
      * @param g2    Graphics2D 对象
-     * @param icon  图标对象
+     * @param icon  图标对象，为 null 时静默返回
      * @param x     图标左上角 x 坐标
      * @param y     图标左上角 y 坐标
      */
     public static void drawIcon(Graphics2D g2, Icon icon, int x, int y) {
         if (icon == null) return;
         icon.paintIcon(null, g2, x, y);
+    }
+
+    /**
+     * 创建一张内存中的简单位图，供自检验证 drawIcon 渲染（避免依赖外部图片资源）。
+     *
+     * @return 一张 24x24 的位图 Image
+     */
+    private static java.awt.Image createInMemoryImage() {
+        BufferedImage img = new BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = img.createGraphics();
+        try {
+            g2.setColor(Color.BLUE);
+            g2.fillRect(0, 0, 24, 24);
+        } finally {
+            g2.dispose();
+        }
+        return img;
     }
 
     // ==================== 自检 ====================
@@ -342,7 +365,25 @@ public final class PaintingHelper {
         // 验证 size <= 0 或 alpha <= 0 时不执行（通过编译保证方法存在）
 
         // === drawIcon 基本验证 ===
-        // 通过编译保证方法存在，运行时需要 Graphics2D
+        // 运行时栅格验证：用 JDK 原生 ImageIcon 在 BufferedImage 上绘制，断言不抛异常且存在非零像素。
+        // 注意：PaintingHelper 位于 framework 层，不能依赖 ui 层的 AstIcon，故此处使用原生 ImageIcon。
+        BufferedImage iconFrame = new BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D iconG = iconFrame.createGraphics();
+        try {
+            ImageIcon imgIcon = new ImageIcon(createInMemoryImage());
+            drawIcon(iconG, imgIcon, 0, 0);
+            // null 防御：drawIcon(g2, null, x, y) 应静默返回，不抛异常
+            drawIcon(iconG, null, 0, 0);
+        } finally {
+            iconG.dispose();
+        }
+        int nonTransparent = 0;
+        for (int py = 0; py < iconFrame.getHeight(); py++) {
+            for (int px = 0; px < iconFrame.getWidth(); px++) {
+                if ((iconFrame.getRGB(px, py) >>> 24) != 0) nonTransparent++;
+            }
+        }
+        assert nonTransparent > 0 : "drawIcon should render non-transparent pixels";
 
         System.out.println("PaintingHelper self-check OK");
     }
