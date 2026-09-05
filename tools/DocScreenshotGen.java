@@ -114,6 +114,20 @@ public class DocScreenshotGen {
         renderPanel("alert-closable.png",
                 new AstAlert(AstAlert.SUCCESS, "成功提示", "这是一段描述信息", true));
 
+        // AstEmpty
+        renderPanel("empty-default.png", new AstEmpty("暂无数据"));
+        AstEmpty eIcon = new AstEmpty("没有找到相关内容"); eIcon.setIconType(AstIcon.SEARCH); eIcon.setIconSize(72);
+        renderPanel("empty-icon.png", eIcon);
+        AstEmpty eAct = new AstEmpty("网络异常，加载失败"); eAct.setIconType(AstIcon.WARNING);
+        eAct.setAction(new AstButton("重试", AstButton.PRIMARY, false));
+        renderPanel("empty-action.png", eAct);
+
+        // AstNotification
+        renderPanel("notification-default.png",
+                AstNotification.preview(AstNotification.NotificationType.SUCCESS, "成功", "数据已保存"));
+        renderPanel("notification-position.png",
+                AstNotification.preview(AstNotification.NotificationType.WARNING, "警告", "表单存在未填写项"));
+
         System.out.println("DocScreenshotGen OK");
     }
 

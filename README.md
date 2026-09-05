@@ -26,6 +26,8 @@ java -cp out org.swelement.demo.TagDemo
 java -cp out org.swelement.demo.ProgressDemo
 java -cp out org.swelement.demo.BadgeDemo
 java -cp out org.swelement.demo.AlertDemo
+java -cp out org.swelement.demo.AstEmptyDemo
+java -cp out org.swelement.demo.AstNotificationDemo
 java -cp out org.swelement.demo.AstAvatarDemo
 java -cp out org.swelement.demo.AstCardDemo
 java -cp out org.swelement.demo.AstContainerDemo

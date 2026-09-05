@@ -166,6 +166,14 @@ echo --- AstDrawer self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstDrawer
 if %ERRORLEVEL% NEQ 0 ( echo AstDrawer self-check FAILED & exit /b 1 )
 
+echo --- AstEmpty self-check ---
+"%JRUN%" -ea -cp out org.swelement.ui.AstEmpty
+if %ERRORLEVEL% NEQ 0 ( echo AstEmpty self-check FAILED & exit /b 1 )
+
+echo --- AstNotification self-check ---
+"%JRUN%" -ea -cp out org.swelement.ui.AstNotification
+if %ERRORLEVEL% NEQ 0 ( echo AstNotification self-check FAILED & exit /b 1 )
+
 echo --- AstTimePicker self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstTimePicker
 if %ERRORLEVEL% NEQ 0 ( echo AstTimePicker self-check FAILED & exit /b 1 )
@@ -189,6 +197,14 @@ if %ERRORLEVEL% NEQ 0 ( echo AstCarousel self-check FAILED & exit /b 1 )
 echo --- AstIconDemo self-check ---
 "%JRUN%" -ea -cp out org.swelement.demo.AstIconDemo --selfcheck
 if %ERRORLEVEL% NEQ 0 ( echo AstIconDemo self-check FAILED & exit /b 1 )
+
+echo --- AstEmptyDemo self-check ---
+"%JRUN%" -ea -cp out org.swelement.demo.AstEmptyDemo --selfcheck
+if %ERRORLEVEL% NEQ 0 ( echo AstEmptyDemo self-check FAILED & exit /b 1 )
+
+echo --- AstNotificationDemo self-check ---
+"%JRUN%" -ea -cp out org.swelement.demo.AstNotificationDemo --selfcheck
+if %ERRORLEVEL% NEQ 0 ( echo AstNotificationDemo self-check FAILED & exit /b 1 )
 
 echo --- AstBadge self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstBadge
