@@ -9,12 +9,16 @@
 - 编译必须**全量** `src/org/swelement/{core,ui,demo}`（组件间有跨包依赖，单文件编不过）。
 - 跑 `javac` / `java` 需要 Bash 工具的 `dangerouslyDisableSandbox`。
 - `cmd.exe` 无法从 PowerShell 调用 → build.bat 的验证要在 bash 里逐条执行。
+- `pom.xml`（P0-4 新增）：`org.swelement:swing-element-ui`，Maven 构建。
+  **源码根是 `src/`，不是标准 `src/main/java`** → pom 里显式写了
+  `<sourceDirectory>src</sourceDirectory>`，别按 Maven 默认布局去挪目录。
+  **本机没有 Maven**（`mvn` 不存在），改 pom 后只能做 XML/字段脚本校验，无法真跑 `mvn package`。
 
 ## 代码风格与架构
 
 - 组件命名两套：`Element*` / `Button` 等老组件，与 `Ast*` 新组件（Ast = 对齐 Element Plus 的自绘实现）。
 - 每个组件自带 `selfCheck()` + `main()` 跑断言；`build.bat` 逐个 `java -ea -cp out <类>` 串联，
-  目前共 36 项（34 组件 + `AstIconDemo --selfcheck` + `AstTableDemo --selfcheck`）。新增功能必须同步加自检。
+  目前共 47 项（含 `AnimatedPopup`、各 Demo 的 `--selfcheck`）。新增功能必须同步加自检。
 - 主题色 / 动效统一走 `org.swelement.core`（`ElementTheme`、`Animator`、`Easing`）。
 - 对比度要求 WCAG 2.1 AA，用 `ElementTheme.assertContrast` 断言。
   **例外惯例**：Element 标准的「白字彩底」实心态（AstTag 实心、AstBadge 5 色 type）沿用官方配色，
@@ -26,6 +30,15 @@
   放在 BoxLayout 里时由 **maximumSize** 决定宽度，长文案必须同步放宽 maximum，否则被夹紧截断。
 - Java 8 语法限制：非 static 内部类不能声明 `static` 方法；`BiFunction` 要 3 个类型参数
   （只用一个入参时用 `Function`）。
+- **不要画焦点环**（用户 2026-09-05 明确决策，视觉优先）。键盘焦点**只保留可达性**：
+  `setFocusable(true)` + Space/Enter 键绑定 + 浮层 Esc 关闭归还焦点 + `assertKeyboardAccessible`
+  断言。**不做任何视觉焦点提示**。
+  背景：曾实现贴合组件外框的 2px 主色描边焦点环，在 Calendar / Carousel / Tree / Menu /
+  TimePicker 等**大面积组件**上等于给整个面板描一圈边，严重破坏显示（`AstButton` 那处当时就被
+  注释掉了，已是预警但没推广到全库）。已全量移除：`paintFocusRing` / `focusRingRect` /
+  `isFocusVisible` 及 `focusVisible` / `pendingMouseFocus` 字段均从 `AstInteractiveComponent` 删除。
+  但**FOCUS 动画与 `focusProgress()` 必须保留**（`FrameworkDemo` 在用）。
+  将来若要焦点可见性，用不侵占布局的轻量提示（如输入框聚焦时边框变色），**不要**外描边。
 
 ## 表格（AstTable / AstTableColumn / AstTableModel）
 
@@ -51,8 +64,12 @@
 2. **从 build.bat 提取自检清单要连参数一起提**：`AstIconDemo` / `AstTableDemo` 需要 `--selfcheck`，
    不带参数会启动 GUI 主程序导致超时误判为 FAIL。用
    `grep -o '\-cp out .*' build.bat | sed 's|^-cp out ||'` 取完整命令行。
+   但该 grep 会**顺带抓到编译 DocSnippetCheck 的那行 javac**（`-d out tools\DocSnippetCheck.java`），
+   首 token 是 `-d` 而不是类名 → 会被误判成 1 个 FAIL。跳过首字符为 `-`、或含 `-d out` 的行即可。
 - 全量编译慢时可单文件增量编译：`javac -encoding UTF-8 -cp out -d out src/.../X.java`
   （`out` 里已有其余 class，编得飞快，适合反向验证来回改）。
+- **删除 `out/production/swing-element-ui/`**（Maven 历史产物）。残留后 javap/运行时偶尔会加载
+  旧版本 class，stack trace 行号对不上源码、行为不一致。`out/` 顶层是增量编译用的 classpath。
 
 ## Git 工作流
 

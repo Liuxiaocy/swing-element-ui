@@ -12,7 +12,7 @@
 - 已接入 `build.bat`（2 项组件自检 + 2 项 demo --selfcheck）与 `run-checks.bat`（2 项组件自检，总数 51→53 组件、文档 52→54）；README Demo 列表已登记。
 
 ## 阶段 2 — 选择器类增强
-- [ ] P2.1 `AstInput`：① 输入建议（激活即列 / 输入后匹配，基于 `AnimatedPopup`）② 最大长度限制 + 尾部字数统计 ③ 复合型（前缀/后缀元素：标签或按钮）
+- [x] P2.1 `AstInput`：① 输入建议（激活即列 / 输入后匹配，基于 `AnimatedPopup`）② 最大长度限制 + 尾部字数统计 ③ 复合型（前缀/后缀元素：标签或按钮）；`selfCheck`（过滤/选择/弹层显示+点击/最大长度截断/删除不被拦截/前后缀布局）；`docs/components/input.md` 已更新覆盖新 API。
 - [ ] P2.2 `AstSelect`：基础多选用 `AstTag` 展示已选项
 - [ ] P2.3 `AstTimePicker`：固定时间范围（选开始时间后，结束时间备选项按范围禁用/置灰）
 - [ ] P2.4 `AstDatePicker`：日期范围选择（起止两个面板/联动高亮）
