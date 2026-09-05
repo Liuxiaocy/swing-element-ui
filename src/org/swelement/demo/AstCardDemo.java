@@ -226,7 +226,7 @@ public class AstCardDemo {
             line.setOpaque(false);
             line.add(new JLabel(it), BorderLayout.CENTER);
             org.swelement.ui.AstIcon dot = new org.swelement.ui.AstIcon(org.swelement.ui.AstIcon.Type.STAR_FILLED,
-                org.swelement.core.ElementTheme.WARNING, 14);
+                org.swelement.core.ElementTheme.warning(), 14);
             line.add(dot, BorderLayout.EAST);
             line.setBorder(new EmptyBorder(6, 2, 6, 2));
             listBody.add(line);

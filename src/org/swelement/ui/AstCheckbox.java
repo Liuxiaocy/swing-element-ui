@@ -91,6 +91,7 @@ public class AstCheckbox extends AstInteractiveComponent {
         assert !c.isSelected() : "setSelected false";
         assertContrast(theme().getTextRegular(), theme().getFillBlank(), "checkbox text on fill");
         assertContrast(Color.WHITE, theme().getPrimary(), "checkbox check on fill (graphic)", 2.5f);
+        assertKeyboardAccessible(this, "AstCheckbox");
         System.out.println("AstCheckbox self-check OK");
     }
 

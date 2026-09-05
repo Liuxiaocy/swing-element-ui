@@ -48,6 +48,13 @@ public class AstSlider extends AstInteractiveComponent {
         repaint();
     }
 
+    /**
+     * 滑块不是切换型控件：selected 状态对滑块无意义。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
+
     public void addChangeListener(ChangeListener l) { listenerList.add(ChangeListener.class, l); }
     public void removeChangeListener(ChangeListener l) { listenerList.remove(ChangeListener.class, l); }
 
@@ -152,6 +159,7 @@ public class AstSlider extends AstInteractiveComponent {
         // 9. 渲染 + 主题色验证（图形元素，非文字，不需要 4.5:1 对比度）
         assert theme().getPrimary() != null : "primary color not null";
 
+        assertKeyboardAccessible(this, "AstSlider");
         System.out.println("AstSlider self-check OK");
     }
 

@@ -118,6 +118,7 @@ public class AstRadio extends AstInteractiveComponent {
         assert !r.isSelected() : "setSelected false";
         // 对比度：文字 vs 背景（填充色）
         assertContrast(theme().getTextRegular(), theme().getFillBlank(), "radio text on fill");
+        assertKeyboardAccessible(this, "AstRadio");
         System.out.println("AstRadio self-check OK");
     }
 

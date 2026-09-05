@@ -67,13 +67,13 @@ public class AstFormDemo {
         submit.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if (form.validateForm()) {
-                    echo.setForeground(ElementTheme.SUCCESS);
+                    echo.setForeground(ElementTheme.success());
                     echo.setText("校验通过！用户名=" + username.getFormValue()
                             + " 角色=" + role.getFormValue()
                             + " 生日=" + birthday.getFormValue()
                             + " 数量=" + quantity.getFormValue());
                 } else {
-                    echo.setForeground(ElementTheme.DANGER);
+                    echo.setForeground(ElementTheme.danger());
                     echo.setText("校验未通过：" + form.getErrors().size() + " 个字段有误。");
                 }
             }

@@ -58,6 +58,13 @@ public class AstCloseButton extends AstInteractiveComponent {
         if (r != null) addActionListener(e -> r.run());
     }
 
+    /**
+     * 关闭按钮不是切换型控件：selected 状态无意义。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
+
     /** × 符号默认颜色。 */
     public void setColor(Color c) { this.color = c; repaint(); }
 
@@ -225,6 +232,7 @@ public class AstCloseButton extends AstInteractiveComponent {
         stretch.paint(sg);
         sg.dispose();
 
+        assertKeyboardAccessible(this, "AstCloseButton");
         System.out.println("AstCloseButton self-check OK");
     }
 

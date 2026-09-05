@@ -89,7 +89,7 @@ public class AstPopupDemo {
         JPanel col3 = titled("右侧方向下拉 (Action Echo 右面板)");
         final JTextArea echoArea = new JTextArea("点击菜单项后，这里记录动作日志\n");
         echoArea.setFont(new Font("Microsoft YaHei", Font.PLAIN, 12)); echoArea.setEditable(false);
-        echoArea.setForeground(ElementTheme.TEXT_REGULAR);
+        echoArea.setForeground(ElementTheme.textRegular());
         echoArea.setOpaque(false);
         JScrollPane ep = new JScrollPane(echoArea); ep.setBorder(null);
         AstDropdown.Item[] rightItems = new AstDropdown.Item[]{
@@ -142,7 +142,7 @@ public class AstPopupDemo {
         openEmpty.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
             JPanel body = new JPanel(new BorderLayout());
             JLabel center = new JLabel("（自定义占位区：可嵌入任意内容）", JLabel.CENTER);
-            center.setForeground(ElementTheme.TEXT_PLACEHOLDER);
+            center.setForeground(ElementTheme.textPlaceholder());
             body.add(center, BorderLayout.CENTER);
             AstDialog.show(owner, "空对话框标题", body, new AstDialog.ResultCallback() {
                 public void onResult(int resultCode) {
@@ -158,36 +158,36 @@ public class AstPopupDemo {
         alertsRow.setBorder(new EmptyBorder(8, 8, 8, 8));
         alertsRow.add(new JButtonMaker() {
             @Override public String label() { return "信息 INFO"; }
-            @Override public Color bg() { return ElementTheme.PRIMARY; }
+            @Override public Color bg() { return ElementTheme.primary(); }
             @Override public void onClick() { AstMessageBox.alert(owner, AstMessageBox.MessageBoxType.INFO, "这是一条信息提示。"); }
         }.make());
         alertsRow.add(new JButtonMaker() {
             @Override public String label() { return "成功 SUCCESS"; }
-            @Override public Color bg() { return ElementTheme.SUCCESS; }
+            @Override public Color bg() { return ElementTheme.success(); }
             @Override public void onClick() { AstMessageBox.alert(owner, AstMessageBox.MessageBoxType.SUCCESS, "操作成功！你的订单已提交。"); }
         }.make());
         alertsRow.add(new JButtonMaker() {
             @Override public String label() { return "警告 WARNING"; }
-            @Override public Color bg() { return ElementTheme.WARNING; }
+            @Override public Color bg() { return ElementTheme.warning(); }
             @Override public void onClick() { AstMessageBox.alert(owner, AstMessageBox.MessageBoxType.WARNING, "磁盘空间已使用 85%。请及时清理。"); }
         }.make());
         alertsRow.add(new JButtonMaker() {
             @Override public String label() { return "错误 ERROR"; }
-            @Override public Color bg() { return ElementTheme.DANGER; }
+            @Override public Color bg() { return ElementTheme.danger(); }
             @Override public void onClick() { AstMessageBox.alert(owner, AstMessageBox.MessageBoxType.ERROR, "连接数据库失败：超时。检查网络或重试。"); }
         }.make());
         alertsRow.add(new JButtonMaker() {
             @Override public String label() { return "提问 QUESTION"; }
-            @Override public Color bg() { return ElementTheme.PRIMARY; }
+            @Override public Color bg() { return ElementTheme.primary(); }
             @Override public void onClick() { AstMessageBox.alert(owner, AstMessageBox.MessageBoxType.QUESTION, "确定帮助？"); }
         }.make());
         s4.add(alertsRow, BorderLayout.NORTH);
         JPanel confirmRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 16));
         confirmRow.setBorder(new EmptyBorder(4, 8, 12, 8));
         final JLabel confirmLabel = new JLabel("等待操作", JLabel.LEFT);
-        confirmLabel.setFont(confirmLabel.getFont().deriveFont(12f)); confirmLabel.setForeground(ElementTheme.TEXT_REGULAR);
-        JButton confirmBtn = new JButton("Confirm — 确认删除？（QUESTION）"); confirmBtn.setForeground(Color.WHITE); confirmBtn.setBackground(ElementTheme.PRIMARY);
-        JButton confirmType = new JButton("Confirm — 是否启用？（WARNING）"); confirmType.setForeground(Color.WHITE); confirmType.setBackground(ElementTheme.WARNING);
+        confirmLabel.setFont(confirmLabel.getFont().deriveFont(12f)); confirmLabel.setForeground(ElementTheme.textRegular());
+        JButton confirmBtn = new JButton("Confirm — 确认删除？（QUESTION）"); confirmBtn.setForeground(Color.WHITE); confirmBtn.setBackground(ElementTheme.primary());
+        JButton confirmType = new JButton("Confirm — 是否启用？（WARNING）"); confirmType.setForeground(Color.WHITE); confirmType.setBackground(ElementTheme.warning());
         confirmBtn.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
             AstMessageBox.confirm(owner, "您真的要删除选中的 3 条记录吗？此操作不可撤销。", new AstMessageBox.ConfirmCallback() {
                 public void onConfirm() { confirmLabel.setText("✅ 确认：3 条记录已删除"); echo("MessageBox Confirm → 用户确认删除"); }
@@ -223,10 +223,10 @@ public class AstPopupDemo {
             }
         }};
         Object[][] toastBtns = new Object[][]{
-            {"INFO 信息", "INFO", ElementTheme.PRIMARY},
-            {"SUCCESS 成功", "SUCCESS", ElementTheme.SUCCESS},
-            {"WARNING 警告", "WARN", ElementTheme.WARNING},
-            {"ERROR 错误", "ERROR", ElementTheme.DANGER},
+            {"INFO 信息", "INFO", ElementTheme.primary()},
+            {"SUCCESS 成功", "SUCCESS", ElementTheme.success()},
+            {"WARNING 警告", "WARN", ElementTheme.warning()},
+            {"ERROR 错误", "ERROR", ElementTheme.danger()},
             {"⏱ 快闪 0.5s", "500", new Color(0x909399)},
             {"⏳ 长时 6s", "6000", new Color(0x606266)},
             {"🧩 一次 3 条堆叠", "BATCH", new Color(0x1F2D3D)},
@@ -253,7 +253,7 @@ public class AstPopupDemo {
         // Left: AstCard "上传作业" with progress body wrapped in WRAP loader
         AstCard taskCard = new AstCard("上传作业");
         final AstProgress progress = new AstProgress(0);
-        JLabel taskLabel = new JLabel("当前：未开始", JLabel.LEFT); taskLabel.setForeground(ElementTheme.TEXT_REGULAR);
+        JLabel taskLabel = new JLabel("当前：未开始", JLabel.LEFT); taskLabel.setForeground(ElementTheme.textRegular());
         JPanel body = new JPanel(); body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.add(taskLabel); body.add(Box.createVerticalStrut(10)); body.add(progress);
         taskCard.setContent(body);
@@ -333,7 +333,7 @@ public class AstPopupDemo {
             b.addActionListener(new ActionListener() { public void actionPerformed(ActionEvent e) {
                 JPanel body = new JPanel(new BorderLayout()); body.setBorder(new EmptyBorder(16, 16, 16, 16));
                 JLabel msg = new JLabel("<html><b>抽屉内容</b><br>这是抽屉内部组件，首次打开即应正确渲染。<br>方向：" + d[0] + "</html>");
-                msg.setForeground(ElementTheme.TEXT_REGULAR);
+                msg.setForeground(ElementTheme.textRegular());
                 body.add(msg, BorderLayout.CENTER);
                 AstDrawer.show(drawerOwner, AstDrawer.Direction.valueOf((String) d[1]), "抽屉标题 " + d[0], body);
             }});
@@ -356,7 +356,7 @@ public class AstPopupDemo {
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setBorder(new TitledBorder("日志输出（所有动作最终都在下面打印一行）"));
         echo = new JLabel("（等待操作…）", JLabel.LEFT);
-        echo.setForeground(ElementTheme.TEXT_REGULAR); echo.setFont(echo.getFont().deriveFont(12f));
+        echo.setForeground(ElementTheme.textRegular()); echo.setFont(echo.getFont().deriveFont(12f));
         bottom.add(echo, BorderLayout.CENTER);
         root.add(bottom);
 

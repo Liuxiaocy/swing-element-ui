@@ -8,6 +8,10 @@ import java.awt.ItemSelectable;
 import java.awt.event.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.EventListenerList;
 
@@ -30,6 +34,9 @@ import javax.swing.event.EventListenerList;
 public abstract class AstInteractiveComponent extends AstAbstractComponent
         implements ItemSelectable {
 
+    /** 键盘触发"激活"动作的标准 ActionMap 键 */
+    public static final String ACTION_ACTIVATE = "swelement.activate";
+
     /** 是否处于悬停状态 */
     private boolean hovering = false;
     /** 是否处于按下状态 */
@@ -44,7 +51,7 @@ public abstract class AstInteractiveComponent extends AstAbstractComponent
     private final EventListenerList itemListenerList = new EventListenerList();
 
     /**
-     * 初始化交互组件：注册三个标准动画、安装事件监听、设置手型光标。
+     * 初始化交互组件：注册标准动画、安装事件监听、启用键盘可达性、设置手型光标。
      */
     @Override
     protected void initComponent() {
@@ -56,7 +63,72 @@ public abstract class AstInteractiveComponent extends AstAbstractComponent
         anim.register(AnimationManager.SELECTED, 200, Easing::easeInOut);
         // 安装事件监听
         installInteractionListeners();
+        // 键盘可达性：企业应用硬需求，所有交互组件默认可聚焦且可用键盘激活
+        installKeyboardSupport();
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
+    // ==================== 键盘可达性 ====================
+
+    /**
+     * 安装键盘支持。
+     * <p>
+     * 启用焦点并将 Space / Enter 绑定到激活动作，使每个交互组件都能纯键盘操作。
+     * 子类若需方向键导航，应重写 {@link #installArrowKeyBindings(InputMap)}。
+     */
+    private void installKeyboardSupport() {
+        setFocusable(true);
+        InputMap im = getInputMap(WHEN_FOCUSED);
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), ACTION_ACTIVATE);
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), ACTION_ACTIVATE);
+        ActionMap am = getActionMap();
+        am.put(ACTION_ACTIVATE, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                doClick();
+            }
+        });
+        installArrowKeyBindings(im);
+    }
+
+    /**
+     * 方向键绑定钩子，子类可重写以补充自身导航键。
+     * <p>
+     * 默认不绑定任何方向键。Slider、Tabs、Menu、Table 等组件应重写此方法。
+     *
+     * @param im 组件的 WHEN_FOCUSED InputMap
+     */
+    protected void installArrowKeyBindings(InputMap im) { }
+
+    /**
+     * 以编程方式触发一次点击，等价于用户按下并释放该组件。
+     * <p>
+     * 键盘激活（Space / Enter）与自动化测试均可调用此方法。
+     * 组件禁用时为空操作。
+     */
+    public void doClick() {
+        if (!isEnabled()) return;
+        // 短暂的按下视觉反馈
+        pressing = true;
+        anim.start(AnimationManager.ACTIVE);
+        onActiveChanged(true);
+        performAction();
+        pressing = false;
+        anim.stop(AnimationManager.ACTIVE);
+        onActiveChanged(false);
+        repaint();
+    }
+
+    /**
+     * 执行一次动作：切换模式下翻转选中状态，并触发动作钩子。
+     * <p>
+     * 鼠标释放与键盘激活共用此路径，保证两种输入方式行为一致。
+     */
+    private void performAction() {
+        if (isToggleMode()) {
+            setSelected(!selected);
+        }
+        onActionPerformed();
     }
 
     /**
@@ -108,10 +180,7 @@ public abstract class AstInteractiveComponent extends AstAbstractComponent
                 // sticky 行为：只要 pressStarted 为 true，释放时切换选中状态（仅切换模式下）
                 if (pressStarted) {
                     pressStarted = false;
-                    if (isToggleMode()) {
-                        setSelected(!selected);
-                    }
-                    onActionPerformed();
+                    performAction();
                 }
             }
         });
@@ -348,4 +417,63 @@ public abstract class AstInteractiveComponent extends AstAbstractComponent
         }
     }
 
+    // ==================== 键盘可达性自检 ====================
+
+    /**
+     * 键盘可达性断言（结构 + 行为）。
+     * <p>
+     * 每个交互组件的 selfCheck() 都应调用此方法，<b>传入被测组件实例本身</b>（不要传 selfCheck
+     * 的宿主实例，因为基类方法以 selfCheck 调用者为 this，会做错对象上的 doClick）。
+     * <p>
+     * 除校验可聚焦与键绑定外，对切换模式组件还会真实调用 {@link #doClick()} 验证动作路径
+     * 被触发，避免断言停留在"字段存在"层面而实际功能失效。
+     *
+     * @param target 被测组件实例（一般为 selfCheck 内的测试变量）
+     * @param where  组件名，用于断言失败信息定位
+     */
+    protected void assertKeyboardAccessible(AstInteractiveComponent target, String where) {
+        assert target.isFocusable() : "[KEYBOARD FAIL " + where + "] 交互组件必须可聚焦";
+        InputMap im = target.getInputMap(WHEN_FOCUSED);
+        assert im != null : "[KEYBOARD FAIL " + where + "] 缺少 WHEN_FOCUSED InputMap";
+        assert im.get(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0)) != null
+                : "[KEYBOARD FAIL " + where + "] 未绑定 Space 激活";
+        assert im.get(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)) != null
+                : "[KEYBOARD FAIL " + where + "] 未绑定 Enter 激活";
+        assert target.getActionMap().get(ACTION_ACTIVATE) != null
+                : "[KEYBOARD FAIL " + where + "] 缺少激活动作";
+
+        // 行为级断言：切换模式组件必须能通过键盘真正改变状态
+        if (target.isToggleMode()) {
+            boolean before = target.isSelected();
+            target.doClick();
+            assert target.isSelected() != before
+                    : "[KEYBOARD FAIL " + where + "] doClick() 未切换选中状态，键盘激活未走真实动作路径";
+            target.doClick();
+            assert target.isSelected() == before
+                    : "[KEYBOARD FAIL " + where + "] 二次 doClick() 未复位选中状态";
+        }
+    }
+
+    /**
+     * 断言 doClick() 能触发目标组件的动作钩子。
+     * <p>
+     * 非切换模式组件（如 Button）用此方法：传入目标组件与计数器，
+     * doClick() 后计数器应当递增。
+     *
+     * @param target     被测组件实例
+     * @param where      组件名
+     * @param actionFire 由目标组件动作钩子递增的计数器
+     */
+    protected void assertDoClickFiresAction(AstInteractiveComponent target, String where, int[] actionFire) {
+        assert target.isFocusable() : "[KEYBOARD FAIL " + where + "] 交互组件必须可聚焦";
+        InputMap im = target.getInputMap(WHEN_FOCUSED);
+        assert im != null
+                && im.get(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0)) != null
+                && im.get(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)) != null
+                : "[KEYBOARD FAIL " + where + "] 缺少 Space/Enter 激活绑定";
+        int before = actionFire[0];
+        target.doClick();
+        assert actionFire[0] > before
+                : "[KEYBOARD FAIL " + where + "] doClick() 未触发动作钩子，键盘激活无效";
+    }
 }

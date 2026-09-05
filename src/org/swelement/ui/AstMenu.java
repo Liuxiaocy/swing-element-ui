@@ -203,6 +203,13 @@ public class AstMenu extends AstInteractiveComponent {
         g2.dispose();
     }
 
+    /**
+     * 菜单不是切换型控件：selected 状态对菜单无意义。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
+
     @Override
     protected void selfCheck() {
         // 1. 基础构造
@@ -239,6 +246,7 @@ public class AstMenu extends AstInteractiveComponent {
         // 7. 对比度断言
         assertContrast(new Color(0x303133), Color.WHITE, "AstMenu text on white");
 
+        assertKeyboardAccessible(this, "AstMenu");
         System.out.println("AstMenu self-check OK");
     }
 

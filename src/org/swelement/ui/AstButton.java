@@ -47,7 +47,7 @@ public class AstButton extends AstInteractiveComponent {
         this.text = text;
         this.type = type;
         this.plain = plain;
-        setFocusable(true);
+        // 焦点由基类 AstInteractiveComponent.installKeyboardSupport() 统一设置
     }
 
     // ==================== 初始化 ====================
@@ -545,6 +545,15 @@ public class AstButton extends AstInteractiveComponent {
         });
         ab.onActionPerformed();
         assert fired[0] : "ActionListener should fire onActionPerformed";
+
+        // 键盘可达性：Space/Enter 必须真正触发 ActionListener（行为级断言，
+        // 只检查键绑定是否存在属于空转，必须验证动作路径被真实执行）
+        final int[] kbFired = {0};
+        AstButton kbBtn = new AstButton("键盘");
+        kbBtn.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) { kbFired[0]++; }
+        });
+        assertDoClickFiresAction(kbBtn, "AstButton", kbFired);
 
         System.out.println("Button self-check OK");
     }

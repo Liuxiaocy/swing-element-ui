@@ -96,7 +96,7 @@ public class AstTree extends AstInteractiveComponent {
         this.root = root;
         rebuildFlatRows();
         applyTier();
-        setFocusable(true);
+        // 焦点由基类 AstInteractiveComponent.installKeyboardSupport() 统一设置
         addMouseListener(new MouseAdapter() {
             @Override public void mouseExited(MouseEvent e) {
                 hoverIndex = -1;
@@ -245,6 +245,13 @@ public class AstTree extends AstInteractiveComponent {
         }
         g2.dispose();
     }
+
+    /**
+     * 树不是切换型控件：组件级 selected 状态无意义（选中行由 TreeNode 维护）。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
 
     private void paintRow(Graphics2D g2, FlatRow row, int y, boolean isHovered, float hoverAlpha) {
         int w = getWidth();
@@ -517,6 +524,7 @@ public class AstTree extends AstInteractiveComponent {
         try { t3.setSize(9); } catch (IllegalArgumentException e) { threw = true; }
         assert threw : "AstTree 非法档位应抛异常";
 
+        assertKeyboardAccessible(this, "AstTree");
         System.out.println("AstTree self-check OK");
     }
 

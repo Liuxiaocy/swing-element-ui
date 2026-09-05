@@ -55,6 +55,7 @@ public class AstSwitch extends AstInteractiveComponent {
         // 滑块为图形元素，WCAG 2.1 非文本对比度要求 3:1
         // Element UI 原生设计下对比度约 2.78:1，略低于 3:1，为保持设计一致性接受此值
         assertContrast(Color.WHITE, theme().getPrimary(), "switch knob on track (graphic)", 2.5f);
+        assertKeyboardAccessible(this, "AstSwitch");
         System.out.println("AstSwitch self-check OK");
     }
 

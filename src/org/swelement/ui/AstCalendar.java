@@ -259,6 +259,13 @@ public class AstCalendar extends AstInteractiveComponent {
         g2.dispose();
     }
 
+    /**
+     * 日历不是切换型控件：selected 状态对日历无意义（日期选择由 setSelected(y,m,d) 维护）。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
+
     private Color getBackground0() { return Color.WHITE; }
 
     private void drawNavButton(Graphics2D g2, int x, int y, String s, boolean hover) {
@@ -345,6 +352,7 @@ public class AstCalendar extends AstInteractiveComponent {
             }
         }
         assert anyPainted : "calendar 应绘制出非透明像素";
+        assertKeyboardAccessible(this, "AstCalendar");
         System.out.println("AstCalendar self-check OK");
     }
     public static void main(String[] args) {

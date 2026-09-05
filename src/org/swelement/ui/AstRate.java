@@ -48,7 +48,7 @@ public class AstRate extends AstInteractiveComponent {
         this.allowHalf = allowHalf;
         this.value = initialValue;
         anim.register("hover", 150, Easing::easeOut);
-        setFocusable(true);
+        // 焦点由基类 AstInteractiveComponent.installKeyboardSupport() 统一设置
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override public void mouseMoved(MouseEvent e) {
                 if (readOnly) return;
@@ -94,6 +94,13 @@ public class AstRate extends AstInteractiveComponent {
         repaint();
         if (valueListener != null) valueListener.accept(v);
     }
+
+    /**
+     * 评分不是切换型控件：selected 状态对评分无意义。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
 
     public void setValueListener(Consumer<Float> l) {
         if (l == null) throw new IllegalArgumentException("listener must not be null");
@@ -309,6 +316,7 @@ public class AstRate extends AstInteractiveComponent {
             }
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+        assertKeyboardAccessible(this, "AstRate");
         System.out.println("AstRate self-check OK");
     }
 

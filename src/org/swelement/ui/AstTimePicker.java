@@ -139,6 +139,13 @@ public class AstTimePicker extends AstInteractiveComponent {
         g2.dispose();
     }
 
+    /**
+     * 时间选择器不是切换型控件：selected 状态对它无意义。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
+
     private static void drawClockIcon(Graphics2D g2, int x, int y, int s, Color c) {
         Graphics2D g = (Graphics2D) g2.create();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -347,6 +354,7 @@ public class AstTimePicker extends AstInteractiveComponent {
         assert listCount == 3 : "TimePanel 应含 3 个 JList（时/分/秒），实际=" + listCount;
         assert btnCount == 1 : "TimePanel 应含 1 个确定按钮，实际=" + btnCount;
         assert panel.getPreferredSize().width > 0 && panel.getPreferredSize().height > 0 : "TimePanel preferredSize 合理";
+        assertKeyboardAccessible(this, "AstTimePicker");
         System.out.println("AstTimePicker self-check OK");
     }
     public static void main(String[] args) {

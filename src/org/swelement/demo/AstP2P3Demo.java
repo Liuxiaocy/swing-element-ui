@@ -60,7 +60,7 @@ public class AstP2P3Demo {
         JPanel popBody = new JPanel(new BorderLayout(0, 6));
         popBody.setOpaque(false);
         JLabel popInfo = new JLabel("<html>这是一个气泡卡片（Popover），<br>可承载任意富内容组件。</html>");
-        popInfo.setForeground(ElementTheme.TEXT_REGULAR);
+        popInfo.setForeground(ElementTheme.textRegular());
         popInfo.setFont(popInfo.getFont().deriveFont(13f));
         popBody.add(popInfo, BorderLayout.CENTER);
         final AstPopover popover = new AstPopover("提示标题", popBody, AnimatedPopup.Direction.BELOW, "Pop 气泡卡片");
@@ -74,7 +74,7 @@ public class AstP2P3Demo {
             body.setBorder(new EmptyBorder(8, 8, 8, 8));
             for (int i = 1; i <= 4; i++) {
                 JLabel row = new JLabel("抽屉内容项 " + i + " — 可放置任意设置/详情/表单组件");
-                row.setForeground(ElementTheme.TEXT_REGULAR);
+                row.setForeground(ElementTheme.textRegular());
                 row.setFont(row.getFont().deriveFont(13f));
                 body.add(row);
             }
@@ -169,21 +169,21 @@ public class AstP2P3Demo {
         List<AstCarousel.SlidePainter> slides = new ArrayList<AstCarousel.SlidePainter>();
         slides.add((g, w, h) -> {
             g.setColor(new Color(0x40, 0x9E, 0xFF)); g.fillRect(0, 0, w, h);
-            g.setColor(Color.WHITE); g.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 28f));
+            g.setColor(Color.WHITE); g.setFont(ElementTheme.font().deriveFont(Font.BOLD, 28f));
             FontMetrics fm = g.getFontMetrics();
             String s = "第一张：蓝色幻灯片";
             g.drawString(s, (w - fm.stringWidth(s)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());
         });
         slides.add((g, w, h) -> {
             g.setColor(new Color(0x67, 0xC2, 0x3A)); g.fillRect(0, 0, w, h);
-            g.setColor(Color.WHITE); g.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 28f));
+            g.setColor(Color.WHITE); g.setFont(ElementTheme.font().deriveFont(Font.BOLD, 28f));
             FontMetrics fm = g.getFontMetrics();
             String s = "第二张：绿色幻灯片";
             g.drawString(s, (w - fm.stringWidth(s)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());
         });
         slides.add((g, w, h) -> {
             g.setColor(new Color(0xE6, 0xA2, 0x3C)); g.fillRect(0, 0, w, h);
-            g.setColor(Color.WHITE); g.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 28f));
+            g.setColor(Color.WHITE); g.setFont(ElementTheme.font().deriveFont(Font.BOLD, 28f));
             FontMetrics fm = g.getFontMetrics();
             String s = "第三张：橙色幻灯片";
             g.drawString(s, (w - fm.stringWidth(s)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());

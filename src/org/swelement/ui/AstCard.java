@@ -180,8 +180,8 @@ public class AstCard extends AstDisplayComponent {
         final AstCard c = new AstCard("用户信息");
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
-        JLabel line1 = new JLabel("用户名：张三"); line1.setForeground(ElementTheme.TEXT_MAIN);
-        JLabel line2 = new JLabel("邮箱：zhangsan@example.com"); line2.setForeground(ElementTheme.TEXT_REGULAR);
+        JLabel line1 = new JLabel("用户名：张三"); line1.setForeground(ElementTheme.textPrimary());
+        JLabel line2 = new JLabel("邮箱：zhangsan@example.com"); line2.setForeground(ElementTheme.textRegular());
         body.add(line1); body.add(Box.createVerticalStrut(6)); body.add(line2);
         c.setContent(body);
         c.addHeaderAction(new AstButton("编辑", AstButton.DEFAULT, false));

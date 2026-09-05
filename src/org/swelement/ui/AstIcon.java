@@ -13,12 +13,12 @@ import java.awt.geom.*;
  * 所有图标用 Graphics2D 路径/线条绘制，可指定颜色和尺寸。
  * <p>
  * 用法（新枚举 API）：
- * AstIcon check = new AstIcon(AstIcon.Type.CHECK, ElementTheme.SUCCESS, 16);
- * AstIcon loading = new AstIcon(AstIcon.Type.LOADING, ElementTheme.PRIMARY, 16);
+ * AstIcon check = new AstIcon(AstIcon.Type.CHECK, ElementTheme.success(), 16);
+ * AstIcon loading = new AstIcon(AstIcon.Type.LOADING, ElementTheme.primary(), 16);
  * loading.setSpinEnabled(true);
  * <p>
  * 零组件复用（任意 JComponent 内部直接绘制）：
- * AstIcon.paintIcon(g, Type.CARET_DOWN, ElementTheme.TEXT_REGULAR, 12, 0f);
+ * AstIcon.paintIcon(g, Type.CARET_DOWN, ElementTheme.textRegular(), 12, 0f);
  * <p>
  * 图标清单（54 个，0..1 归一化坐标 ×size）：
  * CHECK, CLOSE, ARROW_UP/DOWN/LEFT/RIGHT, PLUS, MINUS, SEARCH, INFO, SUCCESS,
@@ -73,7 +73,7 @@ public class AstIcon extends AstDisplayComponent implements Icon {
     private Timer spinTimer;
 
     public AstIcon(int type) {
-        this(type, ElementTheme.TEXT_REGULAR, 16);
+        this(type, ElementTheme.textRegular(), 16);
     }
 
     public AstIcon(int type, Color color, int size) {
@@ -81,7 +81,7 @@ public class AstIcon extends AstDisplayComponent implements Icon {
     }
 
     public AstIcon(Type type) {
-        this(type, ElementTheme.TEXT_REGULAR, 16);
+        this(type, ElementTheme.textRegular(), 16);
     }
 
     public AstIcon(Type type, Color color, int size) {
@@ -235,16 +235,16 @@ public class AstIcon extends AstDisplayComponent implements Icon {
             case MINUS: drawPlusMinus(g2, s, false); break;
             case SEARCH: drawSearch(g2, s); break;
             case INFO:
-                drawInfoCircle(g2, s, ElementTheme.PRIMARY);
+                drawInfoCircle(g2, s, ElementTheme.primary());
                 drawInfo(g2, s);
                 break;
             case SUCCESS:
-                drawInfoCircle(g2, s, ElementTheme.SUCCESS);
+                drawInfoCircle(g2, s, ElementTheme.success());
                 drawCheckWhite(g2, s);
                 break;
-            case WARNING: drawTriangle(g2, s, ElementTheme.WARNING); break;
+            case WARNING: drawTriangle(g2, s, ElementTheme.warning()); break;
             case ERROR:
-                drawInfoCircle(g2, s, ElementTheme.DANGER);
+                drawInfoCircle(g2, s, ElementTheme.danger());
                 drawXWhite(g2, s);
                 break;
             case SETTING: drawSetting(g2, s); break;
@@ -1021,7 +1021,7 @@ public class AstIcon extends AstDisplayComponent implements Icon {
                         gg.setColor(Color.WHITE);
                         gg.fillRect(0, 0, 24, 24);
                         try {
-                            paintIcon(gg, t, ElementTheme.PRIMARY, 24, 0f);
+                            paintIcon(gg, t, ElementTheme.primary(), 24, 0f);
                         } finally {
                             gg.dispose();
                         }
@@ -1044,7 +1044,7 @@ public class AstIcon extends AstDisplayComponent implements Icon {
         try {
             SwingUtilities.invokeAndWait(new Runnable() {
                 public void run() {
-                    AstIcon ld = new AstIcon(Type.LOADING, ElementTheme.PRIMARY, 20);
+                    AstIcon ld = new AstIcon(Type.LOADING, ElementTheme.primary(), 20);
                     ld.setBounds(0, 0, 20, 20);
                     assert !ld.isSpinRunning() : "spin default off";
                     ld.setSpinEnabled(true);
@@ -1058,7 +1058,7 @@ public class AstIcon extends AstDisplayComponent implements Icon {
         }
 
         // Icon 接口验证
-        AstIcon iface = new AstIcon(Type.CHECK, ElementTheme.PRIMARY, 24);
+        AstIcon iface = new AstIcon(Type.CHECK, ElementTheme.primary(), 24);
         assert iface instanceof Icon : "AstIcon must implement javax.swing.Icon";
         assert iface.getIconWidth() == 24 : "icon width 24, got " + iface.getIconWidth();
         assert iface.getIconHeight() == 24 : "icon height 24, got " + iface.getIconHeight();

@@ -22,10 +22,11 @@ public final class ThemeManager {
         }
     }
 
-    /** Get the current theme. @throws IllegalStateException if no theme registered */
+    /** Get the current theme. Lazily registers the default theme on first access so that
+     *  even callers running before any component has been constructed get a valid theme. */
     public static Theme getCurrent() {
         if (current == null) {
-            throw new IllegalStateException("no theme registered");
+            ensureDefaultTheme();
         }
         return current;
     }

@@ -36,7 +36,7 @@ public class AstIconDemo {
         JPanel grid = new JPanel(new GridLayout(0, 4, 6, 6));
         grid.setBorder(new TitledBorder("全部图标（悬停高亮，名称见提示）"));
         for (AstIcon.Type t : AstIcon.Type.values()) {
-            grid.add(newIconCell(t, ElementTheme.TEXT_REGULAR, 20));
+            grid.add(newIconCell(t, ElementTheme.textRegular(), 20));
         }
         JScrollPane sp = new JScrollPane(grid);
         sp.setPreferredSize(new Dimension(4 * CELL + 30, 420));
@@ -48,9 +48,9 @@ public class AstIconDemo {
         for (int sz : new int[]{16, 20, 24, 32, 48}) {
             JPanel one = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 4));
             one.setOpaque(false);
-            one.add(new AstIcon(AstIcon.Type.CHECK, ElementTheme.SUCCESS, sz));
+            one.add(new AstIcon(AstIcon.Type.CHECK, ElementTheme.success(), sz));
             JLabel lb = new JLabel(sz + "px");
-            lb.setForeground(ElementTheme.TEXT_REGULAR);
+            lb.setForeground(ElementTheme.textRegular());
             one.add(lb);
             sizes.add(one);
         }
@@ -59,8 +59,8 @@ public class AstIconDemo {
         // ---- 段 3：颜色变体 ----
         JPanel colors = new JPanel(new FlowLayout(FlowLayout.LEFT, 24, 10));
         colors.setBorder(new TitledBorder("颜色变体（STAR_FILLED）"));
-        Color[] palette = {ElementTheme.PRIMARY, ElementTheme.SUCCESS, ElementTheme.WARNING,
-            ElementTheme.DANGER, ElementTheme.INFO, ElementTheme.TEXT_REGULAR};
+        Color[] palette = {ElementTheme.primary(), ElementTheme.success(), ElementTheme.warning(),
+            ElementTheme.danger(), ElementTheme.info(), ElementTheme.textRegular()};
         for (Color c : palette)
             colors.add(newIconCell(AstIcon.Type.STAR_FILLED, c, 24));
         root.add(colors);
@@ -70,12 +70,12 @@ public class AstIconDemo {
         spin.setBorder(new TitledBorder("旋转动画（LOADING 自旋 + REFRESH 对照）"));
         for (AstIcon.Type t : new AstIcon.Type[]{AstIcon.Type.LOADING, AstIcon.Type.LOADING, AstIcon.Type.LOADING}) {
             // 三个不同尺寸的 LOADING 同时自旋
-            spin.add(newIconCell(t, ElementTheme.PRIMARY, 16 + (t.ordinal() % 3) * 8));
+            spin.add(newIconCell(t, ElementTheme.primary(), 16 + (t.ordinal() % 3) * 8));
         }
-        AstIcon ld = new AstIcon(AstIcon.Type.LOADING, ElementTheme.PRIMARY, 32);
+        AstIcon ld = new AstIcon(AstIcon.Type.LOADING, ElementTheme.primary(), 32);
         ld.setSpinEnabled(true);
         spin.add(ld);
-        AstIcon rf = new AstIcon(AstIcon.Type.REFRESH, ElementTheme.PRIMARY, 24);
+        AstIcon rf = new AstIcon(AstIcon.Type.REFRESH, ElementTheme.primary(), 24);
         rf.setSpinEnabled(true); // 演示任意图标皆可旋转
         spin.add(rf);
         root.add(spin);
@@ -97,7 +97,7 @@ public class AstIconDemo {
         cell.addMouseListener(new MouseAdapter() {
             @Override public void mouseEntered(MouseEvent e) {
                 cell.setBackground(new Color(0xECF5FF));
-                ic.setColor(ElementTheme.PRIMARY);
+                ic.setColor(ElementTheme.primary());
             }
             @Override public void mouseExited(MouseEvent e) {
                 cell.setBackground(Color.WHITE);
@@ -115,7 +115,7 @@ public class AstIconDemo {
                 public void run() {
                     // 1) 全部图标经组件路径（paintComponent）离屏绘制非空
                     for (AstIcon.Type t : AstIcon.Type.values()) {
-                        AstIcon ic = new AstIcon(t, ElementTheme.PRIMARY, 24);
+                        AstIcon ic = new AstIcon(t, ElementTheme.primary(), 24);
                         ic.setBounds(0, 0, 24, 24);
                         BufferedImage img = new BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB);
                         Graphics2D gg = img.createGraphics();
@@ -131,7 +131,7 @@ public class AstIconDemo {
                         assert nonWhite > 3 : "demo: icon " + t + " empty, nonWhite=" + nonWhite;
                     }
                     // 2) 尺寸变体生效
-                    AstIcon a = new AstIcon(AstIcon.Type.CHECK, ElementTheme.PRIMARY, 16);
+                    AstIcon a = new AstIcon(AstIcon.Type.CHECK, ElementTheme.primary(), 16);
                     assert a.getPreferredSize().width == 16 : "pref size 16";
                     a.setSizeValue(48);
                     assert a.getPreferredSize().width == 48 : "pref size 48";

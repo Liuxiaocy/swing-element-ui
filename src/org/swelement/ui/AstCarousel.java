@@ -16,8 +16,8 @@ import java.util.List;
  * 用法：
  *   List<AstCarousel.SlidePainter> slides = new ArrayList<>();
  *   slides.add((g, w, h) -> {
- *       g.setColor(ElementTheme.PRIMARY); g.fillRect(0, 0, w, h);
- *       g.setColor(Color.WHITE); g.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 28f));
+ *       g.setColor(ElementTheme.primary()); g.fillRect(0, 0, w, h);
+ *       g.setColor(Color.WHITE); g.setFont(ElementTheme.font().deriveFont(Font.BOLD, 28f));
  *       FontMetrics fm = g.getFontMetrics();
  *       String s = "第一张"; g.drawString(s, (w - fm.stringWidth(s)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());
  *   });
@@ -151,6 +151,13 @@ public class AstCarousel extends AstInteractiveComponent {
         g2.dispose();
     }
 
+    /**
+     * 走马灯不是切换型控件：selected 状态对走马灯无意义。
+     * 覆写为 false，避免激活时翻转一个无人消费的状态字段。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
+
     private void drawArrow(Graphics2D g2, int x, int y, int w, int h, String s, int alpha) {
         Color bg = new Color(0x30, 0x31, 0x33, alpha);
         g2.setColor(bg);
@@ -224,12 +231,13 @@ public class AstCarousel extends AstInteractiveComponent {
         int sa = (spx >>> 24) & 0xFF;
         assert sa > 120 : "SlidePainter 直接调用应绘制不透明 alpha=" + sa;
         int sred = (spx >> 16) & 0xFF;
-        assert sred == ElementTheme.PRIMARY.getRed() : "SlidePainter 应填 PRIMARY 红色分量=" + sred;
+        assert sred == ElementTheme.primary().getRed() : "SlidePainter 应填 PRIMARY 红色分量=" + sred;
+        assertKeyboardAccessible(this, "AstCarousel");
         System.out.println("AstCarousel self-check OK");
     }
 
     private static List<SlidePainter> makeSlides(int n) {
-        final Color[] colors = { ElementTheme.PRIMARY, ElementTheme.SUCCESS, ElementTheme.WARNING, ElementTheme.DANGER, ElementTheme.INFO };
+        final Color[] colors = { ElementTheme.primary(), ElementTheme.success(), ElementTheme.warning(), ElementTheme.danger(), ElementTheme.info() };
         List<SlidePainter> out = new ArrayList<SlidePainter>();
         for (int i = 0; i < n; i++) {
             final int idx = i;
@@ -240,7 +248,7 @@ public class AstCarousel extends AstInteractiveComponent {
                     g.setColor(c);
                     g.fillRect(0, 0, w, h);
                     g.setColor(Color.WHITE);
-                    g.setFont(ElementTheme.FONT.deriveFont(Font.BOLD, 28f));
+                    g.setFont(ElementTheme.font().deriveFont(Font.BOLD, 28f));
                     FontMetrics fm = g.getFontMetrics();
                     String s = "幻灯片 " + (idx + 1);
                     g.drawString(s, (w - fm.stringWidth(s)) / 2, (h - fm.getHeight()) / 2 + fm.getAscent());

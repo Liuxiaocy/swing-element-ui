@@ -77,6 +77,22 @@ public class AstDropdown extends AstInteractiveComponent {
         add(invoker, BorderLayout.CENTER);
     }
 
+    /**
+     * 容器自身不参与 Tab 顺序：触发器由内部 AstButton 承担焦点与键盘激活，
+     * 否则 Tab 会先后停在 AstDropdown 与内部按钮上，产生两个焦点位。
+     */
+    @Override
+    protected void initComponent() {
+        super.initComponent();
+        setFocusable(false);
+    }
+
+    /**
+     * 下拉菜单不是切换型控件：开合状态由 open 字段维护，selected 无意义。
+     */
+    @Override
+    protected boolean isToggleMode() { return false; }
+
     public void showDropdown() {
         if (open) return;
         open = true;
@@ -204,6 +220,9 @@ public class AstDropdown extends AstInteractiveComponent {
             lbl.setForeground(textColor);
             g2.dispose();
         }
+
+        /** 菜单项不是切换型控件：点击执行动作后菜单关闭，不维持 selected 状态。 */
+        @Override protected boolean isToggleMode() { return false; }
 
         @Override public boolean isOptimizedDrawingEnabled() { return false; }
 
