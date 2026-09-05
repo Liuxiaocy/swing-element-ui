@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- P0-4: 工程化与发版基础。保持 Java 8，不改动任何源码。 -->
+    <groupId>org.swelement</groupId>
+    <artifactId>swing-element-ui</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Swing Element UI</name>
+    <description>企业级 Swing 自绘组件库，对齐 Element UI 的视觉与交互（零依赖，Java 8）。</description>
+    <url>https://github.com/swelement/swing-element-ui</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>swelement</name>
+            <organization>swelement</organization>
+            <organizationUrl>https://github.com/swelement</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/swelement/swing-element-ui.git</connection>
+        <developerConnection>scm:git:https://github.com/swelement/swing-element-ui.git</developerConnection>
+        <url>https://github.com/swelement/swing-element-ui</url>
+        <tag>v1.0.0</tag>
+    </scm>
+
+    <properties>
+        <!-- 强制 Java 8 字节码，保证企业环境 JDK 8 可直接消费 -->
+        <maven.compiler.release>8</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <build>
+        <!-- 本项目源码直接放在 src/ 下（非 Maven 标准的 src/main/java），显式声明源码根 -->
+        <sourceDirectory>src</sourceDirectory>
+        <plugins>
+            <!-- 编译：Java 8 字节码 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>8</release>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- 附 sources jar，便于企业团队在 IDE 中查看实现与调试 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 附 javadoc jar。doclint=none + failOnError=false：当前 Javadoc 覆盖率约 22%，
+                 不因缺失注释阻断发版；后续 M3 补齐至 80% 后可移除 failOnError=false。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <doclint>none</doclint>
+                    <failOnError>false</failOnError>
+                    <release>8</release>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

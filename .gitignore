@@ -4,3 +4,10 @@ out/
 .worktrees/
 worktrees/
 .superpowers/
+
+# IDE 配置（P0-4：已提交的 .idea/ 取消跟踪并忽略，避免污染仓库）
+.idea/
+
+# 临时/草稿文件
+_c.txt
+_f.txt
