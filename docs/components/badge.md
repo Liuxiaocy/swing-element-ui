@@ -10,16 +10,12 @@
 
 ```java
 import org.swelement.ui.AstBadge;
-import org.swelement.ui.Badge;
+import javax.swing.JButton;
 
 // 创建角标
 AstBadge badge = new AstBadge();
-badge.
-
-        setContent(new JButton("消息"));
-        badge.
-
-        setCount(12);
+badge.setContent(new JButton("消息"));
+badge.setCount(12);
 ```
 
 ## 点状角标
@@ -29,8 +25,11 @@ badge.
 ![点状角标](../screenshots/badge-dot.png)
 
 ```java
+import org.swelement.ui.AstBadge;
+import javax.swing.JButton;
+
 // 创建点状角标
-Badge dotBadge = new Badge();
+AstBadge dotBadge = new AstBadge();
 dotBadge.setContent(new JButton("消息"));
 dotBadge.setDot(true);
 ```

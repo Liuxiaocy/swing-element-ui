@@ -10,13 +10,12 @@
 
 ```java
 import org.swelement.ui.AstSelect;
-import org.swelement.ui.Select;
 
 // 创建单选下拉框
 AstSelect select = new AstSelect(new String[]{"黄金糕", "双皮奶", "蚵仔煎", "龙须面"});
 
-        // 获取选中值
-        Object value = select.getSelectedValue();
+// 获取选中值
+Object value = select.getSelectedValue();
 ```
 
 ## 多选模式
@@ -26,11 +25,13 @@ AstSelect select = new AstSelect(new String[]{"黄金糕", "双皮奶", "蚵仔�
 ![多选模式](../screenshots/select-multiple.png)
 
 ```java
+import org.swelement.ui.AstSelect;
+
 // 创建多选下拉框
-Select multiSelect = new Select(true, false);
-multiSelect.addOption(new Select.Option("黄金糕", "gold"));
-multiSelect.addOption(new Select.Option("双皮奶", "milk"));
-multiSelect.addOption(new Select.Option("蚵仔煎", "oyster"));
+AstSelect multiSelect = new AstSelect(true, false);
+multiSelect.addOption(new AstSelect.Option("黄金糕", "gold"));
+multiSelect.addOption(new AstSelect.Option("双皮奶", "milk"));
+multiSelect.addOption(new AstSelect.Option("蚵仔煎", "oyster"));
 ```
 
 ## 可搜索
@@ -40,11 +41,13 @@ multiSelect.addOption(new Select.Option("蚵仔煎", "oyster"));
 ![可搜索](../screenshots/select-filterable.png)
 
 ```java
+import org.swelement.ui.AstSelect;
+
 // 创建可搜索下拉框
-Select filterSelect = new Select(false, true);
-filterSelect.addOption(new Select.Option("黄金糕", "gold"));
-filterSelect.addOption(new Select.Option("双皮奶", "milk"));
-filterSelect.addOption(new Select.Option("蚵仔煎", "oyster"));
+AstSelect filterSelect = new AstSelect(false, true);
+filterSelect.addOption(new AstSelect.Option("黄金糕", "gold"));
+filterSelect.addOption(new AstSelect.Option("双皮奶", "milk"));
+filterSelect.addOption(new AstSelect.Option("蚵仔煎", "oyster"));
 ```
 
 ## 分组
@@ -54,12 +57,14 @@ filterSelect.addOption(new Select.Option("蚵仔煎", "oyster"));
 ![分组](../screenshots/select-group.png)
 
 ```java
+import org.swelement.ui.AstSelect;
+
 // 创建分组下拉框
-Select groupSelect = new Select(false, false);
-groupSelect.addOption(new Select.Option("黄金糕", "gold", "热门城市", false));
-groupSelect.addOption(new Select.Option("双皮奶", "milk", "热门城市", false));
-groupSelect.addOption(new Select.Option("北京", "beijing", "城市名", false));
-groupSelect.addOption(new Select.Option("上海", "shanghai", "城市名", false));
+AstSelect groupSelect = new AstSelect(false, false);
+groupSelect.addOption(new AstSelect.Option("黄金糕", "gold", "热门城市", false));
+groupSelect.addOption(new AstSelect.Option("双皮奶", "milk", "热门城市", false));
+groupSelect.addOption(new AstSelect.Option("北京", "beijing", "城市名", false));
+groupSelect.addOption(new AstSelect.Option("上海", "shanghai", "城市名", false));
 ```
 
 ## Select 属性
@@ -69,7 +74,7 @@ groupSelect.addOption(new Select.Option("上海", "shanghai", "城市名", false
 | multiple | 是否多选 | boolean | — | false |
 | filterable | 是否可搜索 | boolean | — | false |
 
-## Select.Option 属性
+## AstSelect.Option 属性
 
 | 参数 | 说明 | 类型 | 可选值 | 默认值 |
 |------|------|------|--------|--------|

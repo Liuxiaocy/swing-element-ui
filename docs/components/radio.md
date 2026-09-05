@@ -13,8 +13,8 @@ import org.swelement.ui.AstRadio;
 
 // 创建单选框
 AstRadio radio1 = new AstRadio("选项A");
-        AstRadio radio2 = new AstRadio("选项B");
-        AstRadio radio3 = new AstRadio("选项C");
+AstRadio radio2 = new AstRadio("选项B");
+AstRadio radio3 = new AstRadio("选项C");
 ```
 
 ## 禁用状态
@@ -24,8 +24,10 @@ AstRadio radio1 = new AstRadio("选项A");
 ![禁用状态](../screenshots/radio-disabled.png)
 
 ```java
+import org.swelement.ui.AstRadio;
+
 // 禁用单选框
-Radio disabledRadio = new Radio("禁用选项");
+AstRadio disabledRadio = new AstRadio("禁用选项");
 disabledRadio.setEnabled(false);
 ```
 

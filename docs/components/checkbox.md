@@ -10,12 +10,11 @@
 
 ```java
 import org.swelement.ui.AstCheckbox;
-import org.swelement.ui.Checkbox;
 
 // 创建多选框
 AstCheckbox checkbox1 = new AstCheckbox("选项A");
-        AstCheckbox checkbox2 = new AstCheckbox("选项B");
-        AstCheckbox checkbox3 = new AstCheckbox("选项C");
+AstCheckbox checkbox2 = new AstCheckbox("选项B");
+AstCheckbox checkbox3 = new AstCheckbox("选项C");
 ```
 
 ## 禁用状态
@@ -25,8 +24,10 @@ AstCheckbox checkbox1 = new AstCheckbox("选项A");
 ![禁用状态](../screenshots/checkbox-disabled.png)
 
 ```java
+import org.swelement.ui.AstCheckbox;
+
 // 禁用多选框
-Checkbox disabledCheckbox = new Checkbox("禁用选项");
+AstCheckbox disabledCheckbox = new AstCheckbox("禁用选项");
 disabledCheckbox.setEnabled(false);
 ```
 

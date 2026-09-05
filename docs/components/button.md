@@ -10,25 +10,24 @@
 
 ```java
 import org.swelement.ui.AstButton;
-import org.swelement.ui.Button;
 
 // 默认按钮
 AstButton defaultBtn = new AstButton("默认按钮");
 
-        // 主要按钮
-        AstButton primaryBtn = new AstButton("主要按钮", AstButton.PRIMARY, false);
+// 主要按钮
+AstButton primaryBtn = new AstButton("主要按钮", AstButton.PRIMARY, false);
 
-        // 成功按钮
-        AstButton successBtn = new AstButton("成功按钮", AstButton.SUCCESS, false);
+// 成功按钮
+AstButton successBtn = new AstButton("成功按钮", AstButton.SUCCESS, false);
 
-        // 警告按钮
-        AstButton warningBtn = new AstButton("警告按钮", AstButton.WARNING, false);
+// 警告按钮
+AstButton warningBtn = new AstButton("警告按钮", AstButton.WARNING, false);
 
-        // 危险按钮
-        AstButton dangerBtn = new AstButton("危险按钮", AstButton.DANGER, false);
+// 危险按钮
+AstButton dangerBtn = new AstButton("危险按钮", AstButton.DANGER, false);
 
-        // 信息按钮
-        AstButton infoBtn = new AstButton("信息按钮", AstButton.INFO, false);
+// 信息按钮
+AstButton infoBtn = new AstButton("信息按钮", AstButton.INFO, false);
 ```
 
 ## 朴素按钮
@@ -38,20 +37,22 @@ AstButton defaultBtn = new AstButton("默认按钮");
 ![朴素按钮](../screenshots/button-plain.png)
 
 ```java
+import org.swelement.ui.AstButton;
+
 // 朴素主要按钮
-Button plainPrimary = new Button("朴素 主要", Button.PRIMARY, true);
+AstButton plainPrimary = new AstButton("朴素 主要", AstButton.PRIMARY, true);
 
 // 朴素成功按钮
-Button plainSuccess = new Button("朴素 成功", Button.SUCCESS, true);
+AstButton plainSuccess = new AstButton("朴素 成功", AstButton.SUCCESS, true);
 
 // 朴素警告按钮
-Button plainWarning = new Button("朴素 警告", Button.WARNING, true);
+AstButton plainWarning = new AstButton("朴素 警告", AstButton.WARNING, true);
 
 // 朴素危险按钮
-Button plainDanger = new Button("朴素 危险", Button.DANGER, true);
+AstButton plainDanger = new AstButton("朴素 危险", AstButton.DANGER, true);
 
 // 朴素信息按钮
-Button plainInfo = new Button("朴素 信息", Button.INFO, true);
+AstButton plainInfo = new AstButton("朴素 信息", AstButton.INFO, true);
 ```
 
 ## 禁用状态
@@ -61,16 +62,18 @@ Button plainInfo = new Button("朴素 信息", Button.INFO, true);
 ![禁用状态](../screenshots/button-disabled.png)
 
 ```java
+import org.swelement.ui.AstButton;
+
 // 禁用主要按钮
-Button disabledPrimary = new Button("禁用-主要", Button.PRIMARY, false);
+AstButton disabledPrimary = new AstButton("禁用-主要", AstButton.PRIMARY, false);
 disabledPrimary.setEnabled(false);
 
 // 禁用朴素按钮
-Button disabledPlain = new Button("禁用-朴素", Button.PRIMARY, true);
+AstButton disabledPlain = new AstButton("禁用-朴素", AstButton.PRIMARY, true);
 disabledPlain.setEnabled(false);
 
 // 禁用默认按钮
-Button disabledDefault = new Button("禁用-默认", Button.DEFAULT, false);
+AstButton disabledDefault = new AstButton("禁用-默认", AstButton.DEFAULT, false);
 disabledDefault.setEnabled(false);
 ```
 

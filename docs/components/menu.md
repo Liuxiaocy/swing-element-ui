@@ -15,26 +15,16 @@ import org.swelement.ui.AstMenu;
 AstMenu menu = new AstMenu();
 
 // 添加菜单项
-menu.
-
-        addMenuItem("首页",() ->{
-        System.out.
-
-        println("点击首页");
+menu.addMenuItem("首页", () -> {
+    System.out.println("点击首页");
 });
 
-        menu.
-
-        addMenuItem("新闻",() ->{
-        System.out.
-
-        println("点击新闻");
+menu.addMenuItem("新闻", () -> {
+    System.out.println("点击新闻");
 });
 
 // 设置当前激活项
-        menu.
-
-        setActive(0);
+menu.setActive(0);
 ```
 
 ## 子菜单
@@ -44,7 +34,9 @@ menu.
 ![子菜单](../screenshots/menu-sub.png)
 
 ```java
-Menu menu = new Menu();
+import org.swelement.ui.AstMenu;
+
+AstMenu menu = new AstMenu();
 
 // 添加带子菜单的导航项
 menu.addSubMenu("文档中心",
@@ -64,7 +56,9 @@ menu.setActive(0);
 禁用状态的菜单。
 
 ```java
-Menu menu = new Menu();
+import org.swelement.ui.AstMenu;
+
+AstMenu menu = new AstMenu();
 menu.setEnabled(false);
 
 menu.addMenuItem("首页", () -> {

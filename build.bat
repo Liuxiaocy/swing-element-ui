@@ -82,6 +82,10 @@ echo --- AstLoading self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstLoading
 if %ERRORLEVEL% NEQ 0 ( echo AstLoading self-check FAILED & exit /b 1 )
 
+echo --- AnimatedPopup self-check ---
+"%JRUN%" -ea -cp out org.swelement.core.AnimatedPopup
+if %ERRORLEVEL% NEQ 0 ( echo AnimatedPopup self-check FAILED & exit /b 1 )
+
 echo --- AstTooltip self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstTooltip
 if %ERRORLEVEL% NEQ 0 ( echo AstTooltip self-check FAILED & exit /b 1 )
@@ -205,3 +209,9 @@ if %ERRORLEVEL% NEQ 0 ( echo AstCheckbox self-check FAILED & exit /b 1 )
 echo --- AstButton self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstButton
 if %ERRORLEVEL% NEQ 0 ( echo AstButton self-check FAILED & exit /b 1 )
+
+echo --- Docs consistency (snippets / links / commands) ---
+"%JAVAC%" -encoding UTF-8 -cp out -d out tools\DocSnippetCheck.java
+if %ERRORLEVEL% NEQ 0 ( echo DocSnippetCheck compile FAILED & exit /b 1 )
+"%JRUN%" -cp out DocSnippetCheck .
+if %ERRORLEVEL% NEQ 0 ( echo Docs consistency FAILED & exit /b 1 )

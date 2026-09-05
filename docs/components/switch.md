@@ -22,8 +22,10 @@ AstSwitch switch1 = new AstSwitch();
 ![禁用状态](../screenshots/switch-disabled.png)
 
 ```java
+import org.swelement.ui.AstSwitch;
+
 // 禁用开关
-Switch disabledSwitch = new Switch();
+AstSwitch disabledSwitch = new AstSwitch();
 disabledSwitch.setEnabled(false);
 ```
 

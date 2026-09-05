@@ -14,14 +14,14 @@ import org.swelement.ui.AstAlert;
 // 成功提示
 AstAlert successAlert = new AstAlert(AstAlert.SUCCESS, "成功提示", null, false);
 
-        // 警告提示
-        AstAlert warningAlert = new AstAlert(AstAlert.WARNING, "警告提示", null, false);
+// 警告提示
+AstAlert warningAlert = new AstAlert(AstAlert.WARNING, "警告提示", null, false);
 
-        // 信息提示
-        AstAlert infoAlert = new AstAlert(AstAlert.INFO, "信息提示", null, false);
+// 信息提示
+AstAlert infoAlert = new AstAlert(AstAlert.INFO, "信息提示", null, false);
 
-        // 错误提示
-        AstAlert errorAlert = new AstAlert(AstAlert.ERROR, "错误提示", null, false);
+// 错误提示
+AstAlert errorAlert = new AstAlert(AstAlert.ERROR, "错误提示", null, false);
 ```
 
 ## 带描述信息
@@ -31,11 +31,13 @@ AstAlert successAlert = new AstAlert(AstAlert.SUCCESS, "成功提示", null, fal
 ![带描述信息](../screenshots/alert-desc.png)
 
 ```java
+import org.swelement.ui.AstAlert;
+
 // 带描述的成功提示
-Alert successWithDesc = new Alert(Alert.SUCCESS, "成功提示", "这是一段描述信息", false);
+AstAlert successWithDesc = new AstAlert(AstAlert.SUCCESS, "成功提示", "这是一段描述信息", false);
 
 // 带描述的警告提示
-Alert warningWithDesc = new Alert(Alert.WARNING, "警告提示", "这是一段描述信息", false);
+AstAlert warningWithDesc = new AstAlert(AstAlert.WARNING, "警告提示", "这是一段描述信息", false);
 ```
 
 ## 可关闭提示
@@ -45,8 +47,10 @@ Alert warningWithDesc = new Alert(Alert.WARNING, "警告提示", "这是一段�
 ![可关闭提示](../screenshots/alert-closable.png)
 
 ```java
+import org.swelement.ui.AstAlert;
+
 // 可关闭的提示
-Alert closableAlert = new Alert(Alert.SUCCESS, "成功提示", "这是一段描述信息", true);
+AstAlert closableAlert = new AstAlert(AstAlert.SUCCESS, "成功提示", "这是一段描述信息", true);
 closableAlert.close(() -> {
     System.out.println("提示已关闭");
 });

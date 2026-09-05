@@ -2,11 +2,12 @@
 setlocal enabledelayedexpansion
 rem ---- Use Java 8 if available (target JDK 1.8) ----
 set "JAVA8=C:\Program Files\Java\jdk1.8.0_311"
+set "JAVAC=javac"
 set "JRUN=java"
-if exist "%JAVA8%\bin\java.exe" (
-  set "JRUN=%JAVA8%\bin\java.exe"
+if exist "%JAVA8%\bin\javac.exe" (
+  set "JAVAC=%JAVA8%\bin\javac.exe"
 ) else (
-  echo WARN: JDK 1.8 not found, falling back to java on PATH
+  echo WARN: 未找到 JDK 1.8，回退使用 PATH 上的 javac/java
 )
 "%JRUN%" -version >nul 2>nul || (echo ERROR: java not found & exit /b 1)
 
@@ -220,6 +221,11 @@ set /a TOTAL+=1
 
 echo [51/51] Checking AstDrawer...
 "%JRUN%" -ea -cp out org.swelement.ui.AstDrawer || set /a FAILED+=1
+set /a TOTAL+=1
+
+echo [52/52] Checking docs consistency (snippets / links / commands)...
+"%JAVAC%" -encoding UTF-8 -cp out -d out tools\DocSnippetCheck.java >nul 2>nul
+"%JRUN%" -cp out DocSnippetCheck . || set /a FAILED+=1
 set /a TOTAL+=1
 
 echo.

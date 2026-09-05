@@ -15,9 +15,7 @@ import org.swelement.ui.AstProgress;
 AstProgress progress = new AstProgress(50);
 
 // 动态更新进度
-progress.
-
-        setValue(75);
+progress.setValue(75);
 ```
 
 ## 显示文字
@@ -27,8 +25,10 @@ progress.
 ![显示文字](../screenshots/progress-text.png)
 
 ```java
+import org.swelement.ui.AstProgress;
+
 // 创建显示文字的进度条
-Progress progressWithText = new Progress(60);
+AstProgress progressWithText = new AstProgress(60);
 progressWithText.setShowText(true);
 ```
 

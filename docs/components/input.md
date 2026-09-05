@@ -10,7 +10,6 @@
 
 ```java
 import org.swelement.ui.AstInput;
-import org.swelement.ui.Input;
 
 // 带占位符的输入框
 AstInput input = new AstInput("请输入内容");
@@ -23,8 +22,10 @@ AstInput input = new AstInput("请输入内容");
 ![可清空](../screenshots/input-clearable.png)
 
 ```java
+import org.swelement.ui.AstInput;
+
 // 输入内容后，鼠标悬停显示清空按钮
-Input clearableInput = new Input("请输入内容");
+AstInput clearableInput = new AstInput("请输入内容");
 ```
 
 ## 禁用状态
@@ -34,8 +35,10 @@ Input clearableInput = new Input("请输入内容");
 ![禁用状态](../screenshots/input-disabled.png)
 
 ```java
+import org.swelement.ui.AstInput;
+
 // 禁用输入框
-Input disabledInput = new Input("请输入内容");
+AstInput disabledInput = new AstInput("请输入内容");
 disabledInput.setEnabled(false);
 ```
 

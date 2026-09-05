@@ -10,28 +10,22 @@
 
 ```java
 import org.swelement.ui.AstTabs;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
 
 // 创建标签页
 AstTabs tabs = new AstTabs(new String[]{"用户管理", "配置管理", "角色管理", "定时任务补偿"}, 0);
 
-        // 添加内容面板
-        JPanel panel1 = new JPanel();
-panel1.
-
-        add(new JLabel("用户管理内容"));
-        tabs.
-
-        addTab("用户管理",panel1);
+// 添加内容面板
+JPanel panel1 = new JPanel();
+panel1.add(new JLabel("用户管理内容"));
+tabs.addTab("用户管理", panel1);
 
 // 监听标签切换
-tabs.
-
-        addChangeListener(e ->{
-        int index = tabs.getSelectedIndex();
-        String title = tabs.getSelectedTitle();
-    System.out.
-
-        println("切换到: "+title);
+tabs.addChangeListener(e -> {
+    int index = tabs.getSelectedIndex();
+    String title = tabs.getSelectedTitle();
+    System.out.println("切换到: " + title);
 });
 ```
 

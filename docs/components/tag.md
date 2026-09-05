@@ -10,22 +10,21 @@
 
 ```java
 import org.swelement.ui.AstTag;
-import org.swelement.ui.Tag;
 
 // 主要标记
 AstTag primaryTag = new AstTag("标签一", AstTag.PRIMARY, false);
 
-        // 成功标记
-        AstTag successTag = new AstTag("标签二", AstTag.SUCCESS, false);
+// 成功标记
+AstTag successTag = new AstTag("标签二", AstTag.SUCCESS, false);
 
-        // 警告标记
-        AstTag warningTag = new AstTag("标签三", AstTag.WARNING, false);
+// 警告标记
+AstTag warningTag = new AstTag("标签三", AstTag.WARNING, false);
 
-        // 危险标记
-        AstTag dangerTag = new AstTag("标签四", AstTag.DANGER, false);
+// 危险标记
+AstTag dangerTag = new AstTag("标签四", AstTag.DANGER, false);
 
-        // 信息标记
-        AstTag infoTag = new AstTag("标签五", AstTag.INFO, false);
+// 信息标记
+AstTag infoTag = new AstTag("标签五", AstTag.INFO, false);
 ```
 
 ## 可关闭标记
@@ -35,8 +34,10 @@ AstTag primaryTag = new AstTag("标签一", AstTag.PRIMARY, false);
 ![可关闭标记](../screenshots/tag-closable.png)
 
 ```java
+import org.swelement.ui.AstTag;
+
 // 可关闭标记
-Tag closableTag = new Tag("可关闭标签", Tag.PRIMARY, true);
+AstTag closableTag = new AstTag("可关闭标签", AstTag.PRIMARY, true);
 closableTag.close(() -> {
     System.out.println("标签已关闭");
 });

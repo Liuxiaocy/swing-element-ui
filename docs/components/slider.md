@@ -22,8 +22,10 @@ AstSlider slider = new AstSlider(0, 100, 50);
 ![禁用状态](../screenshots/slider-disabled.png)
 
 ```java
+import org.swelement.ui.AstSlider;
+
 // 禁用滑块
-Slider disabledSlider = new Slider(0, 100, 50);
+AstSlider disabledSlider = new AstSlider(0, 100, 50);
 disabledSlider.setEnabled(false);
 ```
 

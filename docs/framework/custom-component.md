@@ -412,7 +412,8 @@ public class MySwitch extends AstInteractiveComponent {
 使用 `-ea` 参数启用断言：
 
 ```bash
-java -ea -cp out org.swelement.demo.SelfCheckRunner
+# 全量运行所有组件自检（含本组件）
+.\run-checks.bat
 ```
 
 ## 常见问题

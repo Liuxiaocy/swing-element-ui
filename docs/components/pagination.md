@@ -10,18 +10,13 @@
 
 ```java
 import org.swelement.ui.AstPagination;
-import org.swelement.ui.Pagination;
 
 // 创建分页组件（总数据量100，每页10条，初始第1页）
 AstPagination pagination = new AstPagination(100, 10, 1);
 
 // 监听页码变化
-pagination.
-
-        addPageChangeListener(page ->{
-        System.out.
-
-        println("当前页: "+page);
+pagination.addPageChangeListener(page -> {
+    System.out.println("当前页: " + page);
 });
 ```
 
@@ -32,8 +27,10 @@ pagination.
 ![自定义每页数量](../screenshots/pagination-pagesize.png)
 
 ```java
+import org.swelement.ui.AstPagination;
+
 // 创建分页组件（总数据量200，每页20条）
-Pagination pagination = new Pagination(200, 20, 1);
+AstPagination pagination = new AstPagination(200, 20, 1);
 
 // 动态修改每页数量
 pagination.setPageSize(50);
