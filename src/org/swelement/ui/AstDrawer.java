@@ -12,6 +12,9 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.geom.Line2D;
 import java.awt.geom.RoundRectangle2D;
 
@@ -66,6 +69,7 @@ public class AstDrawer {
         if (existing instanceof DrawerPanel) {
             final DrawerPanel prev = (DrawerPanel) existing;
             prev.stopSlide();
+            if (prev.maskCloser != null) { gp.removeMouseListener(prev.maskCloser); prev.maskCloser = null; }
             gp.remove(prev);
             gp.setActive(false);
             rpc.getRootPane().putClientProperty(CARD_KEY, null);
@@ -83,6 +87,7 @@ public class AstDrawer {
             if (card == null) return;
             card.startSlideOut(new Runnable() { public void run() {
                 gp.remove(card);
+                if (card.maskCloser != null) { gp.removeMouseListener(card.maskCloser); card.maskCloser = null; }
                 gp.setActive(false);
                 rpc.getRootPane().putClientProperty(CARD_KEY, null);
                 gp.repaint();
@@ -91,6 +96,18 @@ public class AstDrawer {
         }};
         final DrawerPanel card = new DrawerPanel(dir, title, body, size, owner.getSize(), closeHandler, onClosed);
         holder[0] = card;
+        // 点击遮罩（卡片之外的半透明黑区）关闭抽屉。
+        // 关键：GlassPane 自身默认没有任何鼠标监听器，AWT 的 Component.eventEnabled() 会判定
+        // 该组件未启用鼠标事件从而直接丢弃，所以不挂监听器时点击遮罩毫无反应（卡片内的 × 有效
+        // 是因为它挂在卡片上，卡片自带监听器）。
+        final MouseAdapter maskCloser = new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent e) {
+                // 只有落在抽屉卡片之外的点击才算点遮罩；卡片内部交给卡片自己处理
+                if (!card.getBounds().contains(e.getPoint())) card.close();
+            }
+        };
+        card.maskCloser = maskCloser;
+        gp.addMouseListener(maskCloser);
         rpc.getRootPane().putClientProperty(CARD_KEY, card);
         gp.removeAll();
         gp.setLayout(null);
@@ -127,6 +144,14 @@ public class AstDrawer {
         private float progress;   // 0 = 完全隐藏（在屏外），1 = 完全显示
         private int offsetX, offsetY;
         private int placedX, placedY, placedW, placedH;
+        /**
+         * 挂在宿主 GlassPane 上、用于「点击遮罩关闭抽屉」的监听器。
+         * <p>
+         * GlassPane 是复用的（按 root pane 缓存在 {@link #GP_KEY}），因此抽屉关闭时必须把它卸载，
+         * 否则旧监听器会残留：下一次打开抽屉时，点击遮罩会触发一个已被移除的卡片去 close()，
+         * 表现为重复触发 onClosed 回调。
+         */
+        MouseListener maskCloser;
 
         DrawerPanel(Direction dir, String title, JComponent body, int size, Dimension ownerSize, Runnable onClose, Runnable userOnClosed) {
             this.dir = dir;
@@ -310,6 +335,17 @@ public class AstDrawer {
         return null;
     }
 
+    /**
+     * 构造一个 MOUSE_PRESSED 事件，供 self-check 直接派发到 GlassPane 模拟「点击遮罩/卡片」。
+     * <p>
+     * 注意：坐标相对事件源（GlassPane）计算，与 {@code DrawerPanel.getBounds()}（相对其父 GlassPane）处于同一坐标系，
+     * 因此可以在自检里直接断言「落点是否在卡片 bounds 内」。
+     */
+    private static MouseEvent mousePress(Component c, int x, int y) {
+        return new MouseEvent(c, MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(),
+                0, x, y, 1, false, MouseEvent.BUTTON1);
+    }
+
     // --- self-check ---
     static void selfCheck() {
         org.swelement.core.theme.ThemeManager.ensureDefaultTheme();
@@ -339,7 +375,7 @@ public class AstDrawer {
                 } catch (Throwable t) { err[0] = t; }
             }});
             if (err[0] == null) Thread.sleep(200); // 主线程 sleep，EDT Timer 可 tick
-            // 2) EDT：断言 glass pane + 找到 card + 调 close()
+            // 2) EDT：断言 glass pane + 找到 card + 点击遮罩关闭
             SwingUtilities.invokeAndWait(new Runnable() { public void run() {
                 try {
                     Component gp = jfHolder[0].getGlassPane();
@@ -355,6 +391,43 @@ public class AstDrawer {
                     assert bodyLbl != null : "body 标签应已挂载到抽屉";
                     assert bodyLbl.getWidth() > 0 && bodyLbl.getHeight() > 0 : "首次打开 body 应已完成布局（宽高>0），实际="
                             + bodyLbl.getWidth() + "x" + bodyLbl.getHeight();
+                    // 点击遮罩关闭（模态抽屉的基本行为）
+                    java.awt.Rectangle cb = cardHolder[0].getBounds();
+                    int inX = cb.x + cb.width / 2, inY = cb.y + cb.height / 2;
+                    int maskX = Math.max(1, cb.x / 2), maskY = Math.max(1, cb.y + cb.height / 2);
+                    assert !cb.contains(maskX, maskY) : "遮罩测试点必须落在卡片之外，实际 card=" + cb;
+                    // 2a) 负向：点击卡片内部不应关闭
+                    gp.dispatchEvent(mousePress(gp, inX, inY));
+                    boolean stillOpen = false;
+                    for (int i = 0; i < c.getComponentCount(); i++) {
+                        if (c.getComponent(i) instanceof DrawerPanel) { stillOpen = true; break; }
+                    }
+                    assert stillOpen : "点击抽屉卡片内部不应关闭抽屉";
+                    // 2b) 正向：点击遮罩（半透明黑区）应关闭
+                    gp.dispatchEvent(mousePress(gp, maskX, maskY));
+                } catch (Throwable t) { err[0] = t; }
+            }});
+            if (err[0] == null) Thread.sleep(280); // 等待 slide-out 动画完成（240ms）
+            if (err[0] == null) assert closed[0] : "点击遮罩应关闭抽屉并触发 onClosed 回调";
+            // 2c) 重新打开，继续验证 close() 路径未被破坏
+            closed[0] = false;
+            cardHolder[0] = null;
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+                try {
+                    JLabel info2 = new JLabel("抽屉正文2");
+                    AstDrawer.show(jfHolder[0], Direction.RIGHT, "详情标题", info2, 360,
+                            new Runnable() { public void run() { closed[0] = true; }});
+                } catch (Throwable t) { err[0] = t; }
+            }});
+            if (err[0] == null) Thread.sleep(200);
+            SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+                try {
+                    Container c = (Container) jfHolder[0].getGlassPane();
+                    for (int i = 0; i < c.getComponentCount(); i++) {
+                        Component ch = c.getComponent(i);
+                        if (ch instanceof DrawerPanel) { cardHolder[0] = (DrawerPanel) ch; break; }
+                    }
+                    assert cardHolder[0] != null : "重新打开的 drawer card 应挂载到 glass pane";
                     cardHolder[0].close(); // 触发 slide out → onClosed
                 } catch (Throwable t) { err[0] = t; }
             }});
