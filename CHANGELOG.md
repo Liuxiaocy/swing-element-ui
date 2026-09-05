@@ -17,6 +17,9 @@
 - **P0-3 文档-代码一致性**：14 篇组件文档全面改用 `Ast*` API；新增 `tools/DocSnippetCheck.java` 抽取文档中的 Java 示例编译校验 + 命令/链接存在性校验，并接入 `build.bat` / `run-checks.bat`（永久防止再次漂移）；新增 `tools/DocScreenshotGen.java` 生成 32 张文档截图；`README.md` 补全 43 组件总览与全部 Demo。
 - **P0-4 工程化与发版**：新增 `pom.xml`（Java 8，`maven-compiler-plugin` release=8，附带 sources/javadoc jar）；新增 `LICENSE`（Apache-2.0）；确定版本号 `1.0.0` 并打首个 git tag `v1.0.0`；`.gitignore` 增加 `.idea/` 并清理已提交的 IDE 配置。
 
+### 修复（M1 后补丁）
+- **抽屉点击遮罩关闭**：`AstDrawer` 原实现点卡片外黑半透明遮罩无反应（根因为 `GlassPane` 未挂 `MouseListener`，AWT 静默丢弃遮罩上的 `MOUSE_PRESSED`）。现已在 `openNew` 给 `GlassPane` 挂 `MouseAdapter`，仅当落点在卡片 bounds 之外才关闭；并就 `GlassPane` 复用的特性在两条关闭路径卸载该监听器，避免旧监听器残留触发重复 `onClosed`。`selfCheck` 新增负向/正向断言。
+
 ### 已知限制（M1 仍存，见评估文档 M2/M3）
 - 不支持 LookAndFeel 切换、无障碍（AccessibleContext）、JTable/JTree CellRenderer 内嵌。
 - HiDPI 未实测；无 JUnit 数据层单测；常量体系（`AstSize`/`AstType`）尚未统一（计划在 Breaking Change 中处理）。
