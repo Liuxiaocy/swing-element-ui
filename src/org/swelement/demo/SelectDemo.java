@@ -113,6 +113,53 @@ public class SelectDemo {
             });
             p5.add(clearable); p5.add(showVal); p5.add(clearEcho);
 
+            // 多选：已选项以 AstTag 展示（点 × 只移除该项，点标签其他区域展开下拉）
+            JPanel p6 = new JPanel(new GridBagLayout());
+            p6.setBorder(new TitledBorder("多选（已选项以 AstTag 展示：点标签的 × 移除该项，点标签其他区域展开下拉）"));
+            GridBagConstraints mg = new GridBagConstraints();
+            mg.insets = new Insets(8, 12, 8, 12);
+            mg.anchor = GridBagConstraints.WEST;
+
+            mg.gridx = 0; mg.gridy = 0;
+            p6.add(new JLabel("🏷 技术栈"), mg);
+            AstSelect stack = new AstSelect(true, true);
+            for (String s : new String[]{"Java", "Swing", "Maven", "Gradle", "Kotlin", "Groovy", "Scala"}) {
+                stack.addOption(new AstSelect.Option(s, s.toLowerCase()));
+            }
+            stack.setPreferredSize(new Dimension(340, 40));
+            stack.setFormValue("java,swing,maven");
+            mg.gridx = 1; p6.add(stack, mg);
+
+            mg.gridx = 0; mg.gridy = 1;
+            p6.add(new JLabel("🚫 禁用多选"), mg);
+            AstSelect stackDis = new AstSelect(true, false);
+            for (String s : new String[]{"已选项一", "已选项二"}) stackDis.addOption(new AstSelect.Option(s, s));
+            stackDis.setPreferredSize(new Dimension(340, 40));
+            stackDis.setFormValue("已选项一,已选项二");
+            stackDis.setEnabled(false); // 标签同步灰化，× 不可点
+            mg.gridx = 1; p6.add(stackDis, mg);
+
+            mg.gridx = 0; mg.gridy = 2; mg.gridwidth = 2;
+            JPanel multiRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+            JLabel multiEcho = new JLabel("（点「查看多选结果」汇总；多选值用逗号连接）");
+            multiEcho.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
+            multiEcho.setForeground(new Color(0x606266));
+            AstButton showMulti = new AstButton("查看多选结果", AstButton.PRIMARY, true);
+            showMulti.addActionListener(e -> {
+                StringBuilder sb = new StringBuilder();
+                for (AstSelect.Option o : stack.getSelected()) {
+                    if (sb.length() > 0) sb.append(" / ");
+                    sb.append(o.label);
+                }
+                multiEcho.setText(sb.length() == 0 ? "（未选择任何项）" : "已选：" + sb);
+            });
+            AstButton clearMulti = new AstButton("清空多选", AstButton.DEFAULT, true);
+            clearMulti.addActionListener(e -> { stack.clearSelection(); multiEcho.setText("（已清空）"); });
+            multiRow.add(showMulti);
+            multiRow.add(clearMulti);
+            multiRow.add(multiEcho);
+            p6.add(multiRow, mg);
+
             root.add(p1);
             root.add(Box.createVerticalStrut(8));
             root.add(p2);
@@ -122,6 +169,8 @@ public class SelectDemo {
             root.add(p4);
             root.add(Box.createVerticalStrut(8));
             root.add(p5);
+            root.add(Box.createVerticalStrut(8));
+            root.add(p6);
 
             f.setContentPane(root);
             f.pack();

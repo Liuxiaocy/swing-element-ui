@@ -124,6 +124,9 @@ public class AstTag extends AstDisplayComponent {
         super.addNotify();
         if (closable && closeBtn == null) {
             closeBtn = new AstCloseButton(CLOSE_SIZE[size]);
+            // 挂载前就被禁用的标签（如先 setEnabled(false) 再入窗口）：此处才创建 ×，
+            // 必须同步当前启用状态，否则禁用标签上会出现可点击的 ×
+            closeBtn.setEnabled(isEnabled());
             closeBtn.addActionListener(e -> close(onClosed != null ? onClosed : (Runnable) () -> {}));
             add(closeBtn);
             updateCloseColors();
@@ -197,6 +200,35 @@ public class AstTag extends AstDisplayComponent {
             assertContrast(DEEP_FG[t], Color.WHITE, "tag plain type=" + t);
             assertContrast(theme().getTextPrimary(), LIGHT_BG[t], "tag hover-x on light type=" + t);
         }
+        // 挂载前禁用：addNotify 创建的 × 必须同步禁用态（否则禁用标签上出现可点的 ×）
+        // 场景：容器先 setEnabled(false) 再入窗口（AstSelect 禁用态多选即如此）
+        final Throwable[] errPre = {null};
+        final JFrame[] preHolder = {null};
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                JFrame f = new JFrame();
+                preHolder[0] = f;
+                JPanel p = new JPanel();
+                AstTag c = new AstTag("预禁用", AstTag.INFO, true);
+                c.setEnabled(false); // 关键：addNotify 之前禁用
+                p.add(c);
+                f.add(p);
+                f.pack();
+                assert c.getComponentCount() == 1 : "pre-disabled tag should still create its close button";
+                assert !c.getComponent(0).isEnabled()
+                        : "close button created in addNotify must inherit the pre-set disabled state";
+            });
+        } catch (Throwable t) { errPre[0] = t; }
+        // finally 收尾：断言失败也要 dispose，否则 AWT 非 daemon 线程吊住 JVM，
+        // 表现为「卡死到 timeout」，真实断言信息被掩盖
+        finally {
+            try {
+                SwingUtilities.invokeAndWait(() -> {
+                    if (preHolder[0] != null) { preHolder[0].dispose(); preHolder[0] = null; }
+                });
+            } catch (Throwable ignored) { /* 不掩盖原始断言 */ }
+        }
+        if (errPre[0] != null) throw new RuntimeException(errPre[0]);
         // 显式 setPreferredSize 必须被尊重（close 收缩动画依赖此：Animator 通过 setPreferredSize 驱动）
         AstTag shrink = new AstTag("标签", AstTag.PRIMARY, false);
         shrink.setPreferredSize(new Dimension(1, 26));

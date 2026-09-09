@@ -20,7 +20,7 @@ Object value = select.getSelectedValue();
 
 ## 多选模式
 
-支持多选的下拉框。
+支持多选的下拉框。**已选项以 `AstTag` 标签展示**（INFO 类型 + light 效果），标签尺寸随 Select 档位联动。
 
 ![多选模式](../screenshots/select-multiple.png)
 
@@ -32,6 +32,32 @@ AstSelect multiSelect = new AstSelect(true, false);
 multiSelect.addOption(new AstSelect.Option("黄金糕", "gold"));
 multiSelect.addOption(new AstSelect.Option("双皮奶", "milk"));
 multiSelect.addOption(new AstSelect.Option("蚵仔煎", "oyster"));
+
+// 多选取值：逗号连接；批量回填同样用逗号分隔的字符串
+multiSelect.setFormValue("gold,milk");
+String value = multiSelect.getFormValue();        // "gold,milk"
+// 注意：java.awt.* 会遮蔽 java.util.List，故此处写全限定名
+java.util.List<AstSelect.Option> picked = multiSelect.getSelected();
+```
+
+### 标签交互
+
+点按位置决定行为，无需额外配置：
+
+| 点按区域 | 行为 |
+|----------|------|
+| 标签上的 `×` | 只移除该选项，不展开下拉（带 200ms 收起动画） |
+| 标签其他区域 | 展开 / 收起下拉 |
+
+Select 被 `setEnabled(false)` 时，已选项标签同步灰化且 `×` 不可点。
+
+```java
+// 多选 + 可搜索：输入过滤，勾选后落成标签
+AstSelect stack = new AstSelect(true, true);
+for (String s : new String[]{"Java", "Swing", "Maven"}) {
+    stack.addOption(new AstSelect.Option(s, s.toLowerCase()));
+}
+stack.setSize(AstSelect.SIZE_LARGE);   // LARGE 档用更大的标签
 ```
 
 ## 可搜索
@@ -95,3 +121,7 @@ groupSelect.addOption(new AstSelect.Option("上海", "shanghai", "城市名", fa
 | getSelected | 获取所有选中项 | — | List\<Option\> |
 | clearSelection | 清空选中 | — | void |
 | getOptions | 获取所有选项 | — | List\<Option\> |
+| setSize | 尺寸档位（联动输入框高度与多选标签尺寸） | int t（SIZE_LARGE / SIZE_DEFAULT / SIZE_SMALL） | void |
+| setEnabled | 启用 / 禁用（多选时联动已选标签与其 `×`） | boolean en | void |
+| getFormValue | 取值：多选为逗号连接串，单选为单个值 | — | String |
+| setFormValue | 回填：多选传逗号分隔串，单选传单个值 | String v | void |

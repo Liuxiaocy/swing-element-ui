@@ -52,6 +52,10 @@ public class AstSelect extends AstAbstractComponent implements FormValueProvider
     public static final int SIZE_LARGE = 0, SIZE_DEFAULT = 1, SIZE_SMALL = 2;
     private static final int[] TIER_HEIGHT = {40, 32, 28};
     private static final float[] TIER_FONT = {14f, 13f, 12f};
+    /** 档位 → 多选标签尺寸：档位越高标签越大，小档位统一取 SMALL 以免撑破输入框高度。 */
+    private static final int[] TIER_TAG = {AstTag.SIZE_DEFAULT, AstTag.SIZE_SMALL, AstTag.SIZE_SMALL};
+    /** 多选已选项标签配色：INFO + light（浅灰底深灰字，与输入框白底协调且对比度达标）。 */
+    private static final int TAG_TYPE = AstTag.INFO, TAG_EFFECT = AstTag.EFFECT_LIGHT;
     private int tier = SIZE_DEFAULT;
 
     @Override
@@ -138,8 +142,20 @@ public class AstSelect extends AstAbstractComponent implements FormValueProvider
     private void applyTier() {
         if (display != null) display.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
         if (field != null) field.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
-        tagsPanel.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
-        for (Component c : tagsPanel.getComponents()) c.setFont(theme().getFontBase().deriveFont(TIER_FONT[tier]));
+        // AstTag 按自身 size 档位取字号，改档位而非 setFont（setFont 对自绘标签无效）
+        for (Component c : tagsPanel.getComponents()) {
+            if (c instanceof AstTag) ((AstTag) c).setSize(TIER_TAG[tier]);
+        }
+    }
+
+    /** 启用/禁用联动到多选标签：禁用态标签灰化且 × 不可点（由 AstTag.setEnabled 处理）。 */
+    @Override
+    public void setEnabled(boolean en) {
+        super.setEnabled(en);
+        if (tagsPanel != null) {
+            for (Component c : tagsPanel.getComponents()) c.setEnabled(en);
+            updateClear();
+        }
     }
 
     @Override
@@ -213,6 +229,15 @@ public class AstSelect extends AstAbstractComponent implements FormValueProvider
         updateDisplay();
     }
     @Override public void setInvalid(boolean inv) { this.invalid = inv; repaint(); }
+
+    /** 当前多选标签（按已选顺序）。测试与自检用。 */
+    List<AstTag> getTags() {
+        List<AstTag> out = new ArrayList<>();
+        for (Component c : tagsPanel.getComponents()) {
+            if (c instanceof AstTag) out.add((AstTag) c);
+        }
+        return out;
+    }
 
     static boolean matches(String label, String filter) {
         return label.toLowerCase().contains(filter.toLowerCase());
@@ -319,25 +344,37 @@ public class AstSelect extends AstAbstractComponent implements FormValueProvider
     private void updateDisplay() {
         tagsPanel.removeAll();
         if (multiple) {
-            for (Option o : selected) {
-                JLabel chip = new JLabel(o.label + "  ×");
-                chip.setOpaque(true);
-                chip.setBackground(new Color(0xF4F4F5));
-                chip.setForeground(new Color(0x606266));
-                chip.setFont(theme().getFontBase().deriveFont(Font.PLAIN, 12f));
-                chip.setBorder(new EmptyBorder(2, 8, 2, 8));
-                chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                chip.addMouseListener(new MouseAdapter() {
-                    public void mousePressed(MouseEvent e) { if (!isEnabled()) return; selected.remove(o); updateDisplay(); rebuildList(null); }
-                });
-                tagsPanel.add(chip);
-            }
+            for (Option o : selected) tagsPanel.add(createTag(o));
         } else {
             display.setText(selected.isEmpty() ? "" : selected.get(0).label);
         }
         tagsPanel.revalidate();
         tagsPanel.repaint();
         updateClear();
+    }
+
+    /**
+     * 构造多选已选项的标签（AstTag 可关闭）。
+     *
+     * <p>点击交互靠 AWT 事件重定向天然分层，无需额外命中测试：
+     * <ul>
+     *   <li>点 × → 事件落在 {@code AstCloseButton}（自带监听器）→ 只移除该项，不展开下拉；</li>
+     *   <li>点标签主体 → AstTag 自身无鼠标监听器，事件上溯到 {@code tagsPanel} →
+     *       {@link #handlePress} → 展开下拉。</li>
+     * </ul>
+     */
+    private AstTag createTag(Option o) {
+        AstTag tag = new AstTag(o.label, TAG_TYPE, true);
+        tag.setEffect(TAG_EFFECT);
+        tag.setSize(TIER_TAG[tier]);
+        tag.setEnabled(isEnabled());
+        tag.setOnClosed(() -> {
+            selected.remove(o);
+            updateDisplay();
+            rebuildList(null);
+            repaint();
+        });
+        return tag;
     }
 
     @Override
@@ -462,7 +499,62 @@ public class AstSelect extends AstAbstractComponent implements FormValueProvider
         ms.setFormValue("");
         assert ms.getFormValue().isEmpty() : "AstSelect multi empty after setFormValue('')";
 
-        // 尺寸档位（手绘 × 清空方案：无独立 AstCloseButton 子组件，避免与上下箭头重叠）
+        // --- 多选：已选项用 AstTag 展示（P2.2）---
+        final AstSelect mt = new AstSelect(true, false);
+        mt.addOption(new AstSelect.Option("北京", "bj"));
+        mt.addOption(new AstSelect.Option("上海", "sh"));
+        mt.addOption(new AstSelect.Option("广州", "gz"));
+        mt.setFormValue("bj,sh,gz");
+        final Throwable[] err3 = {null};
+        final int[] tagH = {-1, -1};
+        final JFrame[] holder = {null};
+        final boolean[] tagsDisabled = {false};
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                JFrame f = new JFrame();
+                JPanel p = new JPanel(new BorderLayout());
+                p.add(mt);
+                f.add(p);
+                f.pack();
+                holder[0] = f;
+
+                // 三个已选项 → 三个 AstTag，文案与顺序一致
+                List<AstTag> tags = mt.getTags();
+                assert tags.size() == 3 : "3 selected -> 3 AstTag, got " + tags.size();
+                assert "北京".equals(tags.get(0).getText()) && "广州".equals(tags.get(2).getText())
+                        : "tag order/label mismatch, got " + tags.get(0).getText() + "..." + tags.get(2).getText();
+                // 可关闭：挂载后带 AstCloseButton 子组件
+                assert tags.get(0).getComponentCount() == 1 && tags.get(0).getComponent(0) instanceof AstCloseButton
+                        : "closable AstTag should own an AstCloseButton, count=" + tags.get(0).getComponentCount();
+
+                // 档位联动：LARGE 档标签 > SMALL 档标签高度
+                mt.setSize(AstSelect.SIZE_LARGE);
+                tagH[0] = mt.getTags().get(0).getPreferredSize().height;
+                mt.setSize(AstSelect.SIZE_SMALL);
+                tagH[1] = mt.getTags().get(0).getPreferredSize().height;
+                mt.setSize(AstSelect.SIZE_DEFAULT);
+
+                // 禁用联动：Select 禁用 → 标签禁用（× 灰化不可点）
+                mt.setEnabled(false);
+                tagsDisabled[0] = !mt.getTags().get(0).isEnabled();
+                mt.setEnabled(true);
+
+                // 点第一个标签的 × → 关闭动画结束后只移除该项（不展开下拉、不影响其余项）
+                Component cb = mt.getTags().get(0).getComponent(0);
+                cb.dispatchEvent(new MouseEvent(cb, MouseEvent.MOUSE_PRESSED,
+                        System.currentTimeMillis(), 0, cb.getWidth() / 2, cb.getHeight() / 2, 1, false));
+            });
+            Thread.sleep(400); // 等 ~200ms 关闭动画完成
+            SwingUtilities.invokeAndWait(() -> { if (holder[0] != null) { holder[0].dispose(); holder[0] = null; } });
+        } catch (Throwable t) { err3[0] = t; }
+        if (err3[0] != null) throw new RuntimeException(err3[0]);
+        assert tagH[0] > tagH[1] : "LARGE tier tag taller than SMALL, got " + tagH[0] + " vs " + tagH[1];
+        assert tagsDisabled[0] : "disabled select should disable its tags";
+        assert "sh,gz".equals(mt.getFormValue())
+                : "removing first tag leaves sh,gz, got " + mt.getFormValue();
+        assert mt.getTags().size() == 2 : "2 tags remain after removing one, got " + mt.getTags().size();
+
+        // 尺寸档位（手绘 × 清空方案：Select 自身清空用首绘 ×，不含 AstCloseButton 子组件）
         AstSelect sz = new AstSelect(false, false);
         assert !hasCloseButton(sz) : "Select uses hand-drawn ×, not an AstCloseButton";
         sz.setSize(AstSelect.SIZE_SMALL);
@@ -483,7 +575,11 @@ public class AstSelect extends AstAbstractComponent implements FormValueProvider
         sel.handlePress(sel.getWidth() - 18, sel.getHeight() / 2);
     }
 
-    /** 结构性校验：组件树不应再包含 AstCloseButton（改用首绘 × + 命中测试）。 */
+    /**
+     * 结构性校验：Select 自身的清空用首绘 ×（避免与上下箭头重叠），
+     * 故组件树里不应出现 AstCloseButton —— 但**多选已选项的 AstTag 内部各有一个**，
+     * 所以本断言只对单选实例成立（调用方必须传单选 Select）。
+     */
     private static boolean hasCloseButton(java.awt.Container root) {
         for (Component c : root.getComponents()) {
             if (c instanceof AstCloseButton) return true;
