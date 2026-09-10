@@ -14,7 +14,7 @@
 ## 阶段 2 — 选择器类增强
 - [x] P2.1 `AstInput`：① 输入建议（激活即列 / 输入后匹配，基于 `AnimatedPopup`）② 最大长度限制 + 尾部字数统计 ③ 复合型（前缀/后缀元素：标签或按钮）；`selfCheck`（过滤/选择/弹层显示+点击/最大长度截断/删除不被拦截/前后缀布局）；`docs/components/input.md` 已更新覆盖新 API。
 - [x] P2.2 `AstSelect`：基础多选用 `AstTag` 展示已选项 —— 原手绘 `JLabel`（`"label  ×"` 文本拼 ×）换成真正的 `AstTag`（INFO + light，可关闭）。点按分层靠 AWT 事件重定向天然实现，无额外命中测试：点 × → 落在 `AstCloseButton`（自带监听器）→ 只移除该项不展开下拉；点标签主体 → AstTag 自身无鼠标监听器，事件上溯 `tagsPanel` → 展开下拉。档位联动 `{DEFAULT, SMALL, SMALL}`、`setEnabled` 联动标签禁用。顺带修 `AstTag` 缺陷：挂载前被禁用的标签，`addNotify()` 才创建的 × 漏掉禁用态（禁用多选会出现可点的 ×）。`selfCheck` 新增 6 项（标签数/文案顺序/可关闭结构/档位高度递减/禁用联动/点 × 后 formValue 与剩余标签数）；`SelectDemo` 新增「多选」面板（含禁用多选）；`docs/components/select.md` 补标签交互表 + 方法表补 `setSize`/`setEnabled`/`getFormValue`/`setFormValue`。
-- [ ] P2.3 `AstTimePicker`：固定时间范围（选开始时间后，结束时间备选项按范围禁用/置灰）
+- [x] P2.3 `AstTimePicker`：固定时间范围（选开始时间后，结束时间备选项按范围禁用/置灰）—— `setRangeMode(true)` 区间模式；弹层左右并排起始/结束两块面板，结束侧按整时间戳严格比较级联置灰 ≤ 开始的备选项且不可点选；`setTimeRange`/`getTimeRange` 取值；禁用项静音灰渲染（WCAG 豁免不做 AA 断言）。`docs/components/timepicker.md` 随本项补完（覆盖 P5.2 timepicker 文档缺口）。selfCheck 新增区间 round-trip / 顺序异常 / 弹层 6 JList+2 TimePanel / 结束侧禁用项不可选断言；单模式与区间弹层块均补 `finally` dispose 兜底。
 - [ ] P2.4 `AstDatePicker`：日期范围选择（起止两个面板/联动高亮）
 
 ## 阶段 3 — 导航 / 步骤 / 时间线增强
