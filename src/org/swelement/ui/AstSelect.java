@@ -545,8 +545,12 @@ public class AstSelect extends AstAbstractComponent implements FormValueProvider
                         System.currentTimeMillis(), 0, cb.getWidth() / 2, cb.getHeight() / 2, 1, false));
             });
             Thread.sleep(400); // 等 ~200ms 关闭动画完成
-            SwingUtilities.invokeAndWait(() -> { if (holder[0] != null) { holder[0].dispose(); holder[0] = null; } });
         } catch (Throwable t) { err3[0] = t; }
+        finally {
+            // 断言失败也必须 dispose，否则 JVM 因残留非 daemon 的 AWT 线程挂死（掩盖真实错误）
+            try { SwingUtilities.invokeAndWait(() -> { if (holder[0] != null) { holder[0].dispose(); holder[0] = null; } }); }
+            catch (Throwable ignored) { /* 不掩盖原始断言错误 */ }
+        }
         if (err3[0] != null) throw new RuntimeException(err3[0]);
         assert tagH[0] > tagH[1] : "LARGE tier tag taller than SMALL, got " + tagH[0] + " vs " + tagH[1];
         assert tagsDisabled[0] : "disabled select should disable its tags";
