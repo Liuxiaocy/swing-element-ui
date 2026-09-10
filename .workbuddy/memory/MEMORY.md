@@ -30,6 +30,10 @@
   放在 BoxLayout 里时由 **maximumSize** 决定宽度，长文案必须同步放宽 maximum，否则被夹紧截断。
 - Java 8 语法限制：非 static 内部类不能声明 `static` 方法；`BiFunction` 要 3 个类型参数
   （只用一个入参时用 `Function`）。
+- **便利构造器的「重复建项」坑**：`AstTabs(String[] tabTitles, int initialIndex)` 之类的便利构造器
+  **已经**为每个标题建好了空内容面板并 `addTab` 过；外面再对同批标题 `addTab` 会导致
+  **标签/条目翻倍**（竖向高度断言 240 而非 200 就是这么暴露的）。要挂真实内容面板就用
+  **no-arg 构造 + 逐个 addTab**，别混用两种构造方式。写 Demo 时尤其容易踩。
 - **不要画焦点环**（用户 2026-09-05 明确决策，视觉优先）。键盘焦点**只保留可达性**：
   `setFocusable(true)` + Space/Enter 键绑定 + 浮层 Esc 关闭归还焦点 + `assertKeyboardAccessible`
   断言。**不做任何视觉焦点提示**。

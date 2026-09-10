@@ -178,6 +178,10 @@ echo --- AstMenuDemo self-check ---
 "%JRUN%" -ea -cp out org.swelement.demo.AstMenuDemo --selfcheck
 if %ERRORLEVEL% NEQ 0 ( echo AstMenuDemo self-check FAILED & exit /b 1 )
 
+echo --- AstTabsDemo self-check ---
+"%JRUN%" -ea -cp out org.swelement.demo.AstTabsDemo --selfcheck
+if %ERRORLEVEL% NEQ 0 ( echo AstTabsDemo self-check FAILED & exit /b 1 )
+
 echo --- AstTimePicker self-check ---
 "%JRUN%" -ea -cp out org.swelement.ui.AstTimePicker
 if %ERRORLEVEL% NEQ 0 ( echo AstTimePicker self-check FAILED & exit /b 1 )

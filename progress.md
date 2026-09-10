@@ -19,7 +19,7 @@
 
 ## 阶段 3 — 导航 / 步骤 / 时间线增强
 - [x] P3.1 `AstMenu`：侧栏竖向菜单模式 —— `setMode(int)`（`MODE_HORIZONTAL`/`MODE_VERTICAL` 常量）+ `getMode`/`isVertical`/`setSidebarWidth`（默认 200）；布局改为模式感知（水平左→右底条、竖向上→下左竖条指示，entryExtent 按朝向返回宽/行高）；鼠标命中 x/y 分支统一走 `entryIndexAt`；子菜单水平向下、竖向向**右**弹出；方向键 ↑/↓（竖向）/←/→（水平）移动 active 并 clamp 不回绕；`selfCheck` 新增竖向 preferredSize(200,n*40)、离屏绘制、行命中、方向键 clamp、`setMode`/`setSidebarWidth` 非法值断言。新增 `AstMenuDemo`（水平+竖向展示 + `--selfcheck`），接入 `build.bat`/`run-checks.bat` 与 README Demo 列表。menu.md 补竖向示例与属性/方法表。
-- [ ] P3.2 `AstTabs`：侧栏竖向标签模式
+- [x] P3.2 `AstTabs`：侧栏竖向标签模式 —— `setMode(int)`（`MODE_HORIZONTAL`/`MODE_VERTICAL` 常量）+ `getMode`/`isVertical`/`setSidebarWidth`（默认 200，`≤0` 抛 `IllegalArgumentException`）；内容区 inset 模式感知（水平 `EmptyBorder(HEADER_H,0,0,0)`、竖向 `EmptyBorder(0,sidebarWidth,0,0)`，竖向内容移到右侧）；命中测试统一走 `tabIndexAt(px,py)`（水平按 x 遍历 y≤HEADER_H、竖向按行 `py/ROW_H` 且 x≤sidebarWidth）；指示条竖向走新增的 `indY/indH` 通道（左侧 2px PRIMARY 竖条），水平保持 `indX/indW` 底部横条；`getPreferredSize` 竖向 `(sidebarWidth+280, max(n*ROW_H,200))`；方向键 ↑/↓（竖向）/←/→（水平）移动 selected 并 clamp 不回绕（走 `moveActive`，`setFocusable(true)` 无焦点环）。`selfCheck` 新增竖向 preferredSize、行命中/越界、方向键 clamp、可聚焦、非法参数断言；反向验证（`tabIndexAt` 竖向分支改 `return -1`）得到真实 `AssertionError: vertical row1 hit, got -1`，还原后 exit=0。新增 `AstTabsDemo`（水平+竖向展示 + `--selfcheck`；修掉「构造器建空面板 + 再 addTab」导致标签翻倍的坑），接入 `build.bat`/`run-checks.bat`/README。tabs.md 补竖向示例与 `mode`/`sidebarWidth` 属性、`setMode`/`getMode`/`isVertical`/`setSidebarWidth` 方法。
 - [ ] P3.3 `AstSteps`：横向步骤条 / 含状态步骤条 / 带图标步骤条 / 简洁风格步骤条
 - [ ] P3.4 `AstTimeline`：带图标的时间线（`Item` 支持 `AstIcon.Type`）
 
