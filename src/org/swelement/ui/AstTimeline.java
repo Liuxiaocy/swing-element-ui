@@ -37,18 +37,34 @@ public class AstTimeline extends AstDisplayComponent {
         public final String title;
         public final String description;
         public final Type type;
-        public Item(String timestamp, String title, Type type) { this(timestamp, title, null, type); }
+        /** 节点图标；{@code null} 表示不启用，画默认的 12px 类型色实心圆点。 */
+        public final AstIcon.Type icon;
+
+        public Item(String timestamp, String title, Type type) { this(timestamp, title, null, type, null); }
         public Item(String timestamp, String title, String description, Type type) {
+            this(timestamp, title, description, type, null);
+        }
+        /** 带图标（无描述）的便捷构造器。 */
+        public Item(String timestamp, String title, Type type, AstIcon.Type icon) {
+            this(timestamp, title, null, type, icon);
+        }
+        /** 完整构造器：{@code icon} 可为 {@code null}。 */
+        public Item(String timestamp, String title, String description, Type type, AstIcon.Type icon) {
             if (timestamp == null) throw new IllegalArgumentException("timestamp must not be null");
             if (title == null) throw new IllegalArgumentException("title must not be null");
             if (type == null) throw new IllegalArgumentException("type must not be null");
-            this.timestamp = timestamp; this.title = title; this.description = description; this.type = type;
+            this.timestamp = timestamp; this.title = title; this.description = description;
+            this.type = type; this.icon = icon;
         }
+
+        public AstIcon.Type getIcon() { return icon; }
     }
 
     private final List<Item> items;
     private static final int NODE_X = 20;
     private static final int NODE_D = 12;
+    private static final int ICON_NODE_D = 20;   // P3.4：带图标时节点放大
+    private static final int ICON_SIZE = 16;     // 节点内图标尺寸
     private static final int LINE_X = NODE_X; // 竖线 x 居中于节点
     private static final int LINE_W = 2;
     private static final int CARD_X = 48;
@@ -122,12 +138,25 @@ public class AstTimeline extends AstDisplayComponent {
             float hover = anim.getProgress("hover_" + i);
             // 节点
             Color tc = typeColor(it.type);
-            Ellipse2D node = new Ellipse2D.Float(NODE_X - NODE_D/2f, top + ROW_H/2f - NODE_D/2f, NODE_D, NODE_D);
-            g2.setColor(tc);
-            g2.fill(node);
-            g2.setColor(new Color(0xFF, 0xFF, 0xFF, 220));
-            g2.setStroke(new BasicStroke(2f));
-            g2.draw(node);
+            if (it.icon != null) {
+                // 带图标：节点放大到 20px，类型色填充 + 内部 16px 白色图标。
+                // 白色图标属「白字彩底实心态」，沿用官方配色，不做 AA 断言。
+                float ir = ICON_NODE_D / 2f;
+                Ellipse2D inode = new Ellipse2D.Float(NODE_X - ir, top + ROW_H/2f - ir, ICON_NODE_D, ICON_NODE_D);
+                g2.setColor(tc);
+                g2.fill(inode);
+                Graphics2D ig = (Graphics2D) g2.create();
+                ig.translate(Math.round(NODE_X - ICON_SIZE/2f), Math.round(top + ROW_H/2f - ICON_SIZE/2f));
+                AstIcon.paintIcon(ig, it.icon, Color.WHITE, ICON_SIZE, 0f);
+                ig.dispose();
+            } else {
+                Ellipse2D node = new Ellipse2D.Float(NODE_X - NODE_D/2f, top + ROW_H/2f - NODE_D/2f, NODE_D, NODE_D);
+                g2.setColor(tc);
+                g2.fill(node);
+                g2.setColor(new Color(0xFF, 0xFF, 0xFF, 220));
+                g2.setStroke(new BasicStroke(2f));
+                g2.draw(node);
+            }
             // 卡片
             int cardY = top;
             int cardH = ROW_H;
@@ -212,6 +241,42 @@ public class AstTimeline extends AstDisplayComponent {
         int cardPx = img.getRGB(60, 10);
         int ca = (cardPx >>> 24) & 0xFF;
         assert ca > 120 : "卡片绘制不透明 alpha=" + ca;
+
+        // ===== P3.4：带图标 =====
+        Item iconItem = new Item("2026-09-01", "里程碑", "带图标节点", Type.PRIMARY, AstIcon.Type.STAR);
+        assert iconItem.icon == AstIcon.Type.STAR : "icon set";
+        assert iconItem.getIcon() == AstIcon.Type.STAR : "getIcon";
+        Item noIcon3 = new Item("2026-09-02", "普通", Type.INFO);
+        assert noIcon3.icon == null : "3-arg default icon null";
+        Item noIcon4 = new Item("2026-09-03", "普通", "描述", Type.SUCCESS);
+        assert noIcon4.icon == null : "4-arg default icon null";
+        Item iconShort = new Item("2026-09-04", "带图标", Type.WARNING, AstIcon.Type.CHECK);
+        assert iconShort.icon == AstIcon.Type.CHECK : "4-arg with icon";
+
+        // 混合列表：第 0 项带图标（节点放大到 20px），第 1 项不带（仍是 12px 圆点）
+        List<Item> mixed = new ArrayList<Item>();
+        mixed.add(new Item("2026-09-01", "带图标", Type.PRIMARY, AstIcon.Type.STAR));
+        mixed.add(new Item("2026-09-02", "无图标", Type.INFO));
+        AstTimeline mtl = new AstTimeline(mixed);
+        int mh = mtl.getPreferredSize().height;
+        mtl.setSize(440, mh);
+        java.awt.image.BufferedImage mimg = new java.awt.image.BufferedImage(
+                440, mh, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D mgg = mimg.createGraphics();
+        try { mtl.paint(mgg); } finally { mgg.dispose(); }
+
+        // 绘制级断言：距节点中心水平 8px 处 —— 位于 12px 圆点之外、20px 图标圆之内。
+        // 第 0 项（带图标）此处应被 PRIMARY 填充；第 1 项（无图标）此处不应被类型色填充。
+        int primRgb = theme().getPrimary().getRGB() & 0xFFFFFF;
+        int infoRgb = theme().getInfo().getRGB() & 0xFFFFFF;
+        int px0 = mimg.getRGB(NODE_X + 8, ROW_H / 2);
+        assert ((px0 >>> 24) & 0xFF) > 120 : "icon node opaque, alpha=" + ((px0 >>> 24) & 0xFF);
+        assert (px0 & 0xFFFFFF) == primRgb
+                : "icon node enlarged to 20px (PRIMARY painted at r=8), got " + Integer.toHexString(px0 & 0xFFFFFF);
+        int px1 = mimg.getRGB(NODE_X + 8, (ROW_H + GAP) + ROW_H / 2);
+        boolean painted1 = ((px1 >>> 24) & 0xFF) > 120 && (px1 & 0xFFFFFF) == infoRgb;
+        assert !painted1 : "plain node must stay 12px (nothing painted at r=8)";
+
         System.out.println("AstTimeline self-check OK");
     }
     public static void main(String[] args) {

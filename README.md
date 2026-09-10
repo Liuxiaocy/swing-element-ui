@@ -22,6 +22,7 @@ java -cp out org.swelement.demo.SelectDemo
 java -cp out org.swelement.demo.TabsDemo
 java -cp out org.swelement.demo.AstTabsDemo
 java -cp out org.swelement.demo.AstStepsDemo
+java -cp out org.swelement.demo.AstTimelineDemo
 java -cp out org.swelement.demo.PaginationDemo
 java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
@@ -103,7 +104,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | Tag 标记 | [文档](docs/components/tag.md) | TagDemo |
 | TextArea 多行输入 | — | — |
 | TimePicker 时间选择 | — | — |
-| Timeline 时间线 | — | — |
+| Timeline 时间线 | [文档](docs/components/timeline.md) | AstTimelineDemo |
 | Tooltip 文字提示 | — | AstPopupDemo |
 | Transfer 穿梭框 | — | — |
 | Tree 树形控件 | — | — |
