@@ -33,6 +33,8 @@ public class AnimatedPopup extends JComponent {
     });
 
     private final Animator openAnim;
+    /** 待触发的隐藏定时器句柄：hideWithAnimation 原本只持局部引用，无法取消 */
+    private Timer hideTimer;
     private float alpha;
     private final JPanel content;
     private Component invoker;
@@ -141,13 +143,18 @@ public class AnimatedPopup extends JComponent {
     }
 
     private void hidePopup() {
+        // 先停掉待触发的隐藏定时器与动画：运行中的 Swing Timer / Animator 会让 AWT 事件线程
+        // 一直存活（非 daemon），自检 JVM 无法退出，表现为批量自检超时挂死。
+        // 同时避免"先 hideWithAnimation 再 show"时，上一轮残留的定时器把新的弹层摘掉。
+        if (hideTimer != null) { hideTimer.stop(); hideTimer = null; }
+        openAnim.stop();
+        closeAnim.stop();
         if (getParent() == null) return;
         uninstallContextWatchers();
         Container parent = getParent();
         Rectangle r = getBounds();
         parent.remove(this);
         parent.repaint(r.x, r.y, r.width, r.height);
-        openAnim.stop();
         Toolkit.getDefaultToolkit().removeAWTEventListener(awtDismissListener);
     }
 
@@ -260,9 +267,11 @@ public class AnimatedPopup extends JComponent {
         closeAnim.go(0f, 1f);
         final Container parent = getParent();
         final Rectangle r = getBounds();
+        if (hideTimer != null) { hideTimer.stop(); hideTimer = null; }
         Timer t = new Timer(185, new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 ((Timer)e.getSource()).stop();
+                if (hideTimer == e.getSource()) hideTimer = null;
                 parent.remove(AnimatedPopup.this);
                 parent.repaint(r.x, r.y, r.width, r.height);
                 Toolkit.getDefaultToolkit().removeAWTEventListener(awtDismissListener);
@@ -271,6 +280,7 @@ public class AnimatedPopup extends JComponent {
             }
         });
         t.setRepeats(false);
+        hideTimer = t;
         t.start();
     }
 

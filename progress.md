@@ -39,3 +39,4 @@
 - 真实缺口：新组件 `AstEmpty`/`AstNotification`；缺 Demo 的 8 个；缺文档页的 8 个（见 P5.2）。
 - `AstBreadcrumb`/`AstTabs`/`AstSteps`/`AstCollapse`/`AstTimeline`/`AstInput`/`AstSelect`/`AstTimePicker`/`AstDatePicker`/`AstMenu`/`AstRadio`/`AstCheckbox` 均**已存在且已有 selfCheck**，本次是增强。
 - `AstMessage` 已存在（Toast 式通知），`AstNotification` 在其上封装更丰富的 API（位置/手动关闭/多实例堆叠）。
+- 缺陷修复（自检挂死）：`AnimatedPopup.hideWithAnimation` 的 185ms 隐藏定时器只持局部引用、无法取消，且 `hidePopup()` 只停 `openAnim` 不停 `closeAnim`；运行中的 Swing Timer 会让 AWT 事件线程（非 daemon）一直存活 → 自检 JVM 不退出，批量自检偶发 `rc=124` 超时挂死（`AstTooltip` 首次暴露）。修法：新增 `hideTimer` 字段统一管理，`hidePopup()` 里统一 stop 掉 `hideTimer`/`openAnim`/`closeAnim`（顺带修掉「先 `hideWithAnimation` 再 `show` 时，上轮残留定时器把新弹层摘掉」这个既有 bug）；`AstTooltip.selfCheck` 收尾补 `sharedPopup.setVisible(false)` 并断言弹层已摘除。反向验证（去掉收尾调用）得到真实的断言失败 + 挂死（exit=124），还原后 3/3 通过，全量 59 项全绿。

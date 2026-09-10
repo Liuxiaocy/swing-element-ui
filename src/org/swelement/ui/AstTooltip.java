@@ -256,6 +256,11 @@ public class AstTooltip {
                 int lightPx = img.getRGB(10, Math.max(1, balloon.getHeight()/2));
                 int lightAlpha = (lightPx >>> 24) & 0xFF;
                 assert lightAlpha > 120 : "light balloon painted; alpha="+lightAlpha;
+                // 收尾：强制收起共享弹层（会停掉 openAnim/closeAnim 与待触发的 185ms 隐藏定时器）。
+                // 否则这些 Swing Timer 会让 AWT 事件线程一直存活（非 daemon），自检 JVM 无法退出，
+                // 在批量自检里表现为超时挂死（rc=124）。
+                sharedPopup.setVisible(false);
+                assert sharedPopup.getParent() == null : "shared popup must be detached after self-check";
                 jfHolder[0].dispose();
             }});
         } catch (Throwable t) { err[0] = t; }
