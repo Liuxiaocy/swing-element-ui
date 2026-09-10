@@ -21,7 +21,7 @@ java -cp out org.swelement.demo.SliderDemo
 java -cp out org.swelement.demo.SelectDemo
 java -cp out org.swelement.demo.TabsDemo
 java -cp out org.swelement.demo.PaginationDemo
-java -cp out org.swelement.demo.MenuDemo
+java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
 java -cp out org.swelement.demo.ProgressDemo
 java -cp out org.swelement.demo.BadgeDemo
@@ -84,7 +84,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | Input 输入框 | [文档](docs/components/input.md) | InputDemo |
 | InputNumber 数字输入 | — | — |
 | Loading 加载 | — | AstLoadingDemo |
-| Menu 导航菜单 | [文档](docs/components/menu.md) | MenuDemo |
+| Menu 导航菜单 | [文档](docs/components/menu.md) | AstMenuDemo |
 | Message 消息 | — | — |
 | MessageBox 弹框 | — | — |
 | Pagination 分页 | [文档](docs/components/pagination.md) | PaginationDemo |

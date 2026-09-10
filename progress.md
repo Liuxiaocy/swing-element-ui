@@ -18,7 +18,7 @@
 - [x] P2.4 `AstDatePicker`：日期范围选择（起止两个面板/联动高亮）—— `setRangeMode(true)` 区间模式；弹层左右并排两块日历（左=起始月，右=起始月+1）各自独立翻月；点击-点击选取（end<start 自动交换、再点开启新一轮）；联动高亮三档（端点实心 PRIMARY 白字跳过 AA / 区间内部 `lerp(WHITE,PRIMARY,0.10)` 底纹做 AA / 今日仅描边）；start 选定后 hover 预览 `[start,hover]`；`setDateRange`/`getDateRange`（非区间抛 `IllegalStateException`，null 抛 `IllegalArgumentException`）；`getFormValue` 区间形如 `start~end`；禁用/其他月静音灰豁免对比度。selfCheck 新增区间 round-trip / 自动交换 / form value / 点击-点击+第三轮重置 / `inRange`·`isEndpoint` 行为断言 / 弹层含 2 个 CalendarPanel / 左面板离屏绘制；单模式与区间弹层均补 `finally` dispose 兜底。`docs/components/datepicker.md` 随本项补完（覆盖 P5.2 datepicker 文档缺口）。
 
 ## 阶段 3 — 导航 / 步骤 / 时间线增强
-- [ ] P3.1 `AstMenu`：侧栏竖向菜单模式（`setMode(VERTICAL)` 或独立 `AstSideMenu`）
+- [x] P3.1 `AstMenu`：侧栏竖向菜单模式 —— `setMode(int)`（`MODE_HORIZONTAL`/`MODE_VERTICAL` 常量）+ `getMode`/`isVertical`/`setSidebarWidth`（默认 200）；布局改为模式感知（水平左→右底条、竖向上→下左竖条指示，entryExtent 按朝向返回宽/行高）；鼠标命中 x/y 分支统一走 `entryIndexAt`；子菜单水平向下、竖向向**右**弹出；方向键 ↑/↓（竖向）/←/→（水平）移动 active 并 clamp 不回绕；`selfCheck` 新增竖向 preferredSize(200,n*40)、离屏绘制、行命中、方向键 clamp、`setMode`/`setSidebarWidth` 非法值断言。新增 `AstMenuDemo`（水平+竖向展示 + `--selfcheck`），接入 `build.bat`/`run-checks.bat` 与 README Demo 列表。menu.md 补竖向示例与属性/方法表。
 - [ ] P3.2 `AstTabs`：侧栏竖向标签模式
 - [ ] P3.3 `AstSteps`：横向步骤条 / 含状态步骤条 / 带图标步骤条 / 简洁风格步骤条
 - [ ] P3.4 `AstTimeline`：带图标的时间线（`Item` 支持 `AstIcon.Type`）
