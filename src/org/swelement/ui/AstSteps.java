@@ -31,9 +31,15 @@ import java.util.function.Consumer;
 public class AstSteps extends AstAbstractComponent {
     public enum Direction { HORIZONTAL, VERTICAL }
 
+    /** 单步状态（Element Plus 对齐）。显式设置后覆盖由 {@code current} 推导出的状态。 */
+    public enum Status { WAIT, PROCESS, FINISH, ERROR, SUCCESS }
+
     private final List<String> steps = new ArrayList<String>();
+    private final List<Status> statuses = new ArrayList<Status>();          // 与 steps 等长，元素可为 null
+    private final List<AstIcon.Type> icons = new ArrayList<AstIcon.Type>();  // 与 steps 等长，元素可为 null
     private int current = 0;          // 当前进行中的步骤索引
     private Direction direction = Direction.HORIZONTAL;
+    private boolean simple = false;   // 简洁风格：节点退化为小圆点，不画数字/对勾/图标
     private Consumer<Integer> stepClickListener;
 
     private static final int NODE_D = 28;      // 节点直径
@@ -42,6 +48,10 @@ public class AstSteps extends AstAbstractComponent {
     private static final int FONT_NODE = 14;      // 节点数字
     private static final int FONT_LABEL = 14;    // 标签
     private static final int LINE_W = 2;          // 连接线宽
+    private static final int SIMPLE_DOT_D = 8;        // 简洁风格圆点直径
+    private static final int SIMPLE_DOT_ACTIVE_D = 10; // 简洁风格进行中圆点直径
+    private static final int SIMPLE_LINE_W = 1;       // 简洁风格连线宽
+    private static final int SIMPLE_H = 24;           // 简洁风格横向高度
 
     public AstSteps(List<String> steps) {
         setSteps0(steps);
@@ -53,6 +63,10 @@ public class AstSteps extends AstAbstractComponent {
         for (String s : steps) if (s == null) throw new IllegalArgumentException("step must not be null");
         this.steps.clear();
         this.steps.addAll(steps);
+        // 步骤列表整体替换 → 显式状态与图标一并清空（长度与 steps 对齐）
+        this.statuses.clear();
+        this.icons.clear();
+        for (int i = 0; i < steps.size(); i++) { statuses.add(null); icons.add(null); }
     }
 
     public void setSteps(List<String> steps) {
@@ -82,14 +96,70 @@ public class AstSteps extends AstAbstractComponent {
         this.stepClickListener = l;
     }
 
+    // ---------- P3.3：状态 / 图标 / 简洁风格 ----------
+
+    /** 设置第 idx 步的显式状态；传 {@code null} 表示清空，回落到由 {@code current} 推导。 */
+    public void setStepStatus(int idx, Status s) {
+        checkIndex(idx);
+        statuses.set(idx, s);
+        repaint();
+    }
+
+    /** 获取第 idx 步的显式状态；未设置返回 {@code null}。 */
+    public Status getStepStatus(int idx) {
+        checkIndex(idx);
+        return statuses.get(idx);
+    }
+
+    /** 设置第 idx 步的图标；传 {@code null} 还原为序号/对勾。图标优先于默认内容绘制。 */
+    public void setStepIcon(int idx, AstIcon.Type t) {
+        checkIndex(idx);
+        icons.set(idx, t);
+        revalidate();
+        repaint();
+    }
+
+    /** 获取第 idx 步的图标；未设置返回 {@code null}。 */
+    public AstIcon.Type getStepIcon(int idx) {
+        checkIndex(idx);
+        return icons.get(idx);
+    }
+
+    /** 简洁风格：节点退化为小圆点、连线为细线，不画数字/对勾/图标。 */
+    public void setSimple(boolean b) {
+        this.simple = b;
+        revalidate();
+        repaint();
+    }
+    public boolean isSimple() { return simple; }
+
+    /**
+     * 解析第 idx 步的最终状态：显式 status 优先（覆盖 current 推导），
+     * 否则 i&lt;current→FINISH、i==current→PROCESS、i&gt;current→WAIT。
+     * 包内可见，供 selfCheck 行为断言。
+     */
+    Status resolveStatus(int idx) {
+        Status s = statuses.get(idx);
+        if (s != null) return s;
+        if (idx < current) return Status.FINISH;
+        if (idx == current) return Status.PROCESS;
+        return Status.WAIT;
+    }
+
+    private void checkIndex(int idx) {
+        if (idx < 0 || idx >= steps.size())
+            throw new IndexOutOfBoundsException("step index out of range: " + idx);
+    }
+
     @Override public Dimension getPreferredSize() {
+        int n = steps.size();
         if (direction == Direction.HORIZONTAL) {
-            int n = steps.size();
             int w = n * NODE_D + (n - 1) * (60 + 2 * NODE_GAP); // 连线 60px
-            return new Dimension(Math.max(w, n * (NODE_D + 80)), NODE_D + 24);
+            return new Dimension(Math.max(w, n * (NODE_D + 80)), simple ? SIMPLE_H : NODE_D + 24);
         } else {
-            int n = steps.size();
-            int h = n * NODE_D + (n - 1) * (28 + 2 * NODE_GAP);
+            int node = simple ? SIMPLE_DOT_D : NODE_D;
+            int seg = simple ? 20 : 28;
+            int h = n * node + (n - 1) * (seg + 2 * NODE_GAP);
             return new Dimension(200, h);
         }
     }
@@ -115,9 +185,10 @@ public class AstSteps extends AstAbstractComponent {
             if (i < n - 1) {
                 int x1 = cx + NODE_D / 2 + NODE_GAP;
                 int x2 = (i + 1) * (NODE_D + segW) + NODE_D / 2 - NODE_D / 2 - NODE_GAP;
-                boolean done = i < current;
+                Status st = resolveStatus(i);
+                boolean done = st == Status.FINISH || st == Status.SUCCESS;
                 g2.setColor(done ? theme().getSuccess() : theme().getBorderBase());
-                g2.setStroke(new BasicStroke(LINE_W));
+                g2.setStroke(new BasicStroke(simple ? SIMPLE_LINE_W : LINE_W));
                 g2.drawLine(x1, centerY, x2, centerY);
             }
         }
@@ -126,7 +197,7 @@ public class AstSteps extends AstAbstractComponent {
     private void paintVertical(Graphics2D g2) {
         int n = steps.size();
         int cx = NODE_D / 2 + 4;
-        int segH = 36;
+        int segH = simple ? 24 : 36;
         int startY = NODE_D / 2 + 4;
         for (int i = 0; i < n; i++) {
             int cy = startY + i * (NODE_D + segH);
@@ -135,30 +206,71 @@ public class AstSteps extends AstAbstractComponent {
             if (i < n - 1) {
                 int y1 = cy + NODE_D / 2 + NODE_GAP;
                 int y2 = startY + (i + 1) * (NODE_D + segH) - NODE_D / 2 - NODE_GAP;
-                boolean done = i < current;
+                Status st = resolveStatus(i);
+                boolean done = st == Status.FINISH || st == Status.SUCCESS;
                 g2.setColor(done ? theme().getSuccess() : theme().getBorderBase());
-                g2.setStroke(new BasicStroke(LINE_W));
+                g2.setStroke(new BasicStroke(simple ? SIMPLE_LINE_W : LINE_W));
                 g2.drawLine(cx, y1, cx, y2);
             }
         }
     }
 
     private void paintNodeAndLabel(Graphics2D g2, int i, int cx, int cy, int lx, int ly, boolean labelCenter) {
+        Status st = resolveStatus(i);
+        boolean waiting = st == Status.WAIT;
+        if (simple) {
+            paintSimpleDot(g2, st, cx, cy);
+        } else {
+            paintFullNode(g2, i, st, cx, cy);
+        }
+        // 标签
+        g2.setFont(theme().getFontBase().deriveFont(waiting ? Font.PLAIN : Font.BOLD, (float) FONT_LABEL));
+        FontMetrics fmL = g2.getFontMetrics();
+        String label = steps.get(i);
+        Color labelCol = waiting ? theme().getTextRegular() : theme().getTextPrimary();
+        if (waiting) assertContrast(theme().getTextRegular(), Color.WHITE, "AstSteps waiting label");
+        else assertContrast(theme().getTextPrimary(), Color.WHITE, "AstSteps active label");
+        g2.setColor(labelCol);
+        if (labelCenter) {
+            int tw = fmL.stringWidth(label);
+            g2.drawString(label, lx + (NODE_D - tw) / 2 - (NODE_D / 2), ly);
+        } else {
+            g2.drawString(label, lx, ly + fmL.getAscent());
+        }
+    }
+
+    /** 简洁风格节点：彩色小圆点，不画数字/对勾/图标。 */
+    private void paintSimpleDot(Graphics2D g2, Status st, int cx, int cy) {
+        int d = (st == Status.PROCESS) ? SIMPLE_DOT_ACTIVE_D : SIMPLE_DOT_D;
+        Color c;
+        switch (st) {
+            case FINISH: case SUCCESS: c = theme().getSuccess(); break;
+            case PROCESS:              c = theme().getPrimary(); break;
+            case ERROR:                c = theme().getDanger();  break;
+            default:                   c = theme().getBorderBase(); break;
+        }
+        g2.setColor(c);
+        g2.fill(new Ellipse2D.Float(cx - d / 2f, cy - d / 2f, d, d));
+    }
+
+    /** 标准节点：圆底 +（图标 / 对勾 / 叉 / 序号）。 */
+    private void paintFullNode(Graphics2D g2, int i, Status st, int cx, int cy) {
         float r = NODE_D / 2f;
-        boolean done = i < current;
-        boolean active = i == current;
         // 光环（仅进行中）
-        if (active) {
+        if (st == Status.PROCESS) {
             Color primary = theme().getPrimary();
             g2.setColor(new Color(primary.getRed(), primary.getGreen(), primary.getBlue(), 60));
             g2.fill(new Ellipse2D.Float(cx - r - 4, cy - r - 4, NODE_D + 8, NODE_D + 8));
         }
         // 节点圆
-        if (done) {
+        if (st == Status.FINISH || st == Status.SUCCESS) {
             g2.setColor(theme().getSuccess());
             g2.fill(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
-        } else if (active) {
+        } else if (st == Status.PROCESS) {
             g2.setColor(theme().getPrimary());
+            g2.fill(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
+        } else if (st == Status.ERROR) {
+            g2.setColor(theme().getDanger());
             g2.fill(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
         } else {
             g2.setColor(Color.WHITE);
@@ -167,8 +279,17 @@ public class AstSteps extends AstAbstractComponent {
             g2.setStroke(new BasicStroke(1.5f));
             g2.draw(new Ellipse2D.Float(cx - r, cy - r, NODE_D, NODE_D));
         }
-        // 数字或对勾
-        if (done) {
+        // 内容：图标优先，其次按状态画对勾 / 叉 / 序号
+        AstIcon.Type ic = icons.get(i);
+        if (ic != null) {
+            int size = 16;
+            Graphics2D ig = (Graphics2D) g2.create();
+            ig.translate(cx - size / 2, cy - size / 2);
+            AstIcon.paintIcon(ig, ic, st == Status.WAIT ? theme().getTextRegular() : Color.WHITE, size, 0f);
+            ig.dispose();
+            return;
+        }
+        if (st == Status.FINISH || st == Status.SUCCESS) {
             // 对勾
             g2.setColor(Color.WHITE);
             g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -176,7 +297,13 @@ public class AstSteps extends AstAbstractComponent {
             int ox = cx - Math.round(s * 0.02f);
             g2.drawLine(ox - 5, cy, ox - 1, cy + 4);
             g2.drawLine(ox - 1, cy + 4, ox + 6, cy - 4);
-        } else if (active) {
+        } else if (st == Status.ERROR) {
+            // 叉
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(cx - 5, cy - 5, cx + 5, cy + 5);
+            g2.drawLine(cx + 5, cy - 5, cx - 5, cy + 5);
+        } else if (st == Status.PROCESS) {
             // 进行中节点数字：在主色背景上使用高对比度文字
             Color numColor = pickTextColorForBg(theme().getPrimary());
             g2.setFont(theme().getFontBase().deriveFont(Font.BOLD, (float) FONT_NODE));
@@ -197,20 +324,6 @@ public class AstSteps extends AstAbstractComponent {
             g2.setColor(theme().getTextRegular());
             assertContrast(theme().getTextRegular(), Color.WHITE, "AstSteps waiting node");
             g2.drawString(num, tx, ty);
-        }
-        // 标签
-        g2.setFont(theme().getFontBase().deriveFont(done || active ? Font.BOLD : Font.PLAIN, (float) FONT_LABEL));
-        FontMetrics fmL = g2.getFontMetrics();
-        String label = steps.get(i);
-        Color labelCol = (done || active) ? theme().getTextPrimary() : theme().getTextRegular();
-        if (done || active) assertContrast(theme().getTextPrimary(), Color.WHITE, "AstSteps active label");
-        else assertContrast(theme().getTextRegular(), Color.WHITE, "AstSteps waiting label");
-        g2.setColor(labelCol);
-        if (labelCenter) {
-            int tw = fmL.stringWidth(label);
-            g2.drawString(label, lx + (NODE_D - tw) / 2 - (NODE_D / 2), ly);
-        } else {
-            g2.drawString(label, lx, ly + fmL.getAscent());
         }
     }
 
@@ -265,6 +378,92 @@ public class AstSteps extends AstAbstractComponent {
             sLast.setCurrent(2); sLast.setBounds(0,0,300,40); paintTo(sLast, 300, 40);
         }}); } catch (Throwable t) { err[0] = t; }
         if (err[0] != null) throw new RuntimeException(err[0]);
+
+        // ===== P3.3：状态 / 图标 / 简洁风格 =====
+        AstSteps st = new AstSteps(Arrays.asList("步骤一", "步骤二", "步骤三", "步骤四"));
+        st.setCurrent(2);
+        // 未设显式状态时按 current 推导
+        assert st.resolveStatus(0) == Status.FINISH : "derived FINISH, got " + st.resolveStatus(0);
+        assert st.resolveStatus(2) == Status.PROCESS : "derived PROCESS, got " + st.resolveStatus(2);
+        assert st.resolveStatus(3) == Status.WAIT : "derived WAIT, got " + st.resolveStatus(3);
+        // 显式 status 覆盖 current 推导
+        st.setStepStatus(0, Status.ERROR);
+        assert st.resolveStatus(0) == Status.ERROR : "explicit ERROR must override derived FINISH";
+        st.setStepStatus(3, Status.SUCCESS);
+        assert st.resolveStatus(3) == Status.SUCCESS : "explicit SUCCESS must override derived WAIT";
+        // 清空后回落到推导
+        st.setStepStatus(0, null);
+        assert st.resolveStatus(0) == Status.FINISH : "cleared status falls back to derived";
+        assert st.getStepStatus(0) == null : "cleared status is null";
+        threw = false;
+        try { st.setStepStatus(9, Status.WAIT); } catch (IndexOutOfBoundsException e) { threw = true; }
+        assert threw : "setStepStatus OOB";
+        threw = false;
+        try { st.setStepStatus(-1, Status.WAIT); } catch (IndexOutOfBoundsException e) { threw = true; }
+        assert threw : "setStepStatus negative";
+
+        // 图标
+        AstSteps si = new AstSteps(Arrays.asList("a", "b"));
+        si.setStepIcon(0, AstIcon.Type.USER);
+        assert si.getStepIcon(0) == AstIcon.Type.USER : "icon set";
+        si.setStepIcon(0, null);
+        assert si.getStepIcon(0) == null : "icon cleared";
+        threw = false;
+        try { si.setStepIcon(5, AstIcon.Type.USER); } catch (IndexOutOfBoundsException e) { threw = true; }
+        assert threw : "setStepIcon OOB";
+
+        // 简洁风格尺寸
+        AstSteps ss = new AstSteps(Arrays.asList("a", "b", "c"));
+        assert !ss.isSimple() : "default not simple";
+        int hNormal = ss.getPreferredSize().height;
+        ss.setSimple(true);
+        assert ss.isSimple() : "simple on";
+        int hSimple = ss.getPreferredSize().height;
+        assert hSimple < hNormal : "simple height smaller, got " + hSimple + " vs " + hNormal;
+
+        // 五种状态 + 图标 + 简洁风格 的离屏绘制（横 / 竖 两套）
+        final Throwable[] err2 = {null};
+        try { SwingUtilities.invokeAndWait(new Runnable() { public void run() {
+            Status[] all = {Status.WAIT, Status.PROCESS, Status.FINISH, Status.ERROR, Status.SUCCESS};
+            for (Status s : all) {
+                AstSteps t = new AstSteps(Arrays.asList("a", "b", "c"));
+                t.setCurrent(1);
+                for (int i = 0; i < 3; i++) t.setStepStatus(i, s);
+                t.setBounds(0, 0, 400, 60);
+                paintTo(t, 400, 60);
+                AstSteps tv = new AstSteps(Arrays.asList("a", "b", "c"));
+                tv.setDirection(Direction.VERTICAL);
+                for (int i = 0; i < 3; i++) tv.setStepStatus(i, s);
+                tv.setBounds(0, 0, 200, 200);
+                paintTo(tv, 200, 200);
+            }
+            // 图标渲染
+            AstSteps ti = new AstSteps(Arrays.asList("a", "b"));
+            ti.setStepIcon(0, AstIcon.Type.USER);
+            ti.setStepIcon(1, AstIcon.Type.EDIT);
+            ti.setBounds(0, 0, 300, 60);
+            paintTo(ti, 300, 60);
+            // 简洁风格（横 + 竖）
+            AstSteps ts = new AstSteps(Arrays.asList("a", "b", "c"));
+            ts.setSimple(true);
+            ts.setCurrent(1);
+            ts.setBounds(0, 0, 400, 24);
+            paintTo(ts, 400, 24);
+            AstSteps tsv = new AstSteps(Arrays.asList("a", "b", "c"));
+            tsv.setDirection(Direction.VERTICAL);
+            tsv.setSimple(true);
+            tsv.setBounds(0, 0, 200, 150);
+            paintTo(tsv, 200, 150);
+            // 简洁 + 状态 + 图标（简洁下图标不画，节点退化为圆点）
+            AstSteps tsi = new AstSteps(Arrays.asList("a", "b"));
+            tsi.setSimple(true);
+            tsi.setStepStatus(0, Status.ERROR);
+            tsi.setStepIcon(1, AstIcon.Type.STAR);
+            tsi.setBounds(0, 0, 300, 24);
+            paintTo(tsi, 300, 24);
+        }}); } catch (Throwable t) { err2[0] = t; }
+        if (err2[0] != null) throw new RuntimeException(err2[0]);
+
         System.out.println("AstSteps self-check OK");
     }
 

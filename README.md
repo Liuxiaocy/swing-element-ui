@@ -21,6 +21,7 @@ java -cp out org.swelement.demo.SliderDemo
 java -cp out org.swelement.demo.SelectDemo
 java -cp out org.swelement.demo.TabsDemo
 java -cp out org.swelement.demo.AstTabsDemo
+java -cp out org.swelement.demo.AstStepsDemo
 java -cp out org.swelement.demo.PaginationDemo
 java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
@@ -95,7 +96,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | Rate 评分 | — | — |
 | Select 选择器 | [文档](docs/components/select.md) | SelectDemo |
 | Slider 滑块 | [文档](docs/components/slider.md) | SliderDemo |
-| Steps 步骤条 | — | — |
+| Steps 步骤条 | [文档](docs/components/steps.md) | AstStepsDemo |
 | Switch 开关 | [文档](docs/components/switch.md) | SwitchDemo |
 | Table 表格 | — | AstTableDemo |
 | Tabs 标签页 | [文档](docs/components/tabs.md) | AstTabsDemo |
