@@ -41,12 +41,12 @@
   - [x] `empty` `notification` `steps` `timeline` `timepicker` `datepicker`（各阶段已建）
   - [x] `breadcrumb`（本批新建）
   - [x] `collapse`（本批新建）
-- [ ] P5.3 全部条目接入 `build.bat` + `run-checks.bat`；`README.md` Demo 列表同步
+- [x] P5.3 全部条目接入 `build.bat` + `run-checks.bat`；`README.md` Demo 列表同步
   - [x] `BreadcrumbDemo` 已接入 build/run-checks/README
   - [x] `CollapseDemo` 已接入 build/run-checks/README
   - [x] `TimePickerDemo` 已接入 build/run-checks/README
   - [x] `DatePickerDemo` 已接入 build/run-checks/README
-  - [ ] 待统一把 `AstEmptyDemo`/`AstNotificationDemo`/`AstIconDemo`/`AstTableDemo` 也接入 run-checks.bat（目前仅在 build.bat）
+  - [x] `AstEmptyDemo`/`AstNotificationDemo`/`AstIconDemo`/`AstTableDemo` 已补入 run-checks.bat（原仅 build.bat）；run-checks 现 68 步（67 自检 + 文档一致性）
 
 ## 阶段 6 — 全量验证
 - [ ] 全量 self-check（数量随新增自增）+ `DocSnippetCheck` 全绿；`out/` 编译零错误
