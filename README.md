@@ -24,6 +24,7 @@ java -cp out org.swelement.demo.AstTabsDemo
 java -cp out org.swelement.demo.AstStepsDemo
 java -cp out org.swelement.demo.AstTimelineDemo
 java -cp out org.swelement.demo.AstRadioDemo
+java -cp out org.swelement.demo.AstCheckboxDemo
 java -cp out org.swelement.demo.PaginationDemo
 java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
@@ -74,7 +75,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | Card 卡片 | — | AstCardDemo |
 | Carousel 走马灯 | — | — |
 | Cascader 级联选择 | — | — |
-| Checkbox 多选框 | [文档](docs/components/checkbox.md) | CheckboxDemo |
+| Checkbox 多选框 | [文档](docs/components/checkbox.md) | AstCheckboxDemo |
 | CloseButton 关闭按钮 | — | — |
 | Collapse 折叠面板 | — | — |
 | Container 布局容器 | — | AstContainerDemo |
