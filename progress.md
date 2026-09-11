@@ -25,7 +25,7 @@
 
 ## 阶段 4 — 表单控件增强
 - [x] P4.1 `AstRadio` 按钮样式（`setButtonStyle(true)`）
-- [ ] P4.2 `AstCheckbox` 按钮样式（`setButtonStyle(true)`）
+- [x] P4.2 `AstCheckbox` 按钮样式（`setButtonStyle(true)`）
 
 ## 阶段 5 — 补齐 Demo 与文档
 - [ ] P5.1 新建 8 个 Demo：`AstEmptyDemo` `AstNotificationDemo` `BreadcrumbDemo` `StepsDemo` `CollapseDemo` `TimelineDemo` `TimePickerDemo` `DatePickerDemo`（Menu/Tabs/Input/Select/Radio/Checkbox/Tag 已有 Demo，不重复）
@@ -41,3 +41,4 @@
 - `AstMessage` 已存在（Toast 式通知），`AstNotification` 在其上封装更丰富的 API（位置/手动关闭/多实例堆叠）。
 - 缺陷修复（自检挂死）：`AnimatedPopup.hideWithAnimation` 的 185ms 隐藏定时器只持局部引用、无法取消，且 `hidePopup()` 只停 `openAnim` 不停 `closeAnim`；运行中的 Swing Timer 会让 AWT 事件线程（非 daemon）一直存活 → 自检 JVM 不退出，批量自检偶发 `rc=124` 超时挂死（`AstTooltip` 首次暴露）。修法：新增 `hideTimer` 字段统一管理，`hidePopup()` 里统一 stop 掉 `hideTimer`/`openAnim`/`closeAnim`（顺带修掉「先 `hideWithAnimation` 再 `show` 时，上轮残留定时器把新弹层摘掉」这个既有 bug）；`AstTooltip.selfCheck` 收尾补 `sharedPopup.setVisible(false)` 并断言弹层已摘除。反向验证（去掉收尾调用）得到真实的断言失败 + 挂死（exit=124），还原后 3/3 通过，全量 59 项全绿。
 - P4.1 `AstRadio` 按钮样式：新增 `setButtonStyle(boolean)` / `isButtonStyle()` + `fill` 动画通道；按钮态渲染为直角 1px 边框分段按钮（选中=主色填充+白字实心态，未选中=浅底+常规文字，禁用=静音灰）；`getPreferredSize` 按钮态 `height=32 / width=文字宽+40`。`selfCheck` 新增按钮态尺寸 + **绘制级像素断言**（离屏绘制选中态、强制 `fill=1`、采样背景中心须为 `PRIMARY` 不透明；反向验证屏蔽 primary 填充得真实 `AssertionError: button selected bg must be PRIMARY, got ffffff`，还原 exit=0）。新增 `AstRadioDemo`（普通/按钮样式/禁用三组 + `--selfcheck`，Group 互斥组合）；**注意 Demo 在另一包无法访问组件 `protected anim`，其 selfCheck 只做 API/尺寸/Group/绘制不抛错，绘制级像素断言留在组件 selfCheck**。接入 `build.bat`/`run-checks.bat`（59→60 步，含 DocSnippetCheck 校验 26 篇文档）、README Demo 列表、radio.md 补「按钮样式」小节 + 属性/方法表。全量 60 步全绿。
+- P4.2 `AstCheckbox` 按钮样式：复用 P4.1 的 Bounded 设计（选中=主色填充+白字实心态、直角 1px 边框分段按钮、禁用=静音灰、按钮态 `height=32 / width=文字宽+40`）；`fill` 通道在 `AstCheckbox` 已存在，直接驱动。按钮态**不画勾选框**（与 Radio 一致，纯文字分段按钮）。`selfCheck` 新增按钮态 API/尺寸 + **绘制级像素断言**（强制 `fill=1`、采样背景中心须为 `PRIMARY` 不透明；反向验证屏蔽 primary 填充得真实 `AssertionError: checkbox button selected bg must be PRIMARY, got ffffff`，还原 exit=0）+ 未选中态 AA（白字彩底按惯例豁免）。新增 `AstCheckboxDemo`（普通/按钮样式/禁用三组 + `--selfcheck`，校验**多选**——X 与 Y 可同时选中）；Demo selfCheck 同样只做 API/尺寸/多选/绘制不抛错（绘制级像素断言留在组件 selfCheck）。接入 `build.bat`/`run-checks.bat`（含 `AstCheckboxDemo`）、README Demo 列表改指 `AstCheckboxDemo`、checkbox.md 补「按钮样式」小节（强调多选、不画勾选框）+ 属性/方法表。全量 60 步全绿、DocSnippetCheck 通过。
