@@ -8,7 +8,9 @@
   `build.bat` 已固定优先取 JDK 1.8（变量 `JAVAC`/`JRUN`），高版本 JDK 才回退 `--release 8`。
 - 编译必须**全量** `src/org/swelement/{core,ui,demo}`（组件间有跨包依赖，单文件编不过）。
 - 跑 `javac` / `java` 需要 Bash 工具的 `dangerouslyDisableSandbox`。
-- `cmd.exe` 无法从 PowerShell 调用 → build.bat 的验证要在 bash 里逐条执行。
+- `cmd.exe` 被 Bash 工具安全策略**禁止调用**（直接报 security block），所以 build.bat / run-checks.bat **不能** `cmd.exe /c` 跑。
+  全套自检要在 bash 里逐条执行；最省事是写一个 `_sc.sh`（用 JDK1.8 绝对路径 + `-cp out`）把 run-checks.bat 的每条
+  `java -ea -cp out <类> [--selfcheck]` 列成数组循环跑（见下方「验证方法」）。
 - `pom.xml`（P0-4 新增）：`org.swelement:swing-element-ui`，Maven 构建。
   **源码根是 `src/`，不是标准 `src/main/java`** → pom 里显式写了
   `<sourceDirectory>src</sourceDirectory>`，别按 Maven 默认布局去挪目录。
@@ -18,7 +20,7 @@
 
 - 组件命名两套：`Element*` / `Button` 等老组件，与 `Ast*` 新组件（Ast = 对齐 Element Plus 的自绘实现）。
 - 每个组件自带 `selfCheck()` + `main()` 跑断言；`build.bat` 逐个 `java -ea -cp out <类>` 串联，
-  目前共 47 项（含 `AnimatedPopup`、各 Demo 的 `--selfcheck`）。新增功能必须同步加自检。
+  目前 run-checks 共 59 项（含各 Demo 的 `--selfcheck`）。新增功能必须同步加自检。
 - 主题色 / 动效统一走 `org.swelement.core`（`ElementTheme`、`Animator`、`Easing`）。
 - 对比度要求 WCAG 2.1 AA，用 `ElementTheme.assertContrast` 断言。
   **例外惯例**：Element 标准的「白字彩底」实心态（AstTag 实心、AstBadge 5 色 type）沿用官方配色，
@@ -65,11 +67,18 @@
 1. **Swing Timer / Animator 未 stop 会让自检 JVM 不退出**（AWT 事件线程非 daemon），表现为批量自检永久卡住。
    自检里凡调用过 `setCount` / `setSpinEnabled` 等会启动动画的 API，渲染完必须显式 `stop()`。
    批量跑时给每条加 `timeout 120` 兜底，否则一个卡死就堵住整批。
+   **补充（P4.1）**：组件自身的 `anim`（`AnimationManager`）字段是 `protected`，**Demo 类（另一包 `org.swelement.demo`）访问不到**，
+   所以「绘制级像素断言」必须写在组件自身的 `selfCheck()`（同包）里，用 `br.anim.setProgress("fill", 1f)` 把动画通道强制拉到终态再离屏采样；
+   Demo 的 `selfCheck()` 只做 API / 尺寸 / Group 互斥 / 离屏绘制不抛错，**不要**去碰 `anim`。
 2. **从 build.bat 提取自检清单要连参数一起提**：`AstIconDemo` / `AstTableDemo` 需要 `--selfcheck`，
    不带参数会启动 GUI 主程序导致超时误判为 FAIL。用
    `grep -o '\-cp out .*' build.bat | sed 's|^-cp out ||'` 取完整命令行。
    但该 grep 会**顺带抓到编译 DocSnippetCheck 的那行 javac**（`-d out tools\DocSnippetCheck.java`），
    首 token 是 `-d` 而不是类名 → 会被误判成 1 个 FAIL。跳过首字符为 `-`、或含 `-d out` 的行即可。
+3. **Demo `selfCheck` 在 `invokeAndWait`（EDT）里 `getFontMetrics(br.getFont())` 会 NPE**：组件未挂到可见层级时
+   `getFont()` 可能为 `null`，传给 `getFontMetrics` 后在 `FontDesignMetrics` 里 `ConcurrentHashMap.get` 抛 NPE。
+   改用 `br.getFontMetrics(org.swelement.core.ElementTheme.font())`（主题字体恒非空）或借 `BufferedImage` 的
+   `Graphics` 取 metrics；组件自身的 `selfCheck()` 跑在主线程则无此问题。
 - 全量编译慢时可单文件增量编译：`javac -encoding UTF-8 -cp out -d out src/.../X.java`
   （`out` 里已有其余 class，编得飞快，适合反向验证来回改）。
 - **删除 `out/production/swing-element-ui/`**（Maven 历史产物）。残留后 javap/运行时偶尔会加载

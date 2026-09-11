@@ -24,7 +24,7 @@
 - [x] P3.4 `AstTimeline`：带图标的时间线（`Item` 支持 `AstIcon.Type`）—— `Item` 新增 `public final AstIcon.Type icon` 字段 + `getIcon()`，新增两个带图标构造器 `Item(ts,title,type,icon)` 与 `Item(ts,title,desc,type,icon)`；原 3/4 参构造器内部传 `icon=null`，**不破坏任何现有调用**（字段保持 final 不可变）。渲染：设了图标的节点放大到 `ICON_NODE_D=20`（类型色圆底 + 内部 16px 白色图标，复用 `AstIcon.paintIcon` + `g2.create()/translate`），未设图标仍为 12px 实心圆点（混合列表按项各自判定）。白色图标属「白字彩底实心态」，按惯例不做 AA 断言。自检新增：四种构造器 icon 读写与默认值、**绘制级**像素断言（距节点中心水平 8px 处——在 12px 圆点外、20px 图标圆内，带图标项应为类型色不透明、无图标项不应被类型色填充）；反向验证（节点渲染忽略 icon）得真实 `AssertionError: icon node opaque, alpha=0`，还原后 exit=0。新增 `AstTimelineDemo`（基础 + 混合带图标两组 + `--selfcheck`），接入 `build.bat`/`run-checks.bat`（61 项）/README；新建 `docs/components/timeline.md`（覆盖 P5.2 timeline 文档缺口）。
 
 ## 阶段 4 — 表单控件增强
-- [ ] P4.1 `AstRadio` 按钮样式（`setButtonStyle(true)`）
+- [x] P4.1 `AstRadio` 按钮样式（`setButtonStyle(true)`）
 - [ ] P4.2 `AstCheckbox` 按钮样式（`setButtonStyle(true)`）
 
 ## 阶段 5 — 补齐 Demo 与文档
@@ -40,3 +40,4 @@
 - `AstBreadcrumb`/`AstTabs`/`AstSteps`/`AstCollapse`/`AstTimeline`/`AstInput`/`AstSelect`/`AstTimePicker`/`AstDatePicker`/`AstMenu`/`AstRadio`/`AstCheckbox` 均**已存在且已有 selfCheck**，本次是增强。
 - `AstMessage` 已存在（Toast 式通知），`AstNotification` 在其上封装更丰富的 API（位置/手动关闭/多实例堆叠）。
 - 缺陷修复（自检挂死）：`AnimatedPopup.hideWithAnimation` 的 185ms 隐藏定时器只持局部引用、无法取消，且 `hidePopup()` 只停 `openAnim` 不停 `closeAnim`；运行中的 Swing Timer 会让 AWT 事件线程（非 daemon）一直存活 → 自检 JVM 不退出，批量自检偶发 `rc=124` 超时挂死（`AstTooltip` 首次暴露）。修法：新增 `hideTimer` 字段统一管理，`hidePopup()` 里统一 stop 掉 `hideTimer`/`openAnim`/`closeAnim`（顺带修掉「先 `hideWithAnimation` 再 `show` 时，上轮残留定时器把新弹层摘掉」这个既有 bug）；`AstTooltip.selfCheck` 收尾补 `sharedPopup.setVisible(false)` 并断言弹层已摘除。反向验证（去掉收尾调用）得到真实的断言失败 + 挂死（exit=124），还原后 3/3 通过，全量 59 项全绿。
+- P4.1 `AstRadio` 按钮样式：新增 `setButtonStyle(boolean)` / `isButtonStyle()` + `fill` 动画通道；按钮态渲染为直角 1px 边框分段按钮（选中=主色填充+白字实心态，未选中=浅底+常规文字，禁用=静音灰）；`getPreferredSize` 按钮态 `height=32 / width=文字宽+40`。`selfCheck` 新增按钮态尺寸 + **绘制级像素断言**（离屏绘制选中态、强制 `fill=1`、采样背景中心须为 `PRIMARY` 不透明；反向验证屏蔽 primary 填充得真实 `AssertionError: button selected bg must be PRIMARY, got ffffff`，还原 exit=0）。新增 `AstRadioDemo`（普通/按钮样式/禁用三组 + `--selfcheck`，Group 互斥组合）；**注意 Demo 在另一包无法访问组件 `protected anim`，其 selfCheck 只做 API/尺寸/Group/绘制不抛错，绘制级像素断言留在组件 selfCheck**。接入 `build.bat`/`run-checks.bat`（59→60 步，含 DocSnippetCheck 校验 26 篇文档）、README Demo 列表、radio.md 补「按钮样式」小节 + 属性/方法表。全量 60 步全绿。

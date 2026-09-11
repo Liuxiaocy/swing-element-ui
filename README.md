@@ -23,6 +23,7 @@ java -cp out org.swelement.demo.TabsDemo
 java -cp out org.swelement.demo.AstTabsDemo
 java -cp out org.swelement.demo.AstStepsDemo
 java -cp out org.swelement.demo.AstTimelineDemo
+java -cp out org.swelement.demo.AstRadioDemo
 java -cp out org.swelement.demo.PaginationDemo
 java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
@@ -93,7 +94,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | Pagination 分页 | [文档](docs/components/pagination.md) | PaginationDemo |
 | Popover 弹出框 | — | AstPopupDemo |
 | Progress 进度条 | [文档](docs/components/progress.md) | ProgressDemo |
-| Radio 单选框 | [文档](docs/components/radio.md) | RadioDemo |
+| Radio 单选框 | [文档](docs/components/radio.md) | AstRadioDemo |
 | Rate 评分 | — | — |
 | Select 选择器 | [文档](docs/components/select.md) | SelectDemo |
 | Slider 滑块 | [文档](docs/components/slider.md) | SliderDemo |
