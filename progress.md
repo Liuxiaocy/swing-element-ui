@@ -48,8 +48,11 @@
   - [x] `DatePickerDemo` 已接入 build/run-checks/README
   - [x] `AstEmptyDemo`/`AstNotificationDemo`/`AstIconDemo`/`AstTableDemo` 已补入 run-checks.bat（原仅 build.bat）；run-checks 现 68 步（67 自检 + 文档一致性）
 
-## 阶段 6 — 全量验证
-- [ ] 全量 self-check（数量随新增自增）+ `DocSnippetCheck` 全绿；`out/` 编译零错误
+## 阶段 6 — 全量验证 ✅ 完成（2026-09-11）
+- [x] 全量 self-check（数量随新增自增）+ `DocSnippetCheck` 全绿；`out/` 编译零错误。
+  - run-checks 共 **68 步**（67 自检 + 文档一致性）**全部 PASS**；全量 JDK 8 编译 RC=0；`DocSnippetCheck OK（28 篇文档）`。
+  - 沙箱无法跑 `run-checks.bat`（禁 `cmd.exe`、无 `timeout`）→ 新增 `tools/run-checks.py` 等价运行器
+    （解析 bat 逐条执行、每条 120s 超时兜底，支持 `--limit N` 冒烟）。
 
 ## 备注
 - 真实缺口：新组件 `AstEmpty`/`AstNotification`；缺 Demo 的 8 个；缺文档页的 8 个（见 P5.2）。

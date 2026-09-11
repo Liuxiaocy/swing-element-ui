@@ -20,7 +20,7 @@
 
 - 组件命名两套：`Element*` / `Button` 等老组件，与 `Ast*` 新组件（Ast = 对齐 Element Plus 的自绘实现）。
 - 每个组件自带 `selfCheck()` + `main()` 跑断言；`build.bat` 逐个 `java -ea -cp out <类>` 串联，
-  目前 run-checks 共 59 项（含各 Demo 的 `--selfcheck`）。新增功能必须同步加自检。
+  目前 run-checks 共 68 项（67 自检 + 文档一致性）。新增功能必须同步加自检。
 - 主题色 / 动效统一走 `org.swelement.core`（`ElementTheme`、`Animator`、`Easing`）。
 - 对比度要求 WCAG 2.1 AA，用 `ElementTheme.assertContrast` 断言。
   **例外惯例**：Element 标准的「白字彩底」实心态（AstTag 实心、AstBadge 5 色 type）沿用官方配色，
@@ -61,6 +61,9 @@
 - 反向验证要挑「能真正废掉该功能」的破坏点：只改其中一个因子而其他因子仍随参数变化时，
   断言可能照样通过（曾把 spinnerSize 的线长改常量、半径仍随 size 变，断言没抓到）。
 - 视觉类问题（边框、对齐、颜色）当前模型无法读图核验，只能靠像素采样断言 + 提示用户运行 demo 自查。
+- **`docs/components/*.md` 的每个 ```` ```java ```` 代码块被 `tools/DocSnippetCheck.java` 当作独立类逐个编译**
+  → **块内必须自包含**：每块都重新 `import` + 声明本例用到的变量；跨块引用变量会「找不到符号」而 FAIL
+  （曾因 collapse.md「监听变化」块引用了上一块声明的 `c` 而失败）。`.md` 改了务必重跑 `DocSnippetCheck`。
 
 ### 自检跑 batch 的两个坑
 
@@ -83,9 +86,16 @@
   （`out` 里已有其余 class，编得飞快，适合反向验证来回改）。
 - **删除 `out/production/swing-element-ui/`**（Maven 历史产物）。残留后 javap/运行时偶尔会加载
   旧版本 class，stack trace 行号对不上源码、行为不一致。`out/` 顶层是增量编译用的 classpath。
+- **全量自检的沙箱替代跑法（`timeout` 缺失时）**：用 Python 脚本解析 `run-checks.bat`
+  （取含 `"%JRUN%"`/`"%JAVAC%"` 的行，切掉 `|| set /a FAILED+=1` 与 `>nul` 尾巴，
+  `\`→`/` 后 `shlex.split(posix=True)` 去掉 exe 路径引号），逐条 `subprocess.run(timeout=120)`
+  并汇总 PASS/FAIL —— 比纯 sh 循环稳（逐条超时兜底，不会一个卡死堵住整批）。
+  正斜杠替换必须在 shlex 之前（否则 posix shlex 会吃掉 `tools\X.java` 的反斜杠）。
 
 ## Git 工作流
 
 - 功能按批次独立提交（C1…C10 各一个 commit），中文 commit message，正文列实现要点。
 - 快进合并到 main 用 `git branch -f main <分支>`，**不要 `git checkout main`**（沙箱会中断并损坏工作树）。
 - 推送双远程（gitee + origin）用 wincred 凭据 + `http.sslVerify=false`，推完用 `ls-remote` 复核。
+- **多行中文 message 用 `git commit -F <文件>`**：本沙箱 `cat` 缺失，`git commit -m "$(cat <<'EOF' ...)"`
+  会得到空 message 而 abort。改用 Write 工具写 `_msg.txt` 再 `git commit -F _msg.txt`，完事 `git clean -f -- _msg.txt`。
