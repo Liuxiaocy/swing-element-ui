@@ -28,6 +28,7 @@ java -cp out org.swelement.demo.AstCheckboxDemo
 java -cp out org.swelement.demo.AstBreadcrumbDemo
 java -cp out org.swelement.demo.AstCollapseDemo
 java -cp out org.swelement.demo.AstTimePickerDemo
+java -cp out org.swelement.demo.AstDatePickerDemo
 java -cp out org.swelement.demo.PaginationDemo
 java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
@@ -83,7 +84,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | CloseButton 关闭按钮 | — | — |
 | Collapse 折叠面板 | [文档](docs/components/collapse.md) | AstCollapseDemo |
 | Container 布局容器 | — | AstContainerDemo |
-| DatePicker 日期选择 | — | — |
+| DatePicker 日期选择 | [文档](docs/components/datepicker.md) | AstDatePickerDemo |
 | Dialog 对话框 | — | — |
 | Divider 分割线 | — | — |
 | Drawer 抽屉 | — | — |

@@ -28,7 +28,7 @@
 - [x] P4.2 `AstCheckbox` 按钮样式（`setButtonStyle(true)`）
 
 ## 阶段 5 — 补齐 Demo 与文档
-- [ ] P5.1 补齐 Demo（共 8 个；Menu/Tabs/Input/Select/Radio/Checkbox/Tag 已有 Demo 不重复）
+- [x] P5.1 补齐 Demo（共 8 个，已全部完成；Menu/Tabs/Input/Select/Radio/Checkbox/Tag 已有 Demo 不重复）
   - [x] `AstEmptyDemo`（已存在，build.bat 接入）
   - [x] `AstNotificationDemo`（已存在，build.bat 接入）
   - [x] `StepsDemo`（已存在，run-checks.bat 接入）
@@ -36,8 +36,8 @@
   - [x] `BreadcrumbDemo`（本批新建 + breadcrumb.md + 接入 build/run-checks/README；run-checks 现 61 步）
   - [x] `CollapseDemo`（本批新建 + collapse.md + 接入 build/run-checks/README；run-checks 现 62 步）
   - [x] `TimePickerDemo`（本批新建；timepicker.md 已存在 + 接入 build/run-checks/README；run-checks 现 63 步）
-  - [ ] `DatePickerDemo`（待建；datepicker.md 已存在）
-- [ ] P5.2 补文档页（语句型示例必须可编译，无截图则不写图片链接）
+  - [x] `DatePickerDemo`（本批新建；datepicker.md 已存在 + 接入 build/run-checks/README；run-checks 现 64 步）
+- [x] P5.2 补文档页（语句型示例必须可编译，无截图则不写图片链接）
   - [x] `empty` `notification` `steps` `timeline` `timepicker` `datepicker`（各阶段已建）
   - [x] `breadcrumb`（本批新建）
   - [x] `collapse`（本批新建）
@@ -45,6 +45,7 @@
   - [x] `BreadcrumbDemo` 已接入 build/run-checks/README
   - [x] `CollapseDemo` 已接入 build/run-checks/README
   - [x] `TimePickerDemo` 已接入 build/run-checks/README
+  - [x] `DatePickerDemo` 已接入 build/run-checks/README
   - [ ] 待统一把 `AstEmptyDemo`/`AstNotificationDemo`/`AstIconDemo`/`AstTableDemo` 也接入 run-checks.bat（目前仅在 build.bat）
 
 ## 阶段 6 — 全量验证
