@@ -35,7 +35,7 @@
   - [x] `TimelineDemo`（已存在，run-checks.bat 接入）
   - [x] `BreadcrumbDemo`（本批新建 + breadcrumb.md + 接入 build/run-checks/README；run-checks 现 61 步）
   - [x] `CollapseDemo`（本批新建 + collapse.md + 接入 build/run-checks/README；run-checks 现 62 步）
-  - [ ] `TimePickerDemo`（待建；timepicker.md 已存在）
+  - [x] `TimePickerDemo`（本批新建；timepicker.md 已存在 + 接入 build/run-checks/README；run-checks 现 63 步）
   - [ ] `DatePickerDemo`（待建；datepicker.md 已存在）
 - [ ] P5.2 补文档页（语句型示例必须可编译，无截图则不写图片链接）
   - [x] `empty` `notification` `steps` `timeline` `timepicker` `datepicker`（各阶段已建）
@@ -44,6 +44,7 @@
 - [ ] P5.3 全部条目接入 `build.bat` + `run-checks.bat`；`README.md` Demo 列表同步
   - [x] `BreadcrumbDemo` 已接入 build/run-checks/README
   - [x] `CollapseDemo` 已接入 build/run-checks/README
+  - [x] `TimePickerDemo` 已接入 build/run-checks/README
   - [ ] 待统一把 `AstEmptyDemo`/`AstNotificationDemo`/`AstIconDemo`/`AstTableDemo` 也接入 run-checks.bat（目前仅在 build.bat）
 
 ## 阶段 6 — 全量验证

@@ -27,6 +27,7 @@ java -cp out org.swelement.demo.AstRadioDemo
 java -cp out org.swelement.demo.AstCheckboxDemo
 java -cp out org.swelement.demo.AstBreadcrumbDemo
 java -cp out org.swelement.demo.AstCollapseDemo
+java -cp out org.swelement.demo.AstTimePickerDemo
 java -cp out org.swelement.demo.PaginationDemo
 java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
@@ -108,7 +109,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | Tabs 标签页 | [文档](docs/components/tabs.md) | AstTabsDemo |
 | Tag 标记 | [文档](docs/components/tag.md) | TagDemo |
 | TextArea 多行输入 | — | — |
-| TimePicker 时间选择 | — | — |
+| TimePicker 时间选择 | [文档](docs/components/timepicker.md) | AstTimePickerDemo |
 | Timeline 时间线 | [文档](docs/components/timeline.md) | AstTimelineDemo |
 | Tooltip 文字提示 | — | AstPopupDemo |
 | Transfer 穿梭框 | — | — |
