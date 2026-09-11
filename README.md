@@ -25,6 +25,7 @@ java -cp out org.swelement.demo.AstStepsDemo
 java -cp out org.swelement.demo.AstTimelineDemo
 java -cp out org.swelement.demo.AstRadioDemo
 java -cp out org.swelement.demo.AstCheckboxDemo
+java -cp out org.swelement.demo.AstBreadcrumbDemo
 java -cp out org.swelement.demo.PaginationDemo
 java -cp out org.swelement.demo.AstMenuDemo
 java -cp out org.swelement.demo.TagDemo
@@ -70,6 +71,7 @@ java -ea -cp out org.swelement.ui.AstPagination
 | Alert 提示 | [文档](docs/components/alert.md) | AlertDemo |
 | Avatar 头像 | — | AstAvatarDemo |
 | Badge 角标 | [文档](docs/components/badge.md) | BadgeDemo |
+| Breadcrumb 面包屑 | [文档](docs/components/breadcrumb.md) | AstBreadcrumbDemo |
 | Button 按钮 | [文档](docs/components/button.md) | ButtonDemo |
 | Calendar 日历 | — | — |
 | Card 卡片 | — | AstCardDemo |
